@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Prepflow icon: 黒地に白線。3段の「作り置き」と右へ流れる「flow」 -->
+  <rect width="512" height="512" fill="#000000"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 152 H400"/>
+    <path d="M112 256 H304"/>
+    <path d="M112 360 H208"/>
+    <path d="M336 312 L384 360 L336 408"/>
+  </g>
+</svg>
