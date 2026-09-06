@@ -189,25 +189,56 @@ export function PlanScreen() {
       />
 
       <div className="space-y-4 p-4">
-        <WishBar value={request} onChange={setRequest} mode={mode} />
-
-        {/* タグの希望では届かない「唐揚げだけは入れて」を、料理単位で受ける */}
-        <PinPicker
-          pinned={request.pinnedRecipeIds ?? []}
-          onChange={(ids) => setRequest({ ...request, pinnedRecipeIds: ids })}
+        {/*
+          指定の入口は1つ。時短・ジャンル・料理の指名を同じ枠に畳む。
+          別々の枠にすると、どちらに何を入れるのか考えることになる（本人指摘）。
+        */}
+        <WishBar
+          value={request}
+          onChange={setRequest}
+          mode={mode}
+          extra={
+            <PinPicker
+              pinned={request.pinnedRecipeIds ?? []}
+              onChange={(ids) => setRequest({ ...request, pinnedRecipeIds: ids })}
+            />
+          }
         />
 
+        {/*
+          緩和の報告。**知りたいのは「自分の注文のどれが通らなかったか」だけ。**
+          品数の上限も脂質の下限もこちらの都合で、13段ぶん並べても読めない
+          （本人指摘）。本人が指定したものに触れた段だけを出し、
+          それ以外は「ほかにも調整しました」で畳む。
+        */}
         {relaxations.length > 0 && cands && cands.length > 0 && (
-          <div className="rounded-lg border border-foreground/40 p-3">
-            <div className="text-xs font-medium">希望どおりには組めなかったので、こう調整しました</div>
-            <ul className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-              {relaxations.map((r) => (
-                <li key={r}>・{r}</li>
-              ))}
-            </ul>
-            <div className="mt-1.5 text-[10px] text-muted-foreground">
-              アレルゲンと保存日数は緩めていません。
-            </div>
+          <div className="rounded-lg border border-primary/40 p-3 text-xs leading-relaxed">
+            {(() => {
+              const mine = relaxations.filter((r) => /希望|指名|調理時間|予算/.test(r));
+              const others = relaxations.length - mine.length;
+              return (
+                <>
+                  {mine.length > 0 ? (
+                    <>
+                      <div className="font-medium">この指定は叶えられませんでした</div>
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        {mine.map((r) => (
+                          <li key={r}>・{r}</li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : (
+                    <div className="font-medium">指定はすべて叶っています</div>
+                  )}
+                  {others > 0 && (
+                    <div className="mt-1 text-[10px] text-muted-foreground">
+                      ほかに {others} 件、品数や栄養の幅をこちらで調整しました。
+                      アレルギーと保存日数は緩めていません。
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 
@@ -562,8 +593,7 @@ function CandidateView({
           )}
           {ctx.replan && ctx.replan.lockedDates.length > 0 && (
             <div>
-              {ctx.replan.lockedDates.map((d) => formatDateJa(d).replace(/（.）/, '')).join('・')}{' '}
-              は作ったぶんをそのまま食べます
+              {ctx.replan.lockedDates.length} 日ぶんは作ったものを食べるので、そのまま残します
             </div>
           )}
           {ctx.inventoryCoveredYen > 0 && (
@@ -574,16 +604,11 @@ function CandidateView({
         </div>
       )}
 
-      {ctx.freezeFromDay != null && (
-        <div className="rounded-lg border border-foreground/40 p-3 text-xs leading-relaxed">
-          <span className="font-medium">
-            {ctx.freezeFromDay + 1} 日目以降のぶんは冷凍してください
-          </span>
-          <span className="block text-muted-foreground">
-            作った日に冷凍し、食べる前日に冷蔵へ移してください。
-          </span>
-        </div>
-      )}
+      {/*
+        冷凍の案内はここでは出さない。**詰めるときに容器ごとに言うほうが確実**で、
+        あちらには「この容器は冷凍」「食べる前日に冷蔵へ」がすでに出ている。
+        献立を見ている時点では、まだ作ってもいない（本人指摘）。
+      */}
 
       <div className="grid grid-cols-3 gap-2">
         <Stat label="見込み" value={yen(c.estimatedCostYen)} />

@@ -52,10 +52,17 @@ export function WishBar({
   value,
   onChange,
   mode,
+  extra,
 }: {
   value: WeekRequest;
   onChange: (v: WeekRequest) => void;
   mode: CookingMode;
+  /**
+   * 一緒に畳んでおくもの（料理の指名）。
+   * **入口を2つに分けない。**「希望」と「指名」で別々の枠を出すと、
+   * どちらに何を入れるのか考えることになる（本人指摘）。
+   */
+  extra?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const wantOf = (tag: string) => value.wants.find((w) => w.tag === tag);
@@ -111,7 +118,7 @@ export function WishBar({
         className="flex min-h-11 w-full items-center gap-2 rounded-lg border px-4 text-left active:bg-accent"
       >
         <span className="flex-1 text-xs text-muted-foreground">
-          {active ? summary : '今週の希望を入れる（任意）'}
+          {active ? summary : '今週の食べたいもの・避けたいもの（任意）'}
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
       </button>
@@ -122,7 +129,7 @@ export function WishBar({
     <div className="space-y-4 rounded-lg border p-4">
       <div className="flex items-baseline justify-between">
         <button onClick={() => setOpen(false)} className="text-xs text-muted-foreground">
-          今週の希望（任意）
+          今週の食べたいもの・避けたいもの
         </button>
         {active && (
           <button
@@ -167,6 +174,9 @@ export function WishBar({
         isOn={(t) => value.avoidTags.includes(t)}
         onTap={toggleAvoid}
       />
+
+      {/* 料理そのものの指名。ジャンルの指定と同じ枠に置く */}
+      {extra}
 
       <div className="space-y-1.5">
         <div className="text-[10px] text-muted-foreground">{timeUnitLabel(mode)}</div>
