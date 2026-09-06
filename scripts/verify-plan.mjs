@@ -182,10 +182,13 @@ for (const limit of [7, 5, 3, 2]) {
 console.log('');
 console.log('[主食の重なり] 1食に主食が2つ入っていないか');
 for (const tag of ['麺', 'パスタ', 'カレー']) {
+  // 14食を上限3食で埋めるには最低5品要る。ここを既定の4のままにすると
+  // 「希望が無理」ではなく「品数が足りない」で緩和ラダーが延々に走る
   const inp = {
     ...base('batch'),
     meals: 14,
     budgetYen: 12000,
+    maxRecipesPerWeek: Math.max(4, Math.ceil(14 / 3) * 2),
     requiredTagMeals: [{ tag, meals: 4 }],
   };
   const t0 = Date.now();

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  ChevronRight, User, Flame, Box, ShoppingCart, Bell, Clock, Home, Database, BookOpen, Package, Wrench,
+  ChevronRight, User, Flame, Box, ShoppingCart, Bell, Clock, Home, Database, BookOpen, Package, Wrench, Boxes,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/db/db';
@@ -30,6 +30,11 @@ export function SettingsHome() {
     };
   }, []);
   const ingredients = useLiveQuery(() => db.ingredients.where('deleted').equals(0).count(), []);
+  const stock = useLiveQuery(
+    async () =>
+      (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0).length,
+    [],
+  );
   const household = useLiveQuery(
     async () => (await db.households.where('isCurrent').equals(1).toArray())[0],
     [],
@@ -110,6 +115,13 @@ export function SettingsHome() {
           icon: Package,
           label: '食材・プロテイン',
           value: ingredients ? ingredients + ' 品' : '',
+        },
+        {
+          // ふだんは献立を作る直前に出るが、気づいたときに1品だけ直したい人はここから
+          to: '/stock',
+          icon: Boxes,
+          label: '家にあるもの',
+          value: stock != null ? stock + ' 品' : '',
         },
       ],
     },

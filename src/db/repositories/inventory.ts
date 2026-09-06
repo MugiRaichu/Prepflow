@@ -8,7 +8,7 @@
  */
 import { db, newEntity, nowIso } from '@/db/db';
 import { UNIT_LABEL } from '@/features/planner/logic/shoppingList';
-import type { Ingredient, ShoppingListItem, WeekPlan } from '@/db/schema';
+import type { Ingredient, InventoryItem, ShoppingListItem, WeekPlan } from '@/db/schema';
 
 /** 買った量を在庫へ入れる。同じ食材が既にあれば足す */
 export async function addPurchased(items: ShoppingListItem[]): Promise<number> {
@@ -134,4 +134,58 @@ export async function setPurchaseUnits(
     expectedLeftover: Math.round(Math.max(grams - item.requiredQuantity, 0)),
     updatedAt: nowIso(),
   });
+}
+
+/**
+ * 棚卸しの3択。
+ *
+ * 家にある量とアプリの見込みは必ずズレる。半分捨てた、来客で使った、
+ * 別のものを作った——どれもアプリからは見えない。
+ *
+ * かといってグラム数は聞けない。「にんじん あと2本くらい」を 300g に
+ * 換算できる人はいない。**買う単位を基準にした3択**なら答えられる。
+ *
+ *   plenty … 1パック（1袋）ぶんはある
+ *   little … 1回ぶんくらい残っている
+ *   none   … もう無い
+ */
+export type StockLevel = 'plenty' | 'little' | 'none';
+
+/** 「少し」をどう見るか。1購入単位の3割を1回ぶんの目安にする */
+const LITTLE_RATIO = 0.3;
+
+export async function setStockLevel(
+  item: InventoryItem,
+  level: StockLevel,
+): Promise<void> {
+  if (level === 'none') {
+    await db.inventory.put({ ...item, quantity: 0, deleted: 1, updatedAt: nowIso() });
+    return;
+  }
+
+  const ing = await db.ingredients.get(item.ingredientId);
+  const perUnit = ing?.purchase.gramsPerUnit ?? item.quantity;
+  const quantity =
+    level === 'plenty'
+      ? // 見込みが1パックより多いなら、その見込みを信じる（買い足した直後など）
+        Math.max(item.quantity, perUnit)
+      : Math.round(perUnit * LITTLE_RATIO);
+
+  await db.inventory.put({ ...item, quantity, deleted: 0, updatedAt: nowIso() });
+}
+
+/** いま家にあることになっているもの。棚卸しの対象 */
+export async function listStock(): Promise<InventoryItem[]> {
+  const rows = await db.inventory.where('deleted').equals(0).toArray();
+  return rows.filter((r) => r.quantity > 0);
+}
+
+/** 最後に棚卸しをした日時。「そろそろ確認しませんか」の判定に使う */
+export async function stockCheckedAt(): Promise<string | null> {
+  const row = await db.meta.get('stockCheckedAt');
+  return (row?.value as string | undefined) ?? null;
+}
+
+export async function markStockChecked(): Promise<void> {
+  await db.meta.put({ key: 'stockCheckedAt', value: nowIso(), updatedAt: nowIso() });
 }

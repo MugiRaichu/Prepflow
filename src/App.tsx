@@ -15,6 +15,7 @@ import { RhythmScreen } from '@/features/rhythm/RhythmScreen';
 import { CookScreen } from '@/features/cook/CookScreen';
 import { HouseholdScreen } from '@/features/household/HouseholdScreen';
 import { ShoppingScreen } from '@/features/shopping/ShoppingScreen';
+import { StockScreen } from '@/features/shopping/StockScreen';
 import { RecipeList } from '@/features/recipes/RecipeList';
 import { RecipeImport } from '@/features/recipes/RecipeImport';
 import { db } from '@/db/db';
@@ -55,6 +56,7 @@ function MainRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/plan" element={<PlanScreen />} />
         <Route path="/shopping" element={<ShoppingScreen />} />
+        <Route path="/stock" element={<StockScreen />} />
         <Route path="/cook" element={<CookScreen />} />
         <Route path="/rhythm" element={<RhythmScreen />} />
         <Route path="/household" element={<HouseholdScreen />} />

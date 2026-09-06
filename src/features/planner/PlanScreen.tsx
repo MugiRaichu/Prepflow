@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { RefreshCw, Check, ChevronDown } from 'lucide-react';
+import { RefreshCw, Check, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -66,6 +66,16 @@ export function PlanScreen() {
     today < addDaysIso(current!.weekStart, settings!.cooking.coverDays);
   const [replanFrom, setReplanFrom] = useState<string | null>(null);
   const [withoutIds, setWithoutIds] = useState<string[]>([]);
+
+  // 家にあることになっている食材の数と、最後に確かめた日
+  const stockCount = useLiveQuery(
+    async () =>
+      (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0).length,
+    [],
+  ) ?? 0;
+  const checkedAt = useLiveQuery(async () => (await db.meta.get('stockCheckedAt'))?.value, []);
+  const staleStock =
+    typeof checkedAt !== 'string' || checkedAt < new Date(Date.now() - 6 * 864e5).toISOString();
   const [error, setError] = useState<string | null>(null);
 
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
@@ -176,6 +186,29 @@ export function PlanScreen() {
         )}
 
         {error && <div className="rounded-lg border border-foreground/40 p-3 text-xs">{error}</div>}
+
+        {/*
+          献立を作る直前だけ、家にあるものを確かめてもらう。
+          在庫が効くのはこの瞬間だけで、それ以外のタイミングで正確でも意味がない。
+          触らなければ見込みのまま進むので、飛ばしても止まらない
+        */}
+        {!cands && stockCount > 0 && (
+          <button
+            onClick={() => nav('/stock')}
+            className="flex w-full items-center gap-3 rounded-lg border p-3 text-left active:bg-accent"
+          >
+            <Boxes className="size-4 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">家にあるものを確かめる</span>
+              <span className="block text-[10px] text-muted-foreground">
+                {stockCount} 品ぶんの見込みがあります。
+                {staleStock ? 'しばらく確認していません。' : ''}
+                合っていれば触らなくて構いません
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </button>
+        )}
 
         {!cands && (
           <EmptyState

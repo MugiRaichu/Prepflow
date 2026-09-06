@@ -177,11 +177,18 @@ const emptyAcc = (): Acc => ({
   totalServings: 0,
 });
 
-/** 掃引の途中経過。どこまで進んだか（last）と、積んだ中身 */
+/**
+ * 掃引の途中経過。どこまで進んだか（last）と、積んだ中身。
+ *
+ * `tags` は「今週の希望」のタグごとに積んだ人前。間引くときの升の鍵に使う。
+ * **毎回 items を走査し直すと、状態が数十万あるので効かない**
+ * （実測で1回の解に18秒かかった）。足すときに一緒に持ち上げる。
+ */
 interface State {
   last: number;
   items: PlanItem[];
   acc: Acc;
+  tags: number[];
 }
 
 /**
@@ -270,12 +277,12 @@ function thinStates(states: State[], input: SolveInput): State[] {
       Math.round(per.kcal / (BUCKET_KCAL * input.meals)) +
       ':' +
       Math.round(per.proteinG / (BUCKET_PROTEIN * input.meals));
-    for (const req of input.requiredTagMeals) {
-      const tagged = s.items
-        .filter((it) => it.recipe.tags.includes(req.tag))
-        .reduce((n, it) => n + it.totalServings, 0);
-      key += ':' + Math.round(tagged);
-    }
+    /*
+     * 希望のタグを何人前積んでいるか。**粗く見る。**
+     * 1人前きざみで升を分けると升の数が跳ね上がる。
+     * レシピ1品はおおむね4人前なので、4人前きざみ（＝何品ぶんか）で足りる。
+     */
+    for (const t of s.tags) key += ':' + Math.round(t / 4);
     const list = buckets.get(key);
     if (list) list.push(s);
     else buckets.set(key, [s]);
@@ -429,12 +436,41 @@ function buildSubPlans(
    * レシピそのものは1品も候補から外れない。
    */
   if (maxPick > EXACT_MAX_PICK) {
+    // 希望のタグを持つかどうかは候補ごとに決まっている。毎回 tags を引き直さない
+    const reqs = applyRequests ? input.requiredTagMeals : [];
+    const tagged = usable.map((r) => reqs.map((q) => (r.tags.includes(q.tag) ? r.servings : 0)));
+
     // 掃引の段では仕込みは1回（maxBatchesFor が 4品以上で 1 を返すのと同じ扱い）
-    let states: State[] = usable.map((r, i) => ({
-      last: i,
-      items: [{ recipe: r, batches: 1, totalServings: r.servings }],
-      acc: extend(emptyAcc(), r, 1, input),
-    })).filter((s): s is State => s.acc !== null) as State[];
+    let states: State[] = usable
+      .map((r, i) => ({
+        last: i,
+        items: [{ recipe: r, batches: 1, totalServings: r.servings }],
+        acc: extend(emptyAcc(), r, 1, input),
+        tags: tagged[i]!,
+      }))
+      .filter((s): s is State => s.acc !== null) as State[];
+
+    /*
+     * 「今週の希望」に**もう届かない**途中経過を落とす。
+     *
+     * 残りの枠を全部その希望の料理で埋めたとしても必要量に届かないなら、
+     * この先どう伸ばしても希望は満たせない。落としても解は減らない。
+     *
+     * これが無いと、届かない枝を最後まで伸ばしてから捨てることになる。
+     * 「麺を4食」の指定で1回の解に18秒かかっていたのはこれが理由。
+     */
+    const maxServings = Math.max(...usable.map((r) => r.servings));
+    const reachable = (st: State, depth: number): boolean => {
+      if (reqs.length === 0) return true;
+      const room = (maxPick - depth) * maxServings;
+      for (let q = 0; q < reqs.length; q++) {
+        const need = ((st.acc.totalServings + room) * reqs[q]!.meals) / input.meals;
+        if (st.tags[q]! + room < need - 1e-6) return false;
+      }
+      return true;
+    };
+
+    states = states.filter((st) => reachable(st, 1));
 
     for (let depth = 2; depth <= maxPick; depth++) {
       const next: State[] = [];
@@ -445,11 +481,14 @@ function buildSubPlans(
           // 原価もカロリーも足すだけなので、ここで超えた案は
           // 何を足しても通らない。落としても解は減らない（漏れのない枝刈り）
           if (!acc) continue;
-          next.push({
+          const st: State = {
             last: i,
             items: [...s.items, { recipe: r, batches: 1, totalServings: r.servings }],
             acc,
-          });
+            tags: reqs.length === 0 ? s.tags : s.tags.map((v, q) => v + tagged[i]![q]!),
+          };
+          if (!reachable(st, depth)) continue;
+          next.push(st);
         }
       }
       states = thinStates(next, input);
@@ -480,6 +519,9 @@ function buildSubPlans(
  * 失うのは「栄養が同じで中身だけ違う案」の数で、これは最後に
  * 主菜の組合せで重複を落とす処理（diverse）とも役割が重なっている。
  */
+/** 主菜・副菜それぞれの案の上限。積が探索時間になるので、ここが効く */
+const MAX_SUBPLANS = 1200;
+
 const BUCKET_KCAL = 25;
 const BUCKET_PROTEIN = 3;
 const PER_BUCKET = 3;
@@ -496,19 +538,29 @@ function thinOut(plans: SubPlan[]): SubPlan[] {
     else buckets.set(key, [p]);
   }
 
+  const rank = (a: SubPlan, b: SubPlan) =>
+    a.penalty - b.penalty || a.costYen - b.costYen || a.handsMin - b.handsMin;
+  const axes = [
+    (p: SubPlan) => p.handsMin,
+    (p: SubPlan) => p.rawMin,
+    (p: SubPlan) => p.costYen,
+  ];
+
   const out: SubPlan[] = [];
   for (const list of buckets.values()) {
-    out.push(
-      ...keepFrontier(
-        list,
-        PER_BUCKET,
-        (a, b) => a.penalty - b.penalty || a.costYen - b.costYen || a.handsMin - b.handsMin,
-        // 時間と予算はこのあと課される。端を残さないと「解なし」になる
-        [(p) => p.handsMin, (p) => p.rawMin, (p) => p.costYen],
-      ),
-    );
+    // 時間と予算はこのあと課される。端を残さないと「解なし」になる
+    out.push(...keepFrontier(list, PER_BUCKET, rank, axes));
   }
-  return out;
+
+  /*
+   * 全体の上限。
+   *
+   * このあと主菜×副菜を総当たりで組み合わせるので、**両側の件数の積**が
+   * そのまま所要時間になる。升の数が増えると片側3000件を超え、
+   * 900万通りで1回の解に18秒かかった。
+   * ここで絞っても、栄養の升と各軸の端は上で確保済み。
+   */
+  return keepFrontier(out, MAX_SUBPLANS, rank, axes);
 }
 
 /**

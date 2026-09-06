@@ -174,10 +174,25 @@ export interface RelaxedResult {
 }
 
 /** 希望をかけて解き、駄目なら段階的に緩める */
+/**
+ * 緩和にかけてよい時間（ミリ秒）。
+ *
+ * 1段ごとに探索をやり直すので、13段まで進むとその回数ぶんかかる。
+ * 実測で「麺を4食」の指定が23秒（11段）になった。**そこまで待たせない。**
+ *
+ * この時間を超えたら、途中の段を飛ばして最後の段（今週の希望を見送る）へ進む。
+ * 希望を諦めた結果は画面に出るので、黙って条件を変えることにはならない。
+ */
+const RELAX_BUDGET_MS = 6000;
+
+/** 希望を落とす段。時間切れのときはここまで飛ばす */
+const isWishStep = (label: string) => label.includes('希望');
+
 export function solveWithRequest(base: SolveInput): RelaxedResult {
   let input = base;
   const applied: string[] = [];
   let minFeasible: number | null = null;
+  const startedAt = Date.now();
 
   for (let step = 0; step <= LADDER.length; step++) {
     const r = solveWeek(input);
@@ -210,7 +225,28 @@ export function solveWithRequest(base: SolveInput): RelaxedResult {
         maxSameDishMeals: input.maxSameDishMeals,
       };
     }
-    const next = LADDER[step];
+    /*
+     * 次に緩める条件を選ぶ。**飛ばす段のために解き直さない。**
+     *
+     * 飛ばすのは2種類。
+     *   - 効かない緩和（「苦手食材を許容」を苦手ゼロの人に適用しても何も変わらない）
+     *   - 時間切れのときの、希望に関わらない段
+     *
+     * 時間切れで希望の段まで飛ばすのは、ここまでで見つからない詰まりの原因が
+     * たいてい希望そのものだから。細かい調整を積み重ねても出てこない。
+     * 諦めた希望は画面に出るので、黙って条件を変えることにはならない。
+     */
+    const overBudget = Date.now() - startedAt > RELAX_BUDGET_MS;
+    let next = LADDER[step];
+    while (
+      next &&
+      ((next.applicableWhen && !next.applicableWhen(input)) ||
+        (overBudget && !isWishStep(next.label)))
+    ) {
+      step += 1;
+      next = LADDER[step];
+    }
+
     if (!next) {
       return {
         candidates: [],
@@ -221,8 +257,7 @@ export function solveWithRequest(base: SolveInput): RelaxedResult {
         maxSameDishMeals: input.maxSameDishMeals,
       };
     }
-    // 効かない緩和は記録しない（「苦手食材を許容」を苦手ゼロの人に見せない）
-    if (next.applicableWhen && !next.applicableWhen(input)) continue;
+
     input = next.apply(input);
     applied.push(next.label);
   }
