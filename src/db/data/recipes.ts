@@ -904,6 +904,7 @@ const SIDES3: SeedRecipe[] = [
 import { BUILTIN_RECIPES_MORE } from './recipes-more';
 import { BUILTIN_RECIPES_WORLD } from './recipes-world';
 import { BUILTIN_RECIPES_SNACK } from './recipes-snack';
+import { BUILTIN_RECIPES_BEEF } from './recipes-beef';
 
 export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...MAINS,
@@ -922,4 +923,6 @@ export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...BUILTIN_RECIPES_WORLD,
   // 間食とパンの朝食。間食の枠に食事が入っていたのを直すために要る
   ...BUILTIN_RECIPES_SNACK,
+  // 牛肉。鶏・豚に比べて数が足りず、「牛肉を2食」が組めなかった
+  ...BUILTIN_RECIPES_BEEF,
 ];

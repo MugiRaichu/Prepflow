@@ -14,6 +14,7 @@ import type { WeekRequest } from './logic/request';
 const FOOD_TAGS = [
   '鶏肉',
   '豚肉',
+  '牛肉',
   '魚',
   '洋食',
   '中華',

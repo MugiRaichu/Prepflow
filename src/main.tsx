@@ -24,7 +24,8 @@ window.addEventListener('online', flush);
  * かといって毎回きっちり待たせると、2回目以降は邪魔なだけ。
  * 「演出が終わるまで」と「読み込みが終わるまで」の遅いほうに合わせる。
  */
-const SPLASH_MIN_MS = 2000;
+// 線を引く 0.9秒 → キャッチコピー → 2.12秒から名前。名前が出きるまで消さない
+const SPLASH_MIN_MS = 2900;
 
 function dismissSplash(): void {
   const el = document.getElementById('pf-splash');

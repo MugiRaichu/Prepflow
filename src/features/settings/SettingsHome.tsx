@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/db/db';
+import { listAskableStock } from '@/db/repositories/inventory';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { WEEKDAY_LABELS, yen } from '@/lib/labels';
 
@@ -31,11 +32,8 @@ export function SettingsHome() {
   }, []);
   const ingredients = useLiveQuery(() => db.ingredients.where('deleted').equals(0).count(), []);
   const health = useLiveQuery(() => db.activitySamples.count(), []);
-  const stock = useLiveQuery(
-    async () =>
-      (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0).length,
-    [],
-  );
+  // 開いた先に並ぶものと同じ数を出す。調味料は棚卸しに出ないので数にも入れない
+  const stock = useLiveQuery(async () => (await listAskableStock()).length, []);
   const household = useLiveQuery(
     async () => (await db.households.where('isCurrent').equals(1).toArray())[0],
     [],

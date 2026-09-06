@@ -9,6 +9,7 @@
  *   例) 照り焼き4人前・そぼろ4人前を5食に配ると
  *       照り焼き / そぼろ / 照り焼き / そぼろ / 両方を半分ずつ
  */
+import { RICE_STEP } from './solver';
 import type { Macros, Recipe } from '@/db/schema';
 import type { PlanItem } from './types';
 
@@ -243,7 +244,9 @@ export function buildDailyMenus(
         // パスタなど主食を兼ねる主菜の日は、ごはんを 0 まで落とせるようにする。
         // 下限を持たせると「パスタ + ごはん」という食べない組合せが出る
         const hi = riceServingsPerMeal * 1.8;
-        servings = Math.round(Math.min(Math.max(wanted, 0), hi) * 10) / 10;
+        // 盛れる単位（0.5人前＝茶碗に軽く1杯）に丸める。solver.ts と同じ刻み
+        const capped = Math.min(Math.max(wanted, 0), hi);
+        servings = Math.round(capped / RICE_STEP) * RICE_STEP;
       }
       if (servings > 0) day.push({ recipe: rice.recipe, servings });
     }

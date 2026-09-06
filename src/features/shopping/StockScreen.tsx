@@ -5,7 +5,12 @@ import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useUndoBar } from '@/components/shared/UndoBar';
-import { markStockChecked, restoreStock, setStockLevel } from '@/db/repositories/inventory';
+import {
+  listAskableStock,
+  markStockChecked,
+  restoreStock,
+  setStockLevel,
+} from '@/db/repositories/inventory';
 import type { StockLevel } from '@/db/repositories/inventory';
 import { STORE_SECTION_LABELS } from '@/lib/labels';
 import type { Ingredient, InventoryItem, StoreSection } from '@/db/schema';
@@ -50,18 +55,15 @@ export function StockScreen() {
   const undo = useUndoBar();
   /** いま3択を開いている行。1行ずつしか開かない */
   const [editing, setEditing] = useState<string | null>(null);
-  const rows = useLiveQuery(
-    async () => (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0),
-    [],
-  );
+  // 常備品を除いた行だけ。設定に出す数もこれと同じものを数えている
+  const rows = useLiveQuery(() => listAskableStock(), []);
   const ingredients = useLiveQuery(() => db.ingredients.where('deleted').equals(0).toArray(), []);
 
   if (!rows || !ingredients) return null;
 
   const byId = new Map<string, Ingredient>(ingredients.map((i) => [i.id, i]));
 
-  // 常備品は出さない。しょうゆやサラダ油の残量を毎週聞かれても答えようがない
-  const asked = rows.filter((r) => byId.get(r.ingredientId)?.isStaple !== 1);
+  const asked = rows;
   const sections = [...new Set(asked.map((r) => byId.get(r.ingredientId)?.section ?? 'other'))];
 
   const done = async () => {

@@ -175,10 +175,29 @@ export async function setStockLevel(
   await db.inventory.put({ ...item, quantity, deleted: 0, updatedAt: nowIso() });
 }
 
-/** いま家にあることになっているもの。棚卸しの対象 */
+/** いま家にあることになっているもの。調味料も含む全部 */
 export async function listStock(): Promise<InventoryItem[]> {
   const rows = await db.inventory.where('deleted').equals(0).toArray();
   return rows.filter((r) => r.quantity > 0);
+}
+
+/**
+ * 棚卸しで**実際に聞く**もの。常備品（調味料）を除いた生鮮だけ。
+ *
+ * ここを分けていなかったので、設定に「家にあるもの 35品」と出るのに、
+ * 開くと「記録されている食材はありません」になっていた（本人指摘）。
+ * 35 は調味料の数で、棚卸しの画面には最初から出ないものだった。
+ * **数える集合と、並べる集合を1か所に揃える。**
+ */
+export async function listAskableStock(): Promise<InventoryItem[]> {
+  const rows = await listStock();
+  if (rows.length === 0) return [];
+  const ings = new Map(
+    (await db.ingredients.bulkGet(rows.map((r) => r.ingredientId)))
+      .filter((i): i is Ingredient => Boolean(i))
+      .map((i) => [i.id, i]),
+  );
+  return rows.filter((r) => ings.get(r.ingredientId)?.isStaple !== 1);
 }
 
 /** 最後に棚卸しをした日時。「そろそろ確認しませんか」の判定に使う */

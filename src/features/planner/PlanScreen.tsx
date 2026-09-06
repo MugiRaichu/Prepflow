@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { yen, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import { commitWeek, proposeWeek } from './logic/generate';
+import { gramsPerServing } from './logic/distribute';
 import { WishBar } from './WishBar';
 import { PinPicker } from './PinPicker';
 import { EMPTY_REQUEST } from './logic/request';
@@ -669,8 +670,10 @@ function CandidateView({
           <div className="text-xs text-muted-foreground">主食</div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="text-sm font-medium">{c.ricePlan.recipe.title}</span>
+            {/* 人前だけでは量が分からない。茶碗に盛る重さを添える */}
             <span className="text-xs tabular-nums text-muted-foreground">
-              1食 {c.riceServings} 人前
+              1食 {c.riceServings} 人前（約
+              {Math.round(gramsPerServing(c.ricePlan.recipe) * c.riceServings)}g）
             </span>
           </div>
         </div>
