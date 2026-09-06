@@ -337,7 +337,22 @@ function buildSubPlans(
     return true;
   });
 
-  const usable = filtered;
+  /*
+   * 指名された料理は**必ず入れる**。
+   *
+   * 探索の出発点にすることで実現する。候補を全部並べてから「指名を含むもの」を
+   * 選り分けるのではなく、指名を積んだ状態から始めて残りを足す。
+   * 探索の量も減る（指名した品数ぶん、深さが浅くて済む）。
+   *
+   * 並び順を変えて指名を先頭に持ってくるのは、掃引が「最後に足した位置より
+   * 後ろ」だけを見る作りだから。先頭に置けば、指名を二度足すことがない。
+   */
+  const pinnedIds = input.pinnedRecipeIds;
+  const pinned = pinnedIds?.size ? filtered.filter((r) => pinnedIds.has(r.id)) : [];
+  const usable =
+    pinned.length > 0
+      ? [...pinned, ...filtered.filter((r) => !pinnedIds!.has(r.id))]
+      : filtered;
 
   // 品数は飽きの許容範囲から決める。主菜も副菜も同じ扱いにする。
   // 主菜だけ日替わりにしても、副菜が14食とも同じなら皿の見た目は変わらない
@@ -403,8 +418,11 @@ function buildSubPlans(
    * 仕込みを2回に増やせるのもここだけ（maxBatchesFor）。
    */
   let nodes = 0;
-  for (let k = MIN_PICK; k <= Math.min(maxPick, EXACT_MAX_PICK); k++) {
-    for (const combo of combinations(usable, k)) {
+  // 指名は必ず入るので、残りの枠だけを総当たりする
+  const rest = usable.slice(pinned.length);
+  for (let k = Math.max(MIN_PICK, pinned.length); k <= Math.min(maxPick, EXACT_MAX_PICK); k++) {
+    for (const tail of combinations(rest, k - pinned.length)) {
+      const combo = [...pinned, ...tail];
       if (nodes > EXACT_MAX_NODES) break;
       for (const batches of batchPatterns(k, maxBatchesFor(k))) {
         nodes++;
@@ -440,15 +458,40 @@ function buildSubPlans(
     const reqs = applyRequests ? input.requiredTagMeals : [];
     const tagged = usable.map((r) => reqs.map((q) => (r.tags.includes(q.tag) ? r.servings : 0)));
 
-    // 掃引の段では仕込みは1回（maxBatchesFor が 4品以上で 1 を返すのと同じ扱い）
-    let states: State[] = usable
-      .map((r, i) => ({
-        last: i,
-        items: [{ recipe: r, batches: 1, totalServings: r.servings }],
-        acc: extend(emptyAcc(), r, 1, input),
-        tags: tagged[i]!,
-      }))
-      .filter((s): s is State => s.acc !== null) as State[];
+    /*
+     * 掃引の出発点。仕込みは1回（maxBatchesFor が 4品以上で 1 を返すのと同じ扱い）。
+     *
+     * 指名がある場合は、**それを積んだ1つの状態から始める。**
+     * 候補を全部並べてから選り分けるのではなく、必ず入るものを先に積む。
+     * 指名は usable の先頭に並べてあるので、以降は「後ろだけを見る」規則のまま
+     * 二度足しにならない。
+     */
+    let states: State[];
+    let startDepth: number;
+
+    if (pinned.length > 0) {
+      let acc: Acc | null = emptyAcc();
+      const items: PlanItem[] = [];
+      const tags = reqs.map(() => 0);
+      for (let i = 0; i < pinned.length && acc; i++) {
+        const r = pinned[i]!;
+        acc = extend(acc, r, 1, input);
+        items.push({ recipe: r, batches: 1, totalServings: r.servings });
+        for (let q = 0; q < reqs.length; q++) tags[q]! += tagged[i]![q]!;
+      }
+      states = acc ? [{ last: pinned.length - 1, items, acc, tags }] : [];
+      startDepth = pinned.length + 1;
+    } else {
+      states = usable
+        .map((r, i) => ({
+          last: i,
+          items: [{ recipe: r, batches: 1, totalServings: r.servings }],
+          acc: extend(emptyAcc(), r, 1, input),
+          tags: tagged[i]!,
+        }))
+        .filter((s): s is State => s.acc !== null) as State[];
+      startDepth = 2;
+    }
 
     /*
      * 「今週の希望」に**もう届かない**途中経過を落とす。
@@ -470,9 +513,9 @@ function buildSubPlans(
       return true;
     };
 
-    states = states.filter((st) => reachable(st, 1));
+    states = states.filter((st) => reachable(st, startDepth - 1));
 
-    for (let depth = 2; depth <= maxPick; depth++) {
+    for (let depth = startDepth; depth <= maxPick; depth++) {
       const next: State[] = [];
       for (const s of states) {
         for (let i = s.last + 1; i < usable.length; i++) {

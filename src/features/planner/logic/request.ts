@@ -38,6 +38,17 @@ export interface WeekRequest {
    * まったく別物なので、同じ数字を両方に当てない。
    */
   timeCapMinutes?: number;
+  /**
+   * 今週かならず入れる料理。
+   *
+   * タグの希望（「鶏肉を2食」）では届かない要求がある。
+   * 「唐揚げだけは入れて」は毎週あるが、「鶏肉を2食」では唐揚げは来ない。
+   * 料理そのものを指名できるようにする。
+   *
+   * 献立に必ず入るので、指名しすぎると栄養や予算が合わなくなる。
+   * そのときは緩和ラダーが最後に外す（外したことは画面に出る）。
+   */
+  pinnedRecipeIds?: string[];
 }
 
 export const EMPTY_REQUEST: WeekRequest = { wants: [], avoidTags: [] };
@@ -54,6 +65,13 @@ interface RelaxStep {
  * 緩める順序。上から順に、累積で適用する。
  * 予算を最後に置いているのは、実際にお金が出ていく唯一の制約だから。
  */
+/** 指名した料理を外す。ここまで来たら、指名のせいで組めていない */
+const dropPinned: RelaxStep = {
+  label: '指名した料理を今週は見送りました',
+  applicableWhen: (i) => (i.pinnedRecipeIds?.size ?? 0) > 0,
+  apply: (i) => ({ ...i, pinnedRecipeIds: new Set<string>() }),
+};
+
 const LADDER: RelaxStep[] = [
   {
     label: '品数の上限を1品増やしました',
@@ -144,6 +162,8 @@ const LADDER: RelaxStep[] = [
     applicableWhen: (i) => i.requiredTagMeals.length > 0,
     apply: (i) => ({ ...i, requiredTagMeals: [] }),
   },
+  // 指名は希望より強い意思なので、外すのは希望を外したあと
+  dropPinned,
   {
     label: '予算をさらに1割ふやしました',
     apply: (i) => ({ ...i, budgetYen: Math.round(i.budgetYen * 1.1) }),
@@ -185,8 +205,8 @@ export interface RelaxedResult {
  */
 const RELAX_BUDGET_MS = 6000;
 
-/** 希望を落とす段。時間切れのときはここまで飛ばす */
-const isWishStep = (label: string) => label.includes('希望');
+/** 希望・指名を落とす段。時間切れのときはここまで飛ばす */
+const isWishStep = (label: string) => label.includes('希望') || label.includes('指名');
 
 export function solveWithRequest(base: SolveInput): RelaxedResult {
   let input = base;
@@ -284,6 +304,7 @@ export function applyRequest(base: SolveInput, req: WeekRequest): SolveInput {
     ...base,
     requiredTagMeals: req.wants.filter((w) => w.meals > 0),
     avoidTags: req.avoidTags,
+    pinnedRecipeIds: new Set(req.pinnedRecipeIds ?? []),
   };
   const cap = req.timeCapMinutes;
   if (!cap) return out;

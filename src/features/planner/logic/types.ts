@@ -53,6 +53,11 @@ export interface SolveInput {
   recentRecipeIds: Set<string>;
   /** 「このタグの主菜を週N食」。今週の希望 */
   requiredTagMeals: { tag: string; meals: number }[];
+  /**
+   * 今週かならず入れる料理。**探索の出発点になる。**
+   * 空なら普通に全候補から探す。
+   */
+  pinnedRecipeIds?: Set<string>;
   /** 今週は避けたいタグ */
   avoidTags: string[];
   /**

@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { yen, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import { commitWeek, proposeWeek } from './logic/generate';
 import { WishBar } from './WishBar';
+import { PinPicker } from './PinPicker';
 import { EMPTY_REQUEST } from './logic/request';
 import { autoBackup } from '@/db/repositories/backup';
 import { publishIfEnabled } from '@/calendar/gasCalendar';
@@ -189,6 +190,12 @@ export function PlanScreen() {
 
       <div className="space-y-4 p-4">
         <WishBar value={request} onChange={setRequest} mode={mode} />
+
+        {/* タグの希望では届かない「唐揚げだけは入れて」を、料理単位で受ける */}
+        <PinPicker
+          pinned={request.pinnedRecipeIds ?? []}
+          onChange={(ids) => setRequest({ ...request, pinnedRecipeIds: ids })}
+        />
 
         {relaxations.length > 0 && cands && cands.length > 0 && (
           <div className="rounded-lg border border-foreground/40 p-3">
