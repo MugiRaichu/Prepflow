@@ -4,53 +4,78 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * モノクロ・ソリッド。
- * 白黒2値 + zinc の中間階調のみ。色相を持つ色は使わない（destructive も白黒で表現）。
+ * 自然素材の色。
+ *
+ * 白黒2値でやってきたが、**味気なかった**（本人指摘）。
+ * 変えたのは色数ではなく素材で、彩度の高い色は今も使わない。
+ * 生成りの紙、木、土、藍——手で触れるものの色に寄せる。
+ *
+ * 地の色は生成り（#FAF7F2）。真っ白より目が疲れず、影が柔らかく落ちる。
+ * 文字は真っ黒ではなく墨（#2B2724）。紙の上のインクの見え方に近い。
+ * 差し色は茜（#A4483B）1色だけ。押す場所と、いま居る場所にしか使わない。
+ *
+ * 食材の色（--food-*）はイラスト専用。魚は藍、肉は赤茶、野菜は若草。
+ * 一覧で目が滑らないようにするためで、装飾ではない。
  */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  --background: #ffffff;
-  --foreground: #09090b;
+  --background: #faf7f2;
+  --foreground: #2b2724;
   --card: #ffffff;
-  --card-foreground: #09090b;
+  --card-foreground: #2b2724;
   --popover: #ffffff;
-  --popover-foreground: #09090b;
-  --primary: #09090b;
-  --primary-foreground: #fafafa;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --destructive: #09090b;
-  --destructive-foreground: #fafafa;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #09090b;
+  --popover-foreground: #2b2724;
+  --primary: #a4483b;
+  --primary-foreground: #fdfbf8;
+  --secondary: #f0eae1;
+  --secondary-foreground: #453d37;
+  --muted: #f0eae1;
+  --muted-foreground: #7a736c;
+  --accent: #eee7dc;
+  --accent-foreground: #2b2724;
+  --destructive: #a4483b;
+  --destructive-foreground: #fdfbf8;
+  --border: #e3dbd0;
+  --input: #e3dbd0;
+  --ring: #a4483b;
+
+  /* イラスト用。食材の種類が一目で分かる程度に、彩度は抑える */
+  --food-fish: #4a6c8c;
+  --food-meat: #9c5a4a;
+  --food-veg: #6e8b5b;
+  --food-grain: #b98c4a;
+  --food-egg: #c9a227;
+  --food-soy: #8a7a5c;
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #fafafa;
-  --card: #09090b;
-  --card-foreground: #fafafa;
-  --popover: #09090b;
-  --popover-foreground: #fafafa;
-  --primary: #fafafa;
-  --primary-foreground: #09090b;
-  --secondary: #18181b;
-  --secondary-foreground: #fafafa;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  --destructive: #fafafa;
-  --destructive-foreground: #09090b;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #d4d4d8;
+  --background: #191614;
+  --foreground: #efe9e0;
+  --card: #221e1b;
+  --card-foreground: #efe9e0;
+  --popover: #221e1b;
+  --popover-foreground: #efe9e0;
+  --primary: #c96a5c;
+  --primary-foreground: #191614;
+  --secondary: #2a2522;
+  --secondary-foreground: #efe9e0;
+  --muted: #2a2522;
+  --muted-foreground: #a49a8f;
+  --accent: #332c28;
+  --accent-foreground: #efe9e0;
+  --destructive: #c96a5c;
+  --destructive-foreground: #191614;
+  --border: #3a322d;
+  --input: #3a322d;
+  --ring: #c96a5c;
+
+  --food-fish: #7fa3c4;
+  --food-meat: #c98a78;
+  --food-veg: #9bb684;
+  --food-grain: #d6ae74;
+  --food-egg: #dcc05c;
+  --food-soy: #b6a583;
 }
 
 @theme inline {
@@ -73,6 +98,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-food-fish: var(--food-fish);
+  --color-food-meat: var(--food-meat);
+  --color-food-veg: var(--food-veg);
+  --color-food-grain: var(--food-grain);
+  --color-food-egg: var(--food-egg);
+  --color-food-soy: var(--food-soy);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

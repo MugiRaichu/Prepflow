@@ -85,15 +85,36 @@ function glyphOf(r: Recipe): Glyph {
 }
 
 /**
- * 皿の上に主材料が載っている形。線だけで描く（モノクロ）。
- * 皿は共通、中身だけ差し替える。
+ * 主材料ごとの色。
+ *
+ * **装飾ではない。**一覧に並んだとき、魚の日と肉の日が目で分かるようにする。
+ * 彩度は抑えてある（藍・赤茶・若草）。皿は共通の線で、中身だけ色を変える。
+ */
+const FOOD_COLOR: Record<Glyph, string> = {
+  fish: 'text-food-fish',
+  chicken: 'text-food-meat',
+  pork: 'text-food-meat',
+  beef: 'text-food-meat',
+  egg: 'text-food-egg',
+  tofu: 'text-food-soy',
+  veg: 'text-food-veg',
+  salad: 'text-food-veg',
+  noodle: 'text-food-grain',
+  curry: 'text-food-grain',
+  friedrice: 'text-food-grain',
+  rice: 'text-food-grain',
+};
+
+/**
+ * 皿の上に主材料が載っている形。
+ * 皿は共通の線、中身は主材料の色。
  */
 function GlyphArt({ kind }: { kind: Glyph }) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" className="size-full" aria-hidden="true">
+    <svg viewBox="0 0 48 48" fill="none" className={cn('size-full', FOOD_COLOR[kind])} aria-hidden="true">
       <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        {/* 皿 */}
-        <ellipse cx="24" cy="30" rx="16" ry="7" opacity="0.5" />
+        {/* 皿。中身より薄くして、主材料を前に出す */}
+        <ellipse cx="24" cy="30" rx="16" ry="7" opacity="0.35" />
         {kind === 'chicken' && (
           <>
             <path d="M16 27c0-5 4-9 8-9s8 4 8 9" />
@@ -202,7 +223,7 @@ export function DishImage({ recipe, className }: { recipe: Recipe; className?: s
   return (
     <div
       className={cn(
-        'shrink-0 overflow-hidden rounded-md border bg-secondary/40 text-muted-foreground',
+        'shrink-0 overflow-hidden rounded-md border bg-card',
         className,
       )}
     >
@@ -249,7 +270,7 @@ export function DishPhotoInput({ recipe, className }: { recipe: Recipe; classNam
         disabled={busy}
         aria-label={url ? '写真を撮り直す' : '写真をとる'}
         className={cn(
-          'relative shrink-0 overflow-hidden rounded-md border bg-secondary/40 text-muted-foreground',
+          'relative shrink-0 overflow-hidden rounded-md border bg-card',
           className,
         )}
       >

@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="ja" class="dark">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#faf7f2" />
 
     <!-- iOS Safari: ホーム画面追加時の全画面表示 -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -18,7 +18,7 @@
       本文が時刻に重なったまま、下端に 62px の届かない帯が残った。
       背景がもともと黒なので、不透明の black で見た目は変わらない。
     -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Prepflow" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
 
@@ -44,7 +44,7 @@
         align-items: center;
         justify-content: center;
         gap: 26px;
-        background: #000;
+        background: #faf7f2;
         transition:
           opacity 380ms ease,
           transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -88,7 +88,7 @@
           "Noto Sans JP",
           sans-serif;
         letter-spacing: 0.16em;
-        color: #fafafa;
+        color: #2b2724;
         opacity: 0;
         animation: pf-fade 700ms ease 900ms forwards;
       }
@@ -113,9 +113,9 @@
       }
     </style>
   </head>
-  <body class="bg-black text-white antialiased">
+  <body class="antialiased">
     <div id="pf-splash" aria-hidden="true">
-      <svg viewBox="0 0 512 512" fill="none" stroke="#fafafa" stroke-width="34"
+      <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="34"
         stroke-linecap="round" stroke-linejoin="round">
         <path d="M112 152 H400" />
         <path d="M112 256 H304" />
