@@ -6,6 +6,7 @@ import type { Recipe } from '@/db/schema';
 import { db, nowIso } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { useUndoBar } from '@/components/shared/UndoBar';
 import { useWakeLock } from '@/features/shopping/useWakeLock';
 import { schedule } from './logic/scheduler';
 import { CookTimeline } from './CookTimeline';
@@ -37,6 +38,7 @@ export function CookScreen() {
   const nav = useNavigate();
   /** 「材料が使えない」を開いているか。ふだんは畳んでおく */
   const [swapping, setSwapping] = useState(false);
+  const undo = useUndoBar();
 
   const mode = useCookingMode();
   const daily = mode === 'daily';
@@ -74,6 +76,15 @@ export function CookScreen() {
   const markDone = async (id: string) => {
     if (!doneKey) return;
     await db.meta.put({ key: doneKey, value: [...done, id], updatedAt: nowIso() });
+  };
+  /** 「できた」の押し間違いを戻す。手が濡れていると隣を押す */
+  const unmarkDone = async (id: string) => {
+    if (!doneKey) return;
+    await db.meta.put({
+      key: doneKey,
+      value: [...done].filter((x) => x !== id),
+      updatedAt: nowIso(),
+    });
   };
 
   const result = useMemo(() => {
@@ -209,6 +220,7 @@ export function CookScreen() {
   return (
     <div className="pb-6">
       <PageHeader title={daily ? '今日作る' : '作り置き'} />
+      {undo.bar}
 
       {/* 手を止めずに並行で動いているものは、常に見える位置に置く。
           スクロールしても隠れない（本人指摘: 同時並行の操作が見えない） */}
@@ -243,7 +255,10 @@ export function CookScreen() {
             onStart={(sec) => void startTimer(next.id, next.recipeTitle + '　' + next.label, sec)}
             // タイマーは止めない。止めると、次の作業に進んだ瞬間に
             // 火にかけたままの鍋の残り時間が消える（本人指摘）
-            onDone={() => void markDone(next.id)}
+            onDone={() => {
+              void markDone(next.id);
+              undo.offer('「' + next.label + '」を終わりにしました', () => unmarkDone(next.id));
+            }}
           />
         ) : daily ? (
           // その場で食べるので詰める工程は出さない

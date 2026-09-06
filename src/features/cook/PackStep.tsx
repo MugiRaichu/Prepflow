@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Check } from 'lucide-react';
 import { db, nowIso } from '@/db/db';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { useUndoBar } from '@/components/shared/UndoBar';
 import { addDaysIso, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import type { ContainerAssignment } from '@/db/schema';
 
@@ -23,6 +24,7 @@ function daysFromToday(iso: string): string {
 }
 
 export function PackStep({ weekPlanId }: { weekPlanId: string }) {
+  const undo = useUndoBar();
   const assignments = useLiveQuery(
     async () =>
       (await db.containerAssignments.where('weekPlanId').equals(weekPlanId).toArray())
@@ -87,6 +89,7 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
 
   return (
     <div className="space-y-3">
+      {undo.bar}
       <div className="flex items-baseline justify-between">
         <span className="text-sm font-medium">容器に詰める</span>
         <span className="text-xs tabular-nums text-muted-foreground">
@@ -126,7 +129,15 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
         )}
 
         <button
-          onClick={() => pack(next)}
+          onClick={() => {
+            // 押す前の行を覚えておく。詰めた印と期限を書き換えるので、
+            // 戻すときは行ごと書き戻す
+            const before = { ...next };
+            void pack(next);
+            undo.offer('容器 ' + next.containerLabel + ' を詰めました', async () => {
+              await db.containerAssignments.put({ ...before, updatedAt: nowIso() });
+            });
+          }}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-base font-semibold text-background"
         >
           <Check className="size-5" />

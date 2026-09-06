@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { markStockChecked, setStockLevel } from '@/db/repositories/inventory';
+import { useUndoBar } from '@/components/shared/UndoBar';
+import { markStockChecked, restoreStock, setStockLevel } from '@/db/repositories/inventory';
 import type { StockLevel } from '@/db/repositories/inventory';
 import { STORE_SECTION_LABELS } from '@/lib/labels';
 import type { Ingredient, InventoryItem, StoreSection } from '@/db/schema';
@@ -37,6 +38,7 @@ function levelOf(item: InventoryItem, perUnit: number): StockLevel {
 
 export function StockScreen() {
   const nav = useNavigate();
+  const undo = useUndoBar();
   const rows = useLiveQuery(
     async () => (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0),
     [],
@@ -56,6 +58,7 @@ export function StockScreen() {
   return (
     <div className="pb-8">
       <PageHeader title="家にあるもの" backTo="/plan" />
+      {undo.bar}
 
       {rows.length === 0 ? (
         <div className="p-4">
@@ -94,7 +97,16 @@ export function StockScreen() {
                           {LEVELS.map((l) => (
                             <button
                               key={l.value}
-                              onClick={() => void setStockLevel(r, l.value)}
+                              onClick={() => {
+                                // 押す前の行をそのまま覚えておく。「無い」を
+                                // 誤って押しても、量を推測し直さずに戻せる
+                                const before = { ...r };
+                                void setStockLevel(r, l.value);
+                                undo.offer(
+                                  r.ingredientName + 'を「' + l.label + '」にしました',
+                                  () => restoreStock(before),
+                                );
+                              }}
                               className={cn(
                                 'min-h-9 rounded-md border px-2.5 text-xs',
                                 cur === l.value

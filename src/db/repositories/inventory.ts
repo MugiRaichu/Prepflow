@@ -189,3 +189,13 @@ export async function stockCheckedAt(): Promise<string | null> {
 export async function markStockChecked(): Promise<void> {
   await db.meta.put({ key: 'stockCheckedAt', value: nowIso(), updatedAt: nowIso() });
 }
+
+/**
+ * 棚卸しの取り消し。**押す前の行をそのまま書き戻す。**
+ *
+ * 「無い」を押すと量が 0 になり削除の印が付く。あとから元に戻すとき、
+ * 量を推測し直すと押す前と違う数字になってしまう。行ごと保持して戻す。
+ */
+export async function restoreStock(before: InventoryItem): Promise<void> {
+  await db.inventory.put({ ...before, updatedAt: nowIso() });
+}
