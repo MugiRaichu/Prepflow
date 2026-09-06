@@ -46,7 +46,8 @@ const maxBatchesFor = (k: number): number => (k >= 4 ? 1 : MAX_BATCHES);
 const MAX_FAT_RATIO = 1.35;
 
 /** 1食あたりのごはんは 0〜2 人前まで */
-const RICE_MAX = 2;
+/** 1食のごはんは 2人前（約330g）まで。これ以上は茶碗に入らない */
+export const RICE_MAX = 2;
 /** ごはんの最小単位。茶碗に軽く1杯が約0.5人前（83g）。これより細かく刻んでも盛れない */
 export const RICE_STEP = 0.5;
 
