@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { RefreshCw, Check, ChevronDown, ChevronRight, Boxes } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { RefreshCw, Check, ChevronDown, ChevronRight, Boxes, CalendarRange } from 'lucide-react';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -416,6 +416,14 @@ function SavedPlanCard({
 
       {open && (
         <div className="space-y-3 border-t p-4">
+          {/* 1案ずつ深く見る画面と、全体を一度に見る画面は役割が違う */}
+          <Link
+            to="/week"
+            className="flex min-h-10 items-center justify-center gap-1.5 rounded-md border text-xs active:bg-accent"
+          >
+            <CalendarRange className="size-3.5" />
+            1週間ぶんを並べて見る
+          </Link>
           {(meals ?? []).map((m) => (
             <div key={m.id} className="flex gap-3">
               <span className="w-16 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">

@@ -11,6 +11,7 @@ import { NotifySettings } from '@/features/settings/NotifySettings';
 import { DataSettings } from '@/features/settings/DataSettings';
 import { IngredientSettings } from '@/features/settings/IngredientSettings';
 import { PlanScreen } from '@/features/planner/PlanScreen';
+import { WeekOverview } from '@/features/planner/WeekOverview';
 import { RhythmScreen } from '@/features/rhythm/RhythmScreen';
 import { CookScreen } from '@/features/cook/CookScreen';
 import { HouseholdScreen } from '@/features/household/HouseholdScreen';
@@ -56,6 +57,7 @@ function MainRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/plan" element={<PlanScreen />} />
+        <Route path="/week" element={<WeekOverview />} />
         <Route path="/shopping" element={<ShoppingScreen />} />
         <Route path="/stock" element={<StockScreen />} />
         <Route path="/freezer" element={<FreezerScreen />} />

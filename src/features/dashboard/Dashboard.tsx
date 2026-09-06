@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Boxes, ChevronRight } from 'lucide-react';
 import { db } from '@/db/db';
 import { todayIso, formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
 import { sumMacros } from '@/lib/nutrition';
@@ -20,7 +20,7 @@ import type {
 import { DishImage } from '@/features/recipes/DishImage';
 import { useUndoBar } from '@/components/shared/UndoBar';
 import { handleMissedMeal, undoMissedMeal } from '@/db/repositories/meals';
-import { eatLeftover, listLeftovers, undoEatLeftover } from '@/db/repositories/leftovers';
+import { listLeftovers } from '@/db/repositories/leftovers';
 import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
@@ -64,6 +64,13 @@ export function Dashboard() {
     () => db.plannedMeals.where('date').equals(today).toArray(),
     [today],
   );
+  /*
+   * 「今日の食事」の欄に出すのは**献立だけ**。
+   *
+   * 残っていた作り置きを食べた記録も同じテーブルに入るが、それは今日の献立では
+   * ないので混ぜない。摂取の合計（TargetCard）には両方を入れる。
+   */
+  const planned = (meals ?? []).filter((m) => m.source !== 'leftover');
   const assignments = useLiveQuery(
     () => db.containerAssignments.where('intendedDate').equals(today).toArray(),
     [today],
@@ -115,7 +122,7 @@ export function Dashboard() {
 
       {undo.bar}
 
-      <LeftoverCard onUndo={undo.offer} />
+      <LeftoverLink />
 
       {expiring && expiring.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-foreground/40 p-3">
@@ -129,9 +136,9 @@ export function Dashboard() {
         </div>
       )}
 
-      {meals && meals.length > 0 ? (
+      {planned.length > 0 ? (
         <div className="space-y-3">
-          {meals.map((m) => (
+          {planned.map((m) => (
             <MealCard
               key={m.id}
               meal={m}
@@ -190,63 +197,33 @@ export function Dashboard() {
 }
 
 /**
- * 予定の無い作り置き。
+ * 残っている作り置きへの導線。
  *
- * 食べなかった日のぶん、冷凍に回したぶん、作り直しで献立から外れたぶん。
- * 夜食に食べることもあれば翌週まで置くこともあるが、**食べたのに数えない**のは
- * 食べていないのに数えるのと同じくらい困る。
- *
- * 押すのは1回だけ。いつ食べたかは聞かない（押した日でいい）。
- * 期限の近いものから並べる。
+ * **「今日の食事」の欄には出さない。**あれは今日の献立を出す場所で、
+ * 予定の無い在庫を並べると、今日食べるものが何なのか読み取れなくなる（本人指摘）。
+ * ここでは数だけ伝えて、選ぶのは専用のページに任せる。
  */
-function LeftoverCard({
-  onUndo,
-}: {
-  onUndo: (label: string, undo: () => Promise<void>) => void;
-}) {
+function LeftoverLink() {
   const rows = useLiveQuery(listLeftovers, []);
   if (!rows || rows.length === 0) return null;
-
-  const eat = async (c: (typeof rows)[number]) => {
-    const before = { ...c };
-    const meal = await eatLeftover(c);
-    onUndo(c.recipeTitle + 'を食べたことにしました', () => undoEatLeftover(meal, before));
-  };
+  const soonest = rows[0];
 
   return (
-    <div className="space-y-2 rounded-lg border p-4">
-      <div className="text-xs text-muted-foreground">
-        予定の無い作り置きが {rows.length} 食ぶんあります
-      </div>
-      <div className="divide-y">
-        {rows.slice(0, 5).map((c) => (
-          <button
-            key={c.id}
-            onClick={() => void eat(c)}
-            className="flex w-full items-center gap-3 py-2.5 text-left active:bg-accent"
-          >
-            <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold">
-              {c.containerLabel}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm">{c.recipeTitle}</span>
-              <span className="block text-[10px] tabular-nums text-muted-foreground">
-                {c.storage === 'freezer' ? '冷凍' : '冷蔵'}・{formatDateJa(c.useByDate)}まで・
-                {Math.round(c.nutrition.kcal)} kcal
-              </span>
-            </span>
-            <span className="shrink-0 text-xs text-muted-foreground">食べた</span>
-          </button>
-        ))}
-      </div>
-      {/* 毎日見る場所は短くする。全部を見たい人は冷凍在庫のページへ */}
-      <Link
-        to="/freezer"
-        className="flex min-h-9 items-center justify-center text-[10px] text-muted-foreground underline underline-offset-2"
-      >
-        {rows.length > 5 ? 'ほか ' + (rows.length - 5) + ' 食ぶんを見る' : '残っているものを全部見る'}
-      </Link>
-    </div>
+    <Link
+      to="/freezer"
+      className="flex items-center gap-3 rounded-lg border p-3 active:bg-accent"
+    >
+      <Boxes className="size-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm">残っている作り置き {rows.length} 食ぶん</span>
+        {soonest && (
+          <span className="block text-[10px] text-muted-foreground">
+            いちばん近い期限は {formatDateJa(soonest.useByDate)}（{soonest.recipeTitle}）
+          </span>
+        )}
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 

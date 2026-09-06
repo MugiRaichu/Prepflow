@@ -65,6 +65,8 @@ export async function eatLeftover(c: ContainerAssignment): Promise<PlannedMeal> 
     nutrition: { ...c.nutrition },
     status: 'eaten',
     eatenAt: now,
+    // 献立ではなく食べた記録。今日の食事の欄には出さない
+    source: 'leftover',
     note: '残っていたぶん',
   };
 

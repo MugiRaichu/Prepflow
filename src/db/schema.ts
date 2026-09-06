@@ -664,6 +664,14 @@ export interface PlannedMeal extends Entity {
   nutrition: Macros;
   status: 'planned' | 'eaten' | 'skipped' | 'substituted';
   eatenAt?: ISODateTime;
+  /**
+   * 献立として組んだものか、その場で食べた記録か。
+   *
+   * 残っていた作り置きを食べたときにも摂取として記録するが、それは
+   * **今日の献立ではない**。「今日の食事」の欄には献立だけを出し、
+   * 摂取の合計には両方を入れる。区別が無いと、食べた記録が献立に混ざる。
+   */
+  source?: 'plan' | 'leftover';
   note?: string;
 }
 
