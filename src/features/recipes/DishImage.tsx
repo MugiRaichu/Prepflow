@@ -20,23 +20,68 @@ import { cn } from '@/lib/utils';
  * 「肉を焼くもの」「麺」「カレー」くらいの見分けは付く。
  */
 
-type Glyph = 'chicken' | 'pork' | 'beef' | 'fish' | 'egg' | 'tofu' | 'noodle' | 'curry' | 'rice' | 'veg';
+type Glyph =
+  | 'chicken'
+  | 'pork'
+  | 'beef'
+  | 'fish'
+  | 'egg'
+  | 'tofu'
+  | 'noodle'
+  | 'curry'
+  | 'friedrice'
+  | 'rice'
+  | 'salad'
+  | 'veg';
 
-/** レシピからどの絵にするかを決める。タグ→主材料の順に見る */
+/**
+ * 食材名から主材料の種類を引く。
+ * 「鶏むね肉（皮なし）」のような表記ゆれを吸収するので、部分一致で見る。
+ */
+const PROTEIN_PATTERNS: [RegExp, Glyph][] = [
+  [/合いびき|牛/, 'beef'],
+  [/豚|ベーコン/, 'pork'],
+  [/鶏|ささみ/, 'chicken'],
+  [/鮭|さば|ツナ|えび|ちくわ/, 'fish'],
+  [/卵/, 'egg'],
+  [/豆腐|厚揚げ|納豆|油揚げ|ビーンズ/, 'tofu'],
+];
+
+/** 見た目で「これは○○の料理」と言えるかどうかは、いちばん量の多い材料で決まる */
+function dominantProtein(r: Recipe): Glyph | null {
+  let best: { glyph: Glyph; grams: number } | null = null;
+  for (const item of r.ingredients) {
+    for (const [re, glyph] of PROTEIN_PATTERNS) {
+      if (!re.test(item.ingredientName)) continue;
+      if (!best || item.quantity > best.grams) best = { glyph, grams: item.quantity };
+      break;
+    }
+  }
+  return best?.glyph ?? null;
+}
+
+/**
+ * レシピからどの絵にするかを決める。
+ *
+ * 見る順は「皿の形が決まるもの」から。麺・カレー・炒飯は、何の肉が入って
+ * いようと見た目がその料理になる。そのあとで主材料を見る。
+ *
+ * 白いごはんの絵は主食（ごはん）だけに使う。**炒飯や丼にごはんの絵を当てると、
+ * 主菜も主食も同じ絵になって区別が付かない。**粒と湯気のある別の絵にする。
+ */
 function glyphOf(r: Recipe): Glyph {
   const tags = new Set(r.tags);
-  if (tags.has('カレー')) return 'curry';
   if (tags.has('麺') || tags.has('パスタ')) return 'noodle';
+  if (tags.has('カレー')) return 'curry';
+  if (/炒飯|チャーハン|焼き飯|ピラフ|丼|リゾット|ドリア/.test(r.title)) return 'friedrice';
   if (r.role === 'staple') return 'rice';
 
-  const names = r.ingredients.map((i) => i.ingredientName).join(' ');
-  if (/鶏|ささみ/.test(names)) return 'chicken';
-  if (/豚|ベーコン|合いびき/.test(names)) return 'pork';
-  if (/牛/.test(names)) return 'beef';
-  if (/鮭|さば|ツナ|えび|ちくわ/.test(names)) return 'fish';
-  if (/卵/.test(names)) return 'egg';
-  if (/豆腐|厚揚げ|納豆|油揚げ|豆/.test(names)) return 'tofu';
-  return 'veg';
+  // 生のまま和えるものはサラダの絵。火を通す野菜料理とは見た目が違う
+  if (r.role === 'side' && /サラダ|マリネ|和え|ナムル|浅漬け|塩もみ|冷奴/.test(r.title)) {
+    return 'salad';
+  }
+
+  return dominantProtein(r) ?? 'veg';
 }
 
 /**
@@ -104,6 +149,23 @@ function GlyphArt({ kind }: { kind: Glyph }) {
           <>
             <path d="M14 24c0 4 4 6 10 6s10-2 10-6z" />
             <path d="M18 21c2-2 10-2 12 0" opacity="0.6" />
+          </>
+        )}
+        {/* 炒飯・丼。粒と湯気で「ごはんもの」と分かるが、白いごはんとは違う */}
+        {kind === 'friedrice' && (
+          <>
+            <path d="M14 26c0-4 4-7 10-7s10 3 10 7" />
+            <circle cx="20" cy="23" r="1" opacity="0.7" />
+            <circle cx="24" cy="21" r="1" opacity="0.7" />
+            <circle cx="28" cy="23" r="1" opacity="0.7" />
+            <path d="M22 16c1-1 0-2 1-3M27 16c1-1 0-2 1-3" opacity="0.5" />
+          </>
+        )}
+        {/* サラダ。器から葉がはみ出している形 */}
+        {kind === 'salad' && (
+          <>
+            <path d="M15 24c0 4 4 6 9 6s9-2 9-6z" />
+            <path d="M19 23c-1-3 1-5 3-5M24 23c0-4 2-6 4-6M28 24c1-2 3-3 4-3" opacity="0.7" />
           </>
         )}
         {kind === 'veg' && (
