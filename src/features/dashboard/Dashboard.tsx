@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
@@ -17,6 +18,9 @@ import type {
   WeekPlan,
 } from '@/db/schema';
 import { DishImage } from '@/features/recipes/DishImage';
+import { useUndoBar } from '@/components/shared/UndoBar';
+import { handleMissedMeal, undoMissedMeal } from '@/db/repositories/meals';
+import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
 import type { CalendarBlock } from '@/features/rhythm/logic/timeline';
@@ -83,6 +87,7 @@ export function Dashboard() {
   const mode = useCookingMode();
   // 献立に絵を出すのに使う。写真があれば写真、無ければ料理から決まる絵
   const byRecipeId = new Map((recipes ?? []).map((r) => [r.id, r]));
+  const undo = useUndoBar();
 
   // カレンダーの予定。今日タブを開いたとき、古ければ取り直す
   const calendar = useLiveQuery(readCache, []);
@@ -107,6 +112,8 @@ export function Dashboard() {
         <h1 className="text-2xl font-semibold tracking-tight">今日の食事</h1>
       </div>
 
+      {undo.bar}
+
       {expiring && expiring.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-foreground/40 p-3">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -127,6 +134,7 @@ export function Dashboard() {
               meal={m}
               assignments={assignments ?? []}
               recipes={byRecipeId}
+              onUndo={undo.offer}
             />
           ))}
         </div>
@@ -154,7 +162,20 @@ export function Dashboard() {
         />
       )}
 
-      {me && <TargetCard profile={me} eaten={sumMacros((meals ?? []).map((m) => m.nutrition))} />}
+      {/*
+        **食べたものだけを数える。**献立に載っているだけの食事まで足していたので、
+        食べられなかった日も目標を満たしたことになっていた。
+        食べたら押す、という一手間の意味がここにある
+      */}
+      {me && (
+        <TargetCard
+          profile={me}
+          eaten={sumMacros(
+            (meals ?? []).filter((m) => m.status === 'eaten').map((m) => m.nutrition),
+          )}
+          planned={sumMacros((meals ?? []).map((m) => m.nutrition))}
+        />
+      )}
 
       {streak > 0 && (
         <div className="rounded-lg border p-3 text-xs leading-relaxed">
@@ -165,16 +186,35 @@ export function Dashboard() {
   );
 }
 
+/**
+ * 食べられなかったときの3択。
+ *
+ * 急な会食、体調、予定変更。**食べていないものを食べたことにすると、
+ * 摂取カロリーの集計が狂う。**理由は聞かず、押すだけで食べ物と数字の
+ * 両方が正しくなるようにする。
+ *
+ * 「同居人が食べた」は世帯モデルができてから足す。いま出しても付け替える先が無い。
+ */
+const MISSED: { value: MissedAction; label: string; note: string }[] = [
+  { value: 'freeze', label: '冷凍する', note: '食べ物は残ります。期限を今日から30日に引き直します' },
+  { value: 'tomorrow', label: '明日たべる', note: '明日の同じ枠へ移します' },
+  { value: 'discard', label: '捨てた', note: '摂取には数えません' },
+];
+
 function MealCard({
   meal,
   assignments,
   recipes,
+  onUndo,
 }: {
   meal: PlannedMeal;
   assignments: ContainerAssignment[];
   recipes: Map<string, Recipe>;
+  onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const eaten = meal.status === 'eaten';
+  const skipped = meal.status === 'skipped';
+  const [asking, setAsking] = useState(false);
 
   const toggle = async () => {
     const next = eaten
@@ -183,16 +223,21 @@ function MealCard({
     await db.plannedMeals.put({ ...meal, ...next, updatedAt: new Date().toISOString() });
   };
 
+  const missed = async (action: MissedAction, label: string) => {
+    setAsking(false);
+    const before = await handleMissedMeal(meal, action);
+    onUndo('この食事を「' + label + '」にしました', () => undoMissedMeal(before));
+  };
+
   return (
-    <button
-      onClick={toggle}
-      className="w-full rounded-lg border p-4 text-left transition-colors active:scale-[0.99]"
-    >
+    <div className="rounded-lg border p-4">
+      <button onClick={toggle} className="w-full text-left active:scale-[0.99]">
       <div className="mb-2 flex items-center gap-2">
         <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-medium">
           {MEAL_SLOT_LABELS[meal.slot]}
         </span>
         {eaten && <span className="text-[10px] text-muted-foreground">食べた</span>}
+        {skipped && <span className="text-[10px] text-muted-foreground">食べていません</span>}
       </div>
 
       {meal.items.map((it, idx) => {
@@ -221,7 +266,41 @@ function MealCard({
         {Math.round(meal.nutrition.kcal)} kcal ・ P {Math.round(meal.nutrition.proteinG)}g ・ F{' '}
         {Math.round(meal.nutrition.fatG)}g ・ C {Math.round(meal.nutrition.carbG)}g
       </div>
-    </button>
+      </button>
+
+      {/* 食べていない食事の始末。ふだんは1行、押すと3択が開く */}
+      {!eaten && !skipped && (
+        <div className="mt-3 border-t pt-2">
+          {asking ? (
+            <div className="space-y-2">
+              {MISSED.map((m) => (
+                <button
+                  key={m.value}
+                  onClick={() => void missed(m.value, m.label)}
+                  className="flex min-h-11 w-full items-center gap-3 rounded-md border px-3 text-left active:bg-accent"
+                >
+                  <span className="shrink-0 text-xs font-medium">{m.label}</span>
+                  <span className="min-w-0 flex-1 text-[10px] text-muted-foreground">{m.note}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setAsking(false)}
+                className="min-h-8 w-full text-[10px] text-muted-foreground"
+              >
+                やめる
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAsking(true)}
+              className="min-h-8 w-full text-left text-[10px] text-muted-foreground"
+            >
+              食べられなかった
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -297,20 +376,35 @@ function TimelineCard({
   );
 }
 
-function TargetCard({ profile, eaten }: { profile: Profile; eaten: Macros }) {
+function TargetCard({
+  profile,
+  eaten,
+  planned,
+}: {
+  profile: Profile;
+  eaten: Macros;
+  planned: Macros;
+}) {
   const t = profile.baseTargets;
   const rows = [
-    { label: 'kcal', a: eaten.kcal, t: t.kcal },
-    { label: 'P', a: eaten.proteinG, t: t.proteinG },
-    { label: 'F', a: eaten.fatG, t: t.fatG },
-    { label: 'C', a: eaten.carbG, t: t.carbG },
+    { label: 'kcal', a: eaten.kcal, p: planned.kcal, t: t.kcal },
+    { label: 'P', a: eaten.proteinG, p: planned.proteinG, t: t.proteinG },
+    { label: 'F', a: eaten.fatG, p: planned.fatG, t: t.fatG },
+    { label: 'C', a: eaten.carbG, p: planned.carbG, t: t.carbG },
   ];
 
   return (
     <div className="rounded-lg border p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <span className="text-xs text-muted-foreground">{profile.name} の目標</span>
-        <Link to="/settings" className="text-xs underline underline-offset-2">
+        <span className="text-xs text-muted-foreground">
+          {profile.name} の目標
+          {planned.kcal > eaten.kcal && (
+            <span className="ml-1.5">
+              （残り {Math.round(planned.kcal - eaten.kcal)} kcal ぶんが献立にあります）
+            </span>
+          )}
+        </span>
+        <Link to="/settings" className="shrink-0 text-xs underline underline-offset-2">
           変更
         </Link>
       </div>
@@ -318,9 +412,14 @@ function TargetCard({ profile, eaten }: { profile: Profile; eaten: Macros }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-center gap-3">
             <span className="w-8 shrink-0 text-xs text-muted-foreground">{r.label}</span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+            {/* 実線が食べたぶん、薄い帯が献立に残っているぶん */}
+            <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
               <div
-                className="h-full rounded-full bg-foreground"
+                className="absolute inset-y-0 left-0 rounded-full bg-foreground/25"
+                style={{ width: Math.min((r.p / Math.max(r.t, 1)) * 100, 100) + '%' }}
+              />
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-foreground"
                 style={{ width: Math.min((r.a / Math.max(r.t, 1)) * 100, 100) + '%' }}
               />
             </div>
