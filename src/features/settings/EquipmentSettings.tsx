@@ -5,6 +5,8 @@ import { Chips } from '@/components/shared/Chips';
 import { Stepper } from '@/components/shared/Stepper';
 import { WATTAGE_OPTIONS } from '@/features/onboarding/options';
 import { EQUIPMENT_KIND_LABELS } from '@/lib/labels';
+import { DEFAULT_RICE_MINUTES } from '@/features/cook/logic/rice';
+import { updateCooking } from '@/db/repositories/settings';
 import type { Equipment, EquipmentKind } from '@/db/schema';
 
 /**
@@ -30,9 +32,19 @@ const KINDS: { kind: EquipmentKind; unit: string; hint?: string }[] = [
   { kind: 'shaker', unit: '本', hint: 'プロテインを溶かす' },
 ];
 
+/**
+ * ごはんが炊き上がるまでの分数。
+ * 機種で倍近く違ううえ、鍋で炊く人もいるので、こちらで決めずに選んでもらう。
+ */
+const RICE_MINUTE_OPTIONS = [20, 30, 40, 50, 60, 70].map((m) => ({
+  value: m,
+  label: m + '分',
+}));
+
 export function EquipmentSettings() {
   const items = useLiveQuery(() => db.equipment.where('deleted').equals(0).toArray(), []);
-  if (!items) return null;
+  const settings = useLiveQuery(() => db.settings.get('singleton'), []);
+  if (!items || !settings) return null;
 
   const byKind = new Map(items.map((e) => [e.kind, e]));
 
@@ -91,6 +103,24 @@ export function EquipmentSettings() {
                   max={6}
                   suffix={unit}
                 />
+
+                {/* 炊飯の時間は炊飯器の有無によらず要る。
+                    持っていない人には、鍋で炊く段取りに変わることをここで言う */}
+                {kind === 'rice_cooker' && (
+                  <div className="mt-3">
+                    <div className="mb-1 text-[10px] text-muted-foreground">
+                      {count > 0
+                        ? '炊き上がりまで'
+                        : '炊き上がりまで（鍋で炊く手順になります）'}
+                    </div>
+                    <Chips
+                      options={RICE_MINUTE_OPTIONS}
+                      value={settings.cooking.riceCookMinutes ?? DEFAULT_RICE_MINUTES}
+                      onChange={(v) => void updateCooking(() => ({ riceCookMinutes: v }))}
+                      columns={3}
+                    />
+                  </div>
+                )}
 
                 {kind === 'microwave' && count > 0 && e && (
                   <div className="mt-3">

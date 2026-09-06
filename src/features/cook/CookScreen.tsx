@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { useWakeLock } from '@/features/shopping/useWakeLock';
 import { schedule } from './logic/scheduler';
 import { CookTimeline } from './CookTimeline';
+import { adaptRice, hasRiceCooker } from './logic/rice';
 import { PackStep } from './PackStep';
 import { consumeForPlan } from '@/db/repositories/inventory';
 import { useCookingMode } from '@/features/household/useCookingMode';
@@ -43,6 +44,8 @@ export function CookScreen() {
   );
   const recipes = useLiveQuery(() => db.recipes.where('deleted').equals(0).toArray(), []);
   const equipment = useLiveQuery(() => db.equipment.where('deleted').equals(0).toArray(), []);
+  // 炊飯にかかる時間は機種で違うので設定から取る（D-100）
+  const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   // 毎日作る人は、週ぶんではなく今日のぶんだけを作る
   const todayMeals = useLiveQuery(
     async (): Promise<PlannedMeal[]> =>
@@ -70,7 +73,14 @@ export function CookScreen() {
   const result = useMemo(() => {
     if (!plan || !recipes || !equipment) return null;
     if (daily && !todayMeals) return null;
-    const byId = new Map(recipes.map((r) => [r.id, r]));
+    // ごはんだけは、その家の炊飯器（無ければ鍋）に手順を合わせてから組む
+    const rice = {
+      hasRiceCooker: hasRiceCooker(equipment),
+      ...(settings?.cooking.riceCookMinutes
+        ? { riceMinutes: settings.cooking.riceCookMinutes }
+        : {}),
+    };
+    const byId = new Map(recipes.map((r) => [r.id, adaptRice(r, rice)]));
     const counts = new Map<string, number>();
     if (daily) {
       // 今日の献立に出てくる料理だけ。同じ料理が朝と夕に出ても作るのは1回
@@ -100,7 +110,7 @@ export function CookScreen() {
           ...(e.preheatSec ? { preheatSec: e.preheatSec } : {}),
         })),
     });
-  }, [plan, recipes, equipment, daily, todayMeals]);
+  }, [plan, recipes, equipment, settings, daily, todayMeals]);
 
   // 鳴らすのはフック側の仕事（1秒ごとの再描画に頼ると、裏に回ったとき鳴らない）
   const {
