@@ -198,6 +198,11 @@ const SEASONING_MORE: SeedIngredient[] = [
     staple: true,
     allergens: ['soy', 'wheat', 'milk', 'chicken', 'beef'],
   }),
+  ing('純ココア', 'じゅんここあ', 'seasoning', [386, 18.5, 21.6, 42.4], ['pack', 200, 500], {
+    aliases: ['ココア', 'ピュアココア', 'ココアパウダー'],
+    pantry: 365,
+    staple: true,
+  }),
   ing('白すりごま', 'すりごま', 'seasoning', [605, 20.3, 54.2, 18.5], ['pack', 80, 200], {
     aliases: ['すりごま', 'ごま'],
     pantry: 180,
