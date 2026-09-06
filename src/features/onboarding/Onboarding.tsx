@@ -116,7 +116,7 @@ const STEPS: StepDef[] = [
     title: '作ったものを何日もたせますか',
     note: '賞味期限はここと、料理ごとの日持ちの短いほうで決まります。',
   },
-  { key: 'done', chapter: '', title: 'できあがりです', note: undefined },
+  { key: 'done', chapter: '', title: '準備OKですか？', note: undefined },
 ];
 
 const CHAPTERS = ['あなたのこと', '食べられないもの', '暮らし', '台所', '買い物'];
@@ -538,6 +538,18 @@ export function Onboarding() {
                   ['保存', '冷蔵 ' + maxFridgeDays + '日まで' + (allowFreezing ? '・冷凍あり' : '')],
                 ]}
               />
+            )}
+
+            {/*
+              最後の画面にも、ここまでと同じ断りを置く。
+              **決めきらないと始められない、と思わせない。**
+              1問目から「あとから変えられます」と言い続けてきたのに、
+              最後だけ言わないと、確定させる画面に見える
+            */}
+            {cur.key === 'done' && (
+              <p className="text-center text-[10px] text-muted-foreground">
+                あとで設定し直せます。
+              </p>
             )}
           </Section>
         </div>
