@@ -4,14 +4,10 @@ import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { ensureSeeded } from './db/seed';
 import { flushOutbox } from './notify/gasClient';
-import { trackViewportInsets } from './lib/viewport';
 import './index.css';
 
 // Service Worker 登録（autoUpdate: 新版があればバックグラウンドで差し替え）
 registerSW({ immediate: true });
-
-// 見えている範囲を測り続ける。描画より先に始めないと初回だけ枠がずれる
-trackViewportInsets();
 
 // 圏外で溜まった送信を、起動時とオンライン復帰時に流す
 const flush = () => void flushOutbox().catch(() => {});
