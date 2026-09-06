@@ -97,6 +97,10 @@ export interface GenerateContext {
   inventoryCoveredYen: number;
   /** この回だけ外した食材の名前。何を避けて組んだのかを画面で言うために持つ */
   excludedNames: string[];
+  /** 買い出しに行かない前提で組んだか。画面の言い方が変わる */
+  stockOnly: boolean;
+  /** そのとき候補にできた料理の数。少なすぎるなら諦めてもらうしかない */
+  stockPoolSize: number;
 }
 
 /**
@@ -166,6 +170,13 @@ export function nextWeekStart(weekStartsOn: Weekday): string {
 }
 
 export interface ProposeOptions {
+  /**
+   * 買い出しに行かない。**家にあるものだけで組む。**
+   *
+   * 作り直しは、たいてい買い出しのあとに起きる。もう一度店に行けるとは限らない。
+   * 行けないなら、いま家にあるもので作れるものだけを候補にする。
+   */
+  stockOnly?: boolean;
   /**
    * この回だけ使わない食材。
    *
@@ -259,6 +270,11 @@ export async function proposeWeek(
   // 家にある食材はただ同然として扱う。今週の余りを使う案が自然に勝ち、
   // 次の週も同じ計算なので、余った食材は何もしなくても来週へ回る
   const inventory = await db.inventory.where('deleted').equals(0).toArray();
+  const stock = new Map<string, number>();
+  for (const inv of inventory) {
+    if (inv.deleted === 1) continue;
+    stock.set(inv.ingredientId, (stock.get(inv.ingredientId) ?? 0) + inv.quantity);
+  }
   const ingredientMap = new Map<string, Ingredient>(
     (await db.ingredients.where('deleted').equals(0).toArray()).map((i) => [i.id, i]),
   );
@@ -290,10 +306,29 @@ export async function proposeWeek(
   );
   for (const id of previousRecipeIds) recent.add(id);
 
+  /*
+   * 買い出しに行かないときの候補。
+   *
+   * 家にある量で足りる料理だけを残す。常備品（調味料）は在庫として数えない
+   * ——しょうゆが切れていることは滅多になく、切れていたら献立以前の問題。
+   *
+   * 8割で足りるとみなすのは、棚卸しの見込みがそこまで正確ではないため。
+   * ちょうどで切ると、実際には作れるものまで落ちる。
+   */
+  const STOCK_TOLERANCE = 0.8;
+  const cookableFromStock = (r: Recipe): boolean =>
+    r.ingredients.every((it) => {
+      const ing = ingredientMap.get(it.ingredientId);
+      if (!ing || ing.isStaple === 1) return true;
+      return (stock.get(it.ingredientId) ?? 0) >= it.quantity * STOCK_TOLERANCE;
+    });
+
+  const pool = opts.stockOnly ? recipes.filter(cookableFromStock) : recipes;
+
   const result = solveWithRequest(
     applyRequest(
       {
-        recipes,
+        recipes: pool,
         meals,
         target,
         budgetYen,
@@ -361,6 +396,8 @@ export async function proposeWeek(
       excludedNames: (opts.withoutIngredientIds ?? [])
         .map((id) => ingredientMap.get(id)?.name)
         .filter((n): n is string => Boolean(n)),
+      stockOnly: Boolean(opts.stockOnly),
+      stockPoolSize: pool.length,
       inventoryCoveredYen: coveredYen,
     },
   };

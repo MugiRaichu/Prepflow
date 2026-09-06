@@ -124,6 +124,15 @@ export interface Profile extends Entity {
    * ユーザーが数値を直接いじった場合は manualTargets を立てて再計算を止める。
    */
   goal: DietGoal;
+  /**
+   * いつまでに何kgか。
+   *
+   * 「減量」だけでは1日の増減幅が決まらない。3kg落とすのに1か月と半年では
+   * 必要な赤字がまるで違う。期限を持って初めて、1日あたりの数字が出せる。
+   * 未設定なら goal の既定の増減幅（GOAL_KCAL_DELTA）を使う。
+   */
+  goalWeightKg?: number;
+  goalDate?: ISODate;
   activityLevel: ActivityLevel;
   manualTargets?: boolean;
   /** 基準となる目標PFC・カロリー（活動量補正の適用前）。goal から自動計算される */

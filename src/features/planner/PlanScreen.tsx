@@ -107,6 +107,7 @@ export function PlanScreen() {
     req: WeekRequest = request,
     from: string | null = replanFrom,
     without: string[] = withoutIds,
+    stockOnly = false,
   ) => {
     setBusy(true);
     setError(null);
@@ -116,6 +117,7 @@ export function PlanScreen() {
       const r = await proposeWeek(req, {
         ...(from ? { fromDate: from } : {}),
         ...(without.length ? { withoutIngredientIds: without } : {}),
+        ...(stockOnly ? { stockOnly: true } : {}),
       });
       setCands(r.candidates);
       setCtx(r.ctx);
@@ -306,6 +308,7 @@ export function PlanScreen() {
             ctx={ctx}
             index={idx}
             total={cands!.length}
+            onStockOnly={() => void generate(request, replanFrom, withoutIds, true)}
           />
         )}
 
@@ -469,11 +472,14 @@ function CandidateView({
   ctx,
   index,
   total,
+  onStockOnly,
 }: {
   c: WeekPlanCandidate;
   ctx: GenerateContext;
   index: number;
   total: number;
+  /** 買い出しに行かずに組み直す。行ける前提の案を出しているときだけ渡す */
+  onStockOnly?: () => void;
 }) {
   // 表示は「実際に容器へ詰める中身」から計算する。
   // ソルバーの見積りと日別配分がずれたとき、画面に出す数字は後者が正しい
@@ -506,9 +512,33 @@ function CandidateView({
         </div>
       </div>
 
+      {/*
+        買い出しに行けるとは限らない。作り直しは買い出しのあとに起きることが多く、
+        もう一度店に行けるかどうかは暮らしによる。押せば家にあるものだけで組み直す
+      */}
+      {onStockOnly && !ctx.stockOnly && (
+        <button
+          onClick={onStockOnly}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-xs active:bg-accent"
+        >
+          <Boxes className="size-3.5" />
+          買い出しに行かずに、家にあるものだけで組み直す
+        </button>
+      )}
+
       {/* 何を残し、何を使っているかを先に言う。数字の前に前提を置く */}
-      {(ctx.replan || ctx.inventoryCoveredYen > 0 || ctx.excludedNames.length > 0) && (
+      {(ctx.replan ||
+        ctx.inventoryCoveredYen > 0 ||
+        ctx.excludedNames.length > 0 ||
+        ctx.stockOnly) && (
         <div className="space-y-0.5 rounded-lg border p-3 text-xs leading-relaxed">
+          {ctx.stockOnly && (
+            <div>
+              買い出しに行かない前提で、
+              <span className="font-medium">家にある材料で作れる {ctx.stockPoolSize} 品</span>
+              から組みました。
+            </div>
+          )}
           {ctx.excludedNames.length > 0 && (
             <div>
               <span className="font-medium">{ctx.excludedNames.join('・')}</span>{' '}

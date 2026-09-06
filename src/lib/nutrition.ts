@@ -106,6 +106,11 @@ export interface TargetInput {
   activityLevel: ActivityLevel;
   goal: DietGoal;
   lifeStageAdjust?: LifeStageAdjust;
+  /**
+   * 「いつまでに何kg」から出した1日あたりの増減（kcal）。減量なら負。
+   * 入っていれば goal の既定の増減幅より優先する（weightPace で出す）。
+   */
+  paceKcalPerDay?: number;
 }
 
 /**
@@ -119,15 +124,26 @@ export function calcTargets(input: TargetInput): Macros {
   const extraKcal = input.lifeStageAdjust?.extraKcal ?? 0;
   const extraProteinG = input.lifeStageAdjust?.extraProteinG ?? 0;
 
-  // 割合と絶対量の厳しいほうを採る。増量なら多いほう、減量なら少ないほう
+  /*
+   * 目標カロリー。
+   *
+   * **「いつまでに何kg」が入っていれば、そちらを使う。**
+   * 本人が期限まで決めているのに、既定の増減幅（-400 / +300）で上書きするのは
+   * 数字を勝手に変えることになる。無理のあるペースかどうかは画面で伝える。
+   *
+   * 入っていなければ、割合と絶対量の厳しいほうを採る
+   * （増量なら多いほう、減量なら少ないほう）。
+   */
   const byRatio = tdee * GOAL_KCAL_FACTOR[input.goal];
   const byDelta = tdee + GOAL_KCAL_DELTA[input.goal];
   const goalKcal =
-    input.goal === 'bulk'
-      ? Math.max(byRatio, byDelta)
-      : input.goal === 'cut'
-        ? Math.min(byRatio, byDelta)
-        : byRatio;
+    input.paceKcalPerDay != null
+      ? tdee + input.paceKcalPerDay
+      : input.goal === 'bulk'
+        ? Math.max(byRatio, byDelta)
+        : input.goal === 'cut'
+          ? Math.min(byRatio, byDelta)
+          : byRatio;
 
   // 減量でも基礎代謝は下回らせない（極端な設定の事故防止）
   const kcal = Math.max(goalKcal, bmr) + extraKcal;
@@ -152,9 +168,14 @@ export function calcTargets(input: TargetInput): Macros {
 }
 
 /** Profile から目標を再計算する。manualTargets が立っていれば触らない */
-export function recalcProfileTargets(p: Profile): Macros {
+export function recalcProfileTargets(p: Profile, today = new Date().toISOString().slice(0, 10)): Macros {
   if (p.manualTargets) return p.baseTargets;
   const year = new Date().getFullYear();
+  // 「いつまでに何kg」が入っていれば、そこから1日あたりの増減を出す
+  const pace =
+    p.goalWeightKg != null && p.goalDate
+      ? weightPace(p.weightKg ?? DEFAULT_BODY.weightKg, p.goalWeightKg, p.goalDate, today)
+      : null;
   return calcTargets({
     sex: p.sex ?? DEFAULT_BODY.sex,
     weightKg: p.weightKg ?? DEFAULT_BODY.weightKg,
@@ -163,6 +184,7 @@ export function recalcProfileTargets(p: Profile): Macros {
     activityLevel: p.activityLevel,
     goal: p.goal,
     ...(p.lifeStageAdjust ? { lifeStageAdjust: p.lifeStageAdjust } : {}),
+    ...(pace ? { paceKcalPerDay: pace.kcalPerDay } : {}),
   });
 }
 
@@ -199,4 +221,65 @@ export function macrosFor(per100g: Macros, grams: number): Macros {
     fatG: per100g.fatG * r,
     carbG: per100g.carbG * r,
   };
+}
+
+// ---------------------------------------------------------------------------
+// 体重の目標（いつまでに何kg）
+// ---------------------------------------------------------------------------
+
+/**
+ * 体重1kgの増減に必要なカロリー（kcal）。
+ * 体脂肪1kg = 約7200kcal。増量では除脂肪も混ざるので実際はこれより軽いが、
+ * 目標を甘くするより厳しめに見ておくほうが安全。
+ */
+export const KCAL_PER_BODY_KG = 7200;
+
+/**
+ * 無理のない1週間あたりの変化量（体重に対する割合）。
+ *
+ * 減量 1.0%: これを超えると筋量が落ち、続かない
+ * 増量 0.5%: これを超えるとほぼ脂肪になる
+ *
+ * ここを超える設定は**止めない。本人が決めること**だが、
+ * 何が起きるかは数字で見せる。
+ */
+export const SAFE_WEEKLY_RATE = { cut: 0.01, bulk: 0.005 };
+
+export interface WeightPace {
+  /** 1日あたりの増減（kcal）。減量なら負 */
+  kcalPerDay: number;
+  /** 1週間あたりの体重変化（kg）。減量なら負 */
+  kgPerWeek: number;
+  /** 無理のない範囲か */
+  safe: boolean;
+  /** 無理のない範囲で行ったときにかかる日数 */
+  safeDays: number;
+  /** 目標までの日数 */
+  days: number;
+}
+
+/**
+ * 目標体重と期限から、1日あたりの増減を出す。
+ * 期限が過ぎている・体重差が無い場合は null（既定の増減幅に任せる）。
+ */
+export function weightPace(
+  weightKg: number,
+  goalWeightKg: number,
+  goalDate: string,
+  today: string,
+): WeightPace | null {
+  const days = Math.round(
+    (new Date(goalDate + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / 86400000,
+  );
+  const diff = goalWeightKg - weightKg;
+  if (days <= 0 || Math.abs(diff) < 0.1) return null;
+
+  const kcalPerDay = (diff * KCAL_PER_BODY_KG) / days;
+  const kgPerWeek = (diff / days) * 7;
+
+  const limit = weightKg * (diff < 0 ? SAFE_WEEKLY_RATE.cut : SAFE_WEEKLY_RATE.bulk);
+  const safe = Math.abs(kgPerWeek) <= limit + 1e-6;
+  const safeDays = Math.ceil((Math.abs(diff) / limit) * 7);
+
+  return { kcalPerDay, kgPerWeek, safe, safeDays, days };
 }

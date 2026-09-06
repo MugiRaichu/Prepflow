@@ -24,6 +24,8 @@ import {
   toggleAllergen,
   updateProfile,
 } from '@/db/repositories/profiles';
+import { weightPace } from '@/lib/nutrition';
+import { addDaysIso, todayIso } from '@/lib/labels';
 import type { ActivityLevel, AllergenTag, DietGoal, Profile, Sex } from '@/db/schema';
 
 /**
@@ -163,6 +165,8 @@ function ProfileRow({
             />
           </Labeled>
 
+          {profile.goal !== 'maintain' && <WeightGoal profile={profile} onPatch={patch} />}
+
           <AllergenPicker profile={profile} />
           <DislikePicker profile={profile} />
 
@@ -234,6 +238,113 @@ function AllergenPicker({ profile }: { profile: Profile }) {
         <p className="text-[10px] leading-relaxed text-muted-foreground">
           選んだものを含む料理は献立に出しません。ほかの条件が満たせなくても外しません。
         </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * いつまでに何kg。
+ *
+ * 「減量」だけでは1日の増減幅が決まらない。3kg落とすのに1か月と半年では
+ * 必要な赤字がまるで違う。期限を持って初めて、1日あたりの数字が出せる。
+ *
+ * **止めない。数字で見せる。**無理のあるペースでも設定はできる。
+ * ただし「1週間で1.4kg」が何を意味するかは、押した場で分かるようにする。
+ */
+const DEADLINES: { value: number; label: string }[] = [
+  { value: 30, label: '1か月' },
+  { value: 60, label: '2か月' },
+  { value: 90, label: '3か月' },
+  { value: 180, label: '半年' },
+  { value: 365, label: '1年' },
+];
+
+function WeightGoal({
+  profile,
+  onPatch,
+}: {
+  profile: Profile;
+  onPatch: (v: Partial<Profile>) => void;
+}) {
+  const today = todayIso();
+  const now = profile.weightKg ?? 65;
+  const goalKg = profile.goalWeightKg ?? Math.round((profile.goal === 'cut' ? now - 3 : now + 3) * 2) / 2;
+  const days = profile.goalDate
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(profile.goalDate + 'T00:00:00').getTime() -
+            new Date(today + 'T00:00:00').getTime()) /
+            86400000,
+        ),
+      )
+    : null;
+  const pace = profile.goalDate ? weightPace(now, goalKg, profile.goalDate, today) : null;
+
+  const setDeadline = (d: number) =>
+    onPatch({ goalWeightKg: goalKg, goalDate: addDaysIso(today, d) });
+
+  return (
+    <div className="space-y-3 rounded-lg border p-3">
+      <div className="text-sm font-medium">いつまでに何kg</div>
+
+      <Labeled label="目標体重">
+        <Stepper
+          value={goalKg}
+          onChange={(v) => onPatch({ goalWeightKg: v, goalDate: profile.goalDate ?? addDaysIso(today, 90) })}
+          step={0.5}
+          min={30}
+          max={150}
+          suffix="kg"
+        />
+      </Labeled>
+
+      <Labeled label="いつまでに">
+        <Chips
+          options={DEADLINES}
+          value={
+            days == null ? 0 : (DEADLINES.find((d) => Math.abs(d.value - days) <= 4)?.value ?? 0)
+          }
+          onChange={setDeadline}
+          columns={5}
+        />
+      </Labeled>
+
+      {pace ? (
+        <div className="space-y-1 rounded-md border p-3 text-[11px] leading-relaxed">
+          <div>
+            1週間で <span className="font-medium">{pace.kgPerWeek.toFixed(2)} kg</span>、
+            1日あたり{' '}
+            <span className="font-medium">
+              {pace.kcalPerDay > 0 ? '+' : ''}
+              {Math.round(pace.kcalPerDay)} kcal
+            </span>{' '}
+            です。
+          </div>
+          {pace.safe ? (
+            <div className="text-muted-foreground">無理のない範囲です。</div>
+          ) : (
+            /* 止めはしない。何が起きるかと、無理のない場合の期限を出す */
+            <div className="text-muted-foreground">
+              このペースは速すぎます（{pace.kcalPerDay < 0 ? '筋量が落ちやすい' : 'ほぼ脂肪になる'}）。
+              無理のない範囲なら {Math.ceil(pace.safeDays / 30)} か月ほどかかります。
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-[10px] text-muted-foreground">
+          期限を選ぶと、1日あたりの増減が決まります。選ばなければ目的の既定値で組みます。
+        </p>
+      )}
+
+      {profile.goalDate && (
+        <button
+          onClick={() => onPatch({ goalWeightKg: undefined, goalDate: undefined })}
+          className="min-h-9 w-full text-[10px] text-muted-foreground"
+        >
+          目標をやめる
+        </button>
       )}
     </div>
   );
