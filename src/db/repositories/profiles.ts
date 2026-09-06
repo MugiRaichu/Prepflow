@@ -22,6 +22,8 @@ export interface ProfileDraft {
   weightKg?: number;
   goal?: DietGoal;
   activityLevel?: ActivityLevel;
+  /** 避けるアレルゲン。最初の設定で聞く。あとから増やせる */
+  allergens?: AllergenTag[];
 }
 
 const DEFAULT_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner'];
@@ -69,6 +71,7 @@ export function buildProfile(draft: ProfileDraft): Profile {
     },
     preferences: [],
     maxSameRecipePerWeek: 2,
+    ...(draft.allergens?.length ? { allergens: draft.allergens } : {}),
   };
 }
 

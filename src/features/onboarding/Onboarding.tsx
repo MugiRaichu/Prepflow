@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
-import { Chips } from '@/components/shared/Chips';
+import { Check, ChevronLeft } from 'lucide-react';
+import { Chips, MultiChips } from '@/components/shared/Chips';
 import { Segmented } from '@/components/shared/Segmented';
 import { Stepper } from '@/components/shared/Stepper';
 import { WeekdayPicker } from '@/components/shared/WeekdayPicker';
@@ -12,7 +12,24 @@ import { createProfile, markOnboarded } from '@/db/repositories/profiles';
 import { updateSettings } from '@/db/repositories/settings';
 import { requestPersistence } from '@/db/repositories/backup';
 import { db, newEntity } from '@/db/db';
-import type { ActivityLevel, DietGoal, Macros, Sex, Weekday } from '@/db/schema';
+import { cadenceLabel } from '@/features/planner/logic/cadence';
+import { DEFAULT_RICE_MINUTES } from '@/features/cook/logic/rice';
+import {
+  ALLERGEN_LABELS,
+  MANDATORY_ALLERGENS,
+  MEAL_SLOT_LABELS,
+  OPTIONAL_ALLERGENS,
+  sortSlots,
+} from '@/lib/labels';
+import type {
+  ActivityLevel,
+  AllergenTag,
+  DietGoal,
+  Macros,
+  MealSlot,
+  Sex,
+  Weekday,
+} from '@/db/schema';
 import {
   ACTIVITY_OPTIONS,
   BUDGET_OPTIONS,
@@ -24,10 +41,85 @@ import {
 import { cn } from '@/lib/utils';
 
 /**
- * オンボーディング。5画面すべてタップだけで進む（D-009 / D-015）。
- * 「あとで設定する」でいつでも抜けられる。省いた項目は既定値で埋まる。
+ * オンボーディング。
+ *
+ * **最初に全部聞く。** 以前は5画面に削っていたが、聞かなかったぶんは既定値のまま
+ * 最初の献立に出てしまい、「アレルギーが入っていた」「毎日作りたいのに週まとめの
+ * 画面が出た」のように、初回の献立が本人のものにならなかった。
+ * あとから設定画面で直せるとしても、直す必要に気づくのは失敗したあとになる。
+ *
+ * 長くなるぶん、飽きさせない造りにする（D-102）。
+ *   - 章で区切る。「あと何問か」ではなく「いま何の話をしているか」が分かる
+ *   - 答えた瞬間に数字が動く。目標カロリー、週の食数、1回の調理時間
+ *   - 決めたことが上に積み上がる。進んでいる手応えを出す
+ *   - 「あとで設定する」はいつでも押せる。省いたぶんは既定値で埋める
  */
-const STEPS = ['目的', '体格', '活動量', '道具', '買い物'] as const;
+
+type StepKey =
+  | 'goal'
+  | 'body'
+  | 'activity'
+  | 'allergy'
+  | 'cadence'
+  | 'cover'
+  | 'rhythm'
+  | 'equipment'
+  | 'shopping'
+  | 'keep'
+  | 'done';
+
+interface StepDef {
+  key: StepKey;
+  chapter: string;
+  title: string;
+  note?: string;
+}
+
+const STEPS: StepDef[] = [
+  { key: 'goal', chapter: 'あなたのこと', title: '何を目指しますか', note: 'あとから変えられます。' },
+  { key: 'body', chapter: 'あなたのこと', title: '体格', note: 'だいたいで構いません。' },
+  {
+    key: 'activity',
+    chapter: 'あなたのこと',
+    title: 'どのくらい動きますか',
+    note: '仕事と運動を合わせた、ふだんの活動量です。',
+  },
+  {
+    key: 'allergy',
+    chapter: '食べられないもの',
+    title: 'アレルギーはありますか',
+    note: '選んだものは、どんな条件でも献立に入りません。ここだけは緩めません。',
+  },
+  {
+    key: 'cadence',
+    chapter: '暮らし',
+    title: '週に何回、台所に立ちますか',
+    note: 'ここで献立の形が変わります。まとめて作るのか、その日に作るのか。',
+  },
+  {
+    key: 'cover',
+    chapter: '暮らし',
+    title: '何日分・どの食事',
+    note: '作らない食事は献立に出ません。',
+  },
+  {
+    key: 'rhythm',
+    chapter: '暮らし',
+    title: '1日の時間',
+    note: '食事とタンパク質の時刻を、ここから逆算します。',
+  },
+  { key: 'equipment', chapter: '台所', title: '持っている道具', note: '無いものは段取りに出ません。' },
+  { key: 'shopping', chapter: '買い物', title: '食費と曜日', note: '毎週この曜日で回します。' },
+  {
+    key: 'keep',
+    chapter: '買い物',
+    title: '作ったものを何日もたせますか',
+    note: '賞味期限はここと、料理ごとの日持ちの短いほうで決まります。',
+  },
+  { key: 'done', chapter: '', title: 'できあがりです', note: undefined },
+];
+
+const CHAPTERS = ['あなたのこと', '食べられないもの', '暮らし', '台所', '買い物'];
 
 export function Onboarding() {
   const nav = useNavigate();
@@ -40,14 +132,24 @@ export function Onboarding() {
   const [heightCm, setHeightCm] = useState(170);
   const [weightKg, setWeightKg] = useState(65);
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('sedentary');
+  const [allergens, setAllergens] = useState<AllergenTag[]>([]);
+  const [showAllAllergens, setShowAllAllergens] = useState(false);
+  const [sessions, setSessions] = useState(1);
+  const [coverDays, setCoverDays] = useState(5);
+  const [coverSlots, setCoverSlots] = useState<MealSlot[]>(['dinner']);
+  const [wakeTime, setWakeTime] = useState('07:00');
+  const [sleepTime, setSleepTime] = useState('23:30');
   const [equipmentPresetId, setEquipmentPresetId] = useState('standard');
   const [containerPresetId, setContainerPresetId] = useState('few');
+  const [riceCookMinutes, setRiceCookMinutes] = useState(DEFAULT_RICE_MINUTES);
   const [weeklyBudgetYen, setWeeklyBudgetYen] = useState(5000);
   const [shoppingDay, setShoppingDay] = useState<Weekday>(6);
   const [prepDay, setPrepDay] = useState<Weekday>(0);
+  const [maxFridgeDays, setMaxFridgeDays] = useState(3);
+  const [allowFreezing, setAllowFreezing] = useState(true);
 
   const birthYear = new Date().getFullYear() - ageDecade;
-  const preview = calcTargets({
+  const targets = calcTargets({
     sex,
     weightKg,
     heightCm,
@@ -56,10 +158,13 @@ export function Onboarding() {
     goal,
   });
 
+  const daily = sessions >= 5;
+  const meals = coverDays * coverSlots.length;
+
   const finish = async () => {
     setSaving(true);
     try {
-      await createProfile({ sex, birthYear, heightCm, weightKg, goal, activityLevel });
+      await createProfile({ sex, birthYear, heightCm, weightKg, goal, activityLevel, allergens });
 
       const eq = EQUIPMENT_PRESETS.find((p) => p.id === equipmentPresetId);
       if (eq) {
@@ -94,7 +199,17 @@ export function Onboarding() {
       if (s) {
         await updateSettings({
           shopping: { ...s.shopping, weeklyBudgetYen, shoppingDay },
-          cooking: { ...s.cooking, prepDay },
+          cooking: {
+            ...s.cooking,
+            prepDay,
+            cookSessionsPerWeek: sessions,
+            coverDays,
+            coverSlots: sortSlots(coverSlots),
+            maxFridgeDays,
+            allowFreezing,
+            riceCookMinutes,
+          },
+          rhythm: { ...s.rhythm, wakeTime, sleepTime },
         });
       }
 
@@ -108,7 +223,19 @@ export function Onboarding() {
     }
   };
 
-  const next = () => (step === STEPS.length - 1 ? finish() : setStep(step + 1));
+  const cur = STEPS[step];
+  const last = step === STEPS.length - 1;
+  const next = () => (last ? finish() : setStep(step + 1));
+
+  const toggleAllergen = (a: AllergenTag) =>
+    setAllergens((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]));
+
+  const toggleSlot = (m: MealSlot) =>
+    setCoverSlots((cur) => {
+      const nextSlots = cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m];
+      // 全部外すと献立が作れなくなるので、最低1つは残す
+      return sortSlots(nextSlots.length ? nextSlots : (['dinner'] as MealSlot[]));
+    });
 
   return (
     <div className="pf-shell flex flex-col bg-background text-foreground">
@@ -126,136 +253,294 @@ export function Onboarding() {
           ) : (
             <Logo withText={false} />
           )}
-          <span className="flex-1 text-sm font-medium">{STEPS[step]}</span>
+          <span className="flex-1 text-sm font-medium">{cur.chapter || 'Prepflow'}</span>
           <span className="text-xs tabular-nums text-muted-foreground">
             {step + 1} / {STEPS.length}
           </span>
         </div>
       </header>
 
-      <div className="flex shrink-0 gap-0.5 px-3 pt-2">
-        {STEPS.map((s, i) => (
-          <div
-            key={s}
-            className={cn('h-0.5 flex-1 rounded-full', i <= step ? 'bg-foreground' : 'bg-border')}
-          />
-        ))}
-      </div>
+      <ChapterBar current={cur.chapter} />
 
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-        {step === 0 && (
-          <Section
-            title="何を目指しますか"
-            note="あとから変えられます。"
-          >
-            <Chips options={GOAL_OPTIONS} value={goal} onChange={setGoal} columns={3} />
-          </Section>
-        )}
+        {/* key を付けて、画面が変わるたびに入り直させる。進んだ手応えが出る */}
+        <div key={cur.key} className="pf-rise">
+          <Section title={cur.title} note={cur.note}>
+            {cur.key === 'goal' && (
+              <Chips options={GOAL_OPTIONS} value={goal} onChange={setGoal} columns={3} />
+            )}
 
-        {step === 1 && (
-          <Section
-            title="体格"
-            note="だいたいで構いません。"
-          >
-            <Labeled label="性別">
-              <Segmented options={SEX_OPTIONS} value={sex} onChange={setSex} />
-            </Labeled>
-            <Labeled label="年代">
-              <Chips
-                options={[20, 30, 40, 50, 60].map((a) => ({ value: a, label: a + '代' }))}
-                value={ageDecade}
-                onChange={setAgeDecade}
-                columns={5}
-              />
-            </Labeled>
-            <Labeled label="身長">
-              <Stepper
-                value={heightCm}
-                onChange={setHeightCm}
-                step={1}
-                min={130}
-                max={210}
-                suffix="cm"
-              />
-            </Labeled>
-            <Labeled label="体重">
-              <Stepper
-                value={weightKg}
-                onChange={setWeightKg}
-                step={0.5}
-                min={30}
-                max={150}
-                suffix="kg"
-              />
-            </Labeled>
-          </Section>
-        )}
+            {cur.key === 'body' && (
+              <>
+                <Labeled label="性別">
+                  <Segmented options={SEX_OPTIONS} value={sex} onChange={setSex} />
+                </Labeled>
+                <Labeled label="年代">
+                  <Chips
+                    options={[20, 30, 40, 50, 60].map((a) => ({ value: a, label: a + '代' }))}
+                    value={ageDecade}
+                    onChange={setAgeDecade}
+                    columns={5}
+                  />
+                </Labeled>
+                <Labeled label="身長">
+                  <Stepper
+                    value={heightCm}
+                    onChange={setHeightCm}
+                    step={1}
+                    min={130}
+                    max={210}
+                    suffix="cm"
+                  />
+                </Labeled>
+                <Labeled label="体重">
+                  <Stepper
+                    value={weightKg}
+                    onChange={setWeightKg}
+                    step={0.5}
+                    min={30}
+                    max={150}
+                    suffix="kg"
+                  />
+                </Labeled>
+              </>
+            )}
 
-        {step === 2 && (
-          <Section title="どのくらい動きますか" note="仕事と運動を合わせた、ふだんの活動量です。">
-            <Chips
-              options={ACTIVITY_OPTIONS}
-              value={activityLevel}
-              onChange={setActivityLevel}
-              columns={2}
-            />
-            <TargetPreview targets={preview} />
-          </Section>
-        )}
+            {cur.key === 'activity' && (
+              <>
+                <Chips
+                  options={ACTIVITY_OPTIONS}
+                  value={activityLevel}
+                  onChange={setActivityLevel}
+                  columns={2}
+                />
+                <TargetPreview targets={targets} />
+              </>
+            )}
 
-        {step === 3 && (
-          <Section
-            title="持っている道具"
-            note="あとから変えられます。"
-          >
-            <Labeled label="加熱器具">
-              <Chips
-                options={EQUIPMENT_PRESETS.map((p) => ({
-                  value: p.id,
-                  label: p.label,
-                  hint: p.hint,
-                }))}
-                value={equipmentPresetId}
-                onChange={setEquipmentPresetId}
-                columns={1}
-              />
-            </Labeled>
-            <Labeled label="保存容器">
-              <Chips
-                options={CONTAINER_PRESETS.map((p) => ({
-                  value: p.id,
-                  label: p.label,
-                  hint: p.hint,
-                }))}
-                value={containerPresetId}
-                onChange={setContainerPresetId}
-                columns={3}
-              />
-            </Labeled>
-          </Section>
-        )}
+            {cur.key === 'allergy' && (
+              <>
+                <MultiChips
+                  options={MANDATORY_ALLERGENS.map((a) => ({ value: a, label: ALLERGEN_LABELS[a] }))}
+                  values={allergens}
+                  onToggle={toggleAllergen}
+                  columns={4}
+                />
+                {showAllAllergens ? (
+                  <MultiChips
+                    options={OPTIONAL_ALLERGENS.map((a) => ({
+                      value: a,
+                      label: ALLERGEN_LABELS[a],
+                    }))}
+                    values={allergens}
+                    onToggle={toggleAllergen}
+                    columns={4}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setShowAllAllergens(true)}
+                    className="min-h-10 w-full text-xs text-muted-foreground"
+                  >
+                    ほかのものも選ぶ
+                  </button>
+                )}
+                <Note>
+                  {allergens.length === 0
+                    ? '無ければそのまま次へ。'
+                    : allergens.map((a) => ALLERGEN_LABELS[a]).join('・') +
+                      ' を含む料理は出しません。'}
+                </Note>
+              </>
+            )}
 
-        {step === 4 && (
-          <Section
-            title="買い物と作り置き"
-            note="毎週この曜日で回します。"
-          >
-            <Labeled label="1週間の食費">
-              <Chips
-                options={BUDGET_OPTIONS}
-                value={weeklyBudgetYen}
-                onChange={setWeeklyBudgetYen}
-                columns={3}
+            {cur.key === 'cadence' && (
+              <>
+                <Stepper
+                  value={sessions}
+                  onChange={setSessions}
+                  step={1}
+                  min={1}
+                  max={7}
+                  suffix="回"
+                />
+                <Note>{cadenceLabel(sessions, coverDays)}</Note>
+              </>
+            )}
+
+            {cur.key === 'cover' && (
+              <>
+                <Labeled label="何日分">
+                  <Stepper
+                    value={coverDays}
+                    onChange={setCoverDays}
+                    step={1}
+                    min={2}
+                    max={7}
+                    suffix="日分"
+                  />
+                </Labeled>
+                <Labeled label="どの食事を作るか">
+                  <MultiChips
+                    options={(['breakfast', 'lunch', 'dinner'] as MealSlot[]).map((m) => ({
+                      value: m,
+                      label: MEAL_SLOT_LABELS[m] + '食',
+                    }))}
+                    values={coverSlots}
+                    onToggle={toggleSlot}
+                    columns={3}
+                  />
+                </Labeled>
+                {/* 決めた瞬間に「何食ぶんの話なのか」が出る。数字が動くと手が止まらない */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Stat label="1週間で" value={meals + '食'} />
+                  {/* 出すのは答えから出た数だけ。所要時間は献立が決まるまで分からないので出さない */}
+                  <Stat
+                    label={daily ? '1日あたり' : '1回で作るのは'}
+                    value={Math.ceil(meals / Math.max(sessions, 1)) + '食ぶん'}
+                  />
+                </div>
+              </>
+            )}
+
+            {cur.key === 'rhythm' && (
+              <>
+                <Labeled label="起きる時間">
+                  <TimeChips
+                    value={wakeTime}
+                    onChange={setWakeTime}
+                    options={['05:30', '06:00', '06:30', '07:00', '07:30', '08:00']}
+                  />
+                </Labeled>
+                <Labeled label="寝る時間">
+                  <TimeChips
+                    value={sleepTime}
+                    onChange={setSleepTime}
+                    options={['22:00', '22:30', '23:00', '23:30', '00:00', '01:00']}
+                  />
+                </Labeled>
+                <Note>{sleepHours(wakeTime, sleepTime)} の睡眠です。</Note>
+              </>
+            )}
+
+            {cur.key === 'equipment' && (
+              <>
+                <Labeled label="加熱器具">
+                  <Chips
+                    options={EQUIPMENT_PRESETS.map((p) => ({
+                      value: p.id,
+                      label: p.label,
+                      hint: p.hint,
+                    }))}
+                    value={equipmentPresetId}
+                    onChange={setEquipmentPresetId}
+                    columns={1}
+                  />
+                </Labeled>
+                <Labeled label="保存容器">
+                  <Chips
+                    options={CONTAINER_PRESETS.map((p) => ({
+                      value: p.id,
+                      label: p.label,
+                      hint: p.hint,
+                    }))}
+                    value={containerPresetId}
+                    onChange={setContainerPresetId}
+                    columns={3}
+                  />
+                </Labeled>
+                <Labeled label="ごはんが炊き上がるまで">
+                  <Chips
+                    options={[20, 30, 40, 50, 60, 70].map((m) => ({ value: m, label: m + '分' }))}
+                    value={riceCookMinutes}
+                    onChange={setRiceCookMinutes}
+                    columns={3}
+                  />
+                </Labeled>
+              </>
+            )}
+
+            {cur.key === 'shopping' && (
+              <>
+                <Labeled label="1週間の食費">
+                  <Chips
+                    options={BUDGET_OPTIONS}
+                    value={weeklyBudgetYen}
+                    onChange={setWeeklyBudgetYen}
+                    columns={3}
+                  />
+                </Labeled>
+                <Labeled label="買い出しの曜日">
+                  <WeekdayPicker value={shoppingDay} onChange={setShoppingDay} />
+                </Labeled>
+                {!daily && (
+                  <Labeled label="作り置きの曜日">
+                    <WeekdayPicker value={prepDay} onChange={setPrepDay} />
+                  </Labeled>
+                )}
+                <Note>
+                  1食あたり {Math.round(weeklyBudgetYen / Math.max(meals, 1))} 円で組みます。
+                </Note>
+              </>
+            )}
+
+            {cur.key === 'keep' && (
+              <>
+                <Labeled label="冷蔵で置く上限">
+                  <Chips
+                    options={[2, 3, 4, 5].map((d) => ({ value: d, label: d + '日' }))}
+                    value={maxFridgeDays}
+                    onChange={setMaxFridgeDays}
+                    columns={4}
+                  />
+                </Labeled>
+                <Labeled label="冷凍を使いますか">
+                  <Segmented
+                    options={[
+                      { value: 'yes', label: '使う' },
+                      { value: 'no', label: '使わない' },
+                    ]}
+                    value={allowFreezing ? 'yes' : 'no'}
+                    onChange={(v: string) => setAllowFreezing(v === 'yes')}
+                  />
+                </Labeled>
+                <Note>
+                  {coverDays > maxFridgeDays
+                    ? allowFreezing
+                      ? maxFridgeDays +
+                        '日を超えるぶんは冷凍に回します。食べる前日に冷蔵へ移す指示を出します。'
+                      : maxFridgeDays + '日で足りるよう、週の途中でもう一度作る形になります。'
+                    : '冷蔵だけで足ります。'}
+                </Note>
+              </>
+            )}
+
+            {cur.key === 'done' && (
+              <Summary
+                lines={[
+                  ['目標', targets.kcal + ' kcal / たんぱく質 ' + targets.proteinG + ' g'],
+                  [
+                    '避けるもの',
+                    allergens.length
+                      ? allergens.map((a) => ALLERGEN_LABELS[a]).join('・')
+                      : '指定なし',
+                  ],
+                  ['作り方', cadenceLabel(sessions, coverDays)],
+                  [
+                    '献立',
+                    coverDays +
+                      '日分 × ' +
+                      coverSlots.map((m) => MEAL_SLOT_LABELS[m] + '食').join('・') +
+                      '（' +
+                      meals +
+                      '食）',
+                  ],
+                  ['食費', '週 ' + weeklyBudgetYen.toLocaleString() + ' 円'],
+                  ['保存', '冷蔵 ' + maxFridgeDays + '日まで' + (allowFreezing ? '・冷凍あり' : '')],
+                ]}
               />
-            </Labeled>
-            <Labeled label="買い出しの曜日">
-              <WeekdayPicker value={shoppingDay} onChange={setShoppingDay} />
-            </Labeled>
-            <Labeled label="作り置きの曜日">
-              <WeekdayPicker value={prepDay} onChange={setPrepDay} />
-            </Labeled>
+            )}
           </Section>
-        )}
+        </div>
       </main>
 
       <footer className="pf-safe-bottom shrink-0 space-y-2 border-t px-4 py-3">
@@ -264,7 +549,7 @@ export function Onboarding() {
           disabled={saving}
           className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background active:scale-[0.99] disabled:opacity-50"
         >
-          {step === STEPS.length - 1 ? (saving ? '作成中…' : 'はじめる') : '次へ'}
+          {last ? (saving ? '作成中…' : 'はじめる') : '次へ'}
         </button>
         <button
           onClick={finish}
@@ -274,6 +559,38 @@ export function Onboarding() {
           あとで設定する
         </button>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * どの章にいるか。
+ * 一本の進捗バーだと10問が延々続くように見えるが、章で切ると
+ * 「いまは暮らしの話」「次で台所」と、残りの形が読める。
+ */
+function ChapterBar({ current }: { current: string }) {
+  const at = CHAPTERS.indexOf(current);
+  return (
+    <div className="flex shrink-0 gap-1 px-3 pt-2">
+      {CHAPTERS.map((c, i) => (
+        <div key={c} className="flex-1 space-y-1">
+          <div
+            className={cn(
+              'h-0.5 rounded-full transition-colors',
+              // 章そのものが終わっているか、いまその章にいるか
+              i < at ? 'bg-foreground' : i === at ? 'bg-foreground' : 'bg-border',
+            )}
+          />
+          <div
+            className={cn(
+              'truncate text-center text-[9px]',
+              i === at ? 'text-foreground' : 'text-muted-foreground/50',
+            )}
+          >
+            {c}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -305,6 +622,70 @@ function Labeled({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </div>
   );
+}
+
+/** 選んだ結果がどう効くかを、その場で1行で返す */
+function Note({ children }: { children: ReactNode }) {
+  return <p className="text-xs leading-relaxed text-muted-foreground">{children}</p>;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-base font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+/** 時刻はキーボードを出さずに選べるようにする。指1本で終わらせる */
+function TimeChips({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  return (
+    <Chips
+      options={options.map((t) => ({ value: t, label: t }))}
+      value={value}
+      onChange={onChange}
+      columns={3}
+    />
+  );
+}
+
+/** 最後に、答えたことをまとめて返す。ここまでの手間が形になったことを見せる */
+function Summary({ lines }: { lines: [string, string][] }) {
+  return (
+    <div className="divide-y rounded-lg border">
+      {lines.map(([label, value]) => (
+        <div key={label} className="flex items-start gap-3 px-4 py-3">
+          <Check className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] text-muted-foreground">{label}</div>
+            <div className="text-sm font-medium">{value}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** 起床と就寝から睡眠時間を出す。日をまたぐので単純な引き算にしない */
+function sleepHours(wake: string, sleep: string): string {
+  const toMin = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  let span = toMin(wake) - toMin(sleep);
+  if (span <= 0) span += 24 * 60;
+  const h = Math.floor(span / 60);
+  const m = span % 60;
+  return h + '時間' + (m ? m + '分' : '');
 }
 
 /** 目的と活動量を選んだ時点で、目標がどう出るかを見せる */
