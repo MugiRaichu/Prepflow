@@ -163,23 +163,32 @@
   }
 
   /*
-   * 全画面の外枠。高さは src/lib/viewport.ts が実測して入れる。
+   * 全画面の外枠。
    * fixed にするのは、文書そのものをスクロールさせないため。
    * 文書が動くとアドレスバーが出入りし、その分だけ下端のタブが画面外に出る。
-   * 変数が無い環境（JS 実行前の一瞬）でも崩れないよう dvh を控えに置く。
    */
   .pf-shell {
     position: fixed;
-    top: 0;
     left: 0;
     right: 0;
-    height: var(--app-h, 100dvh);
+    /* 上下は「見えている範囲」に合わせる。src/lib/viewport.ts が実測して入れる。
+       高さで持つと env(safe-area-inset-bottom) と二重に引かれ、
+       タブバーの下に空きができて下端に合わなくなる */
+    top: var(--app-top, 0px);
+    bottom: var(--app-bottom, 0px);
     /* 丸角・ノッチの内側に本文を寄せる。背景は端まで塗る */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
 
-  /* fixed の外枠は html の padding が効かないので、上下は各自で避ける */
+  /*
+   * fixed の外枠は html の padding が効かないので、上下は各自で避ける。
+   *
+   * ここで避けるのはハードウェア側の出っ張り（ノッチ・ホームバー・
+   * ジェスチャーバー）だけ。ブラウザのバーとキーボードは --app-bottom の担当で、
+   * 両方を足すと二重になる。ブラウザのバーが出ている間は
+   * env(safe-area-inset-bottom) が 0 になるので、素直に足してよい。
+   */
   .pf-safe-top {
     padding-top: env(safe-area-inset-top);
   }

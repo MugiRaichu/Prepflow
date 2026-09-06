@@ -143,6 +143,26 @@ export function CookingSettings() {
               </>
             )}
 
+            {/*
+              賞味期限の根拠がどこにも無かった（本人指摘）。
+              期限は「料理ごとの日持ち」と「この上限」の短いほうで決めている。
+              作った肉や魚をどこまで冷蔵で持たせるかは各家の判断なので、出す。
+            */}
+            <Labeled
+              label="冷蔵で置く上限"
+              hint={
+                '作った日から数えます。これを超える日ぶんは' +
+                (s.cooking.allowFreezing ? '冷凍に回します' : '献立に入れません')
+              }
+            >
+              <Chips
+                options={[2, 3, 4, 5].map((d) => ({ value: d, label: d + '日' }))}
+                value={s.cooking.maxFridgeDays}
+                onChange={(v) => updateCooking(() => ({ maxFridgeDays: v }))}
+                columns={4}
+              />
+            </Labeled>
+
             <Labeled
               label="同じ料理が続いてよい回数"
               hint={

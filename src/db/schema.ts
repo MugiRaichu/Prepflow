@@ -679,7 +679,12 @@ export interface ContainerAssignment extends Entity {
   intendedSlot: MealSlot;
   storage: 'fridge' | 'freezer';
   cookedAt?: ISODateTime;
-  /** cookedAt + Recipe.storage.keepsDays。期限警告の判定に使う */
+  /**
+   * 何日もつか。詰めた日が決まった時点で useByDate を引き直すために持つ。
+   * 献立を組む時点では実際にいつ作るか分からないので、日数のほうを残しておく。
+   */
+  keepsDays?: number;
+  /** cookedAt + keepsDays。期限警告の判定に使う */
   useByDate: ISODate;
   packed: Bool;
   consumedAt?: ISODateTime;

@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Check } from 'lucide-react';
 import { db, nowIso } from '@/db/db';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
+import { addDaysIso, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import type { ContainerAssignment } from '@/db/schema';
 
 /**
@@ -12,6 +12,16 @@ import type { ContainerAssignment } from '@/db/schema';
  * 独立して開く画面ではないため。1枚ずつ大きく出して、
  * マスキングテープにラベル記号を書いて貼るだけで済むようにする。
  */
+/** 今日から何日後か。日付だけだと「あと何日あるのか」が頭の中で計算になる */
+function daysFromToday(iso: string): string {
+  const days = Math.round(
+    (new Date(iso + 'T00:00:00').getTime() - new Date(todayIso() + 'T00:00:00').getTime()) / 86400000,
+  );
+  if (days <= 0) return '今日まで';
+  if (days === 1) return '明日まで';
+  return 'あと' + days + '日';
+}
+
 export function PackStep({ weekPlanId }: { weekPlanId: string }) {
   const assignments = useLiveQuery(
     async () =>
@@ -33,11 +43,12 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
     const freezer = assignments.length - fridge.length;
 
     // **何日置くのかを言う。**「冷蔵庫へ4食ぶん」だけでは、いつまでに
-    // 食べればよいのか分からない（本人指摘）。最後に食べる日を数字で出す
+    // 食べればよいのか分からない（本人指摘）。
+    // 出すのは献立上の最終日ではなく、**いちばん早く切れる期限**。
+    // 品ごとに日持ちが違うので、最後の1食に合わせると先に傷むものが出る
     const lastDate = fridge
-      .map((a) => a.intendedDate)
-      .sort()
-      .at(-1);
+      .map((a) => a.useByDate)
+      .sort()[0];
 
     const where =
       freezer === 0
@@ -46,7 +57,9 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
           ? '冷凍庫へ ' + freezer + '食ぶん。'
           : '冷蔵庫へ ' + fridge.length + '食ぶん、冷凍庫へ ' + freezer + '食ぶん。';
 
-    const until = lastDate ? ' 冷蔵のぶんは ' + formatDateJa(lastDate) + ' までに食べきります。' : '';
+    const until = lastDate
+      ? ' 冷蔵のぶんは ' + formatDateJa(lastDate) + '（' + daysFromToday(lastDate) + '）までです。'
+      : '';
 
     return (
       <EmptyState
@@ -59,10 +72,15 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
   }
 
   const pack = async (a: ContainerAssignment) => {
+    // 期限は「作った日 + もつ日数」。献立を組んだ時点では実際にいつ作るか
+    // 分からないので、詰めるこの瞬間に引き直す。
+    // 週の頭から数えたままだと、2日遅れて作った週は2日ぶん短く見える
+    const cookedAt = a.cookedAt ?? nowIso();
     await db.containerAssignments.put({
       ...a,
       packed: 1,
-      cookedAt: a.cookedAt ?? nowIso(),
+      cookedAt,
+      ...(a.keepsDays ? { useByDate: addDaysIso(cookedAt.slice(0, 10), a.keepsDays) } : {}),
       updatedAt: nowIso(),
     });
   };
@@ -95,7 +113,10 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
           <span className="font-medium text-foreground">{Math.round(next.grams)} g</span>
           <span>{Math.round(next.nutrition.kcal)} kcal</span>
           <span>P {Math.round(next.nutrition.proteinG)}g</span>
-          <span>{next.storage === 'freezer' ? '冷凍' : '冷蔵'}</span>
+          <span>
+            {next.storage === 'freezer' ? '冷凍' : '冷蔵'}
+            {next.keepsDays ? '（' + next.keepsDays + '日もちます）' : ''}
+          </span>
         </div>
 
         {next.storage === 'freezer' && (

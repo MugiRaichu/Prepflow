@@ -540,6 +540,8 @@ export async function commitWeek(
               intendedDate: date,
               intendedSlot: slot,
               storage: freeze ? 'freezer' : 'fridge',
+              keepsDays: freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
+              // 実際に作る日は詰めるときに確定する。ここは仮置き（PackStep で引き直す）
               useByDate: addDaysIso(ctx.weekStart, freeze ? 30 : keeps),
               packed: 0,
             });
