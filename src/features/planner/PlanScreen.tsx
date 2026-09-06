@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { yen, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import { commitWeek, proposeWeek } from './logic/generate';
+import { gramsPerServing } from './logic/distribute';
 import { WishBar } from './WishBar';
 import { PinPicker } from './PinPicker';
 import { EMPTY_REQUEST } from './logic/request';
@@ -107,14 +108,6 @@ export function PlanScreen() {
     });
   }, []);
 
-  const stockNames =
-    useLiveQuery(
-      async () =>
-        (await db.inventory.where('deleted').equals(0).toArray())
-          .filter((r) => r.quantity > 0)
-          .map((r) => r.ingredientName),
-      [],
-    ) ?? [];
   const [error, setError] = useState<string | null>(null);
 
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
@@ -268,42 +261,21 @@ export function PlanScreen() {
         {error && <div className="rounded-lg border border-foreground/40 p-3 text-xs">{error}</div>}
 
         {/*
-          献立を作る直前だけ、家にあるものを確かめてもらう。
-          在庫が効くのはこの瞬間だけで、それ以外のタイミングで正確でも意味がない。
-          触らなければ見込みのまま進むので、飛ばしても止まらない
-        */}
-        {/*
-          **画面を開かせない。**在庫を確かめるだけのために別の画面へ飛ばすと、
-          20行の一覧を前にして面倒になる（本人指摘）。
+          **在庫の一覧はここに出さない。**
+          「カレー粉・バター・ごま油…ほか29品が家にあるものとして使われます」を
+          読んで、人にできることは何も無い（本人指摘）。並ぶものの大半は調味料で、
+          切れていないのが当たり前のものだった。
 
-          傷んだはずのものは既に自動で落としてある（dropExpiredStock）ので、
-          残っているのは数品のはず。その名前をここに並べて、
-          合っていれば押さずに進める。違うときだけ直しに行く。
+          献立を作る前に伝える必要があるのは、**アプリが勝手に捨てたものだけ**。
+          在庫が効いた結果と、直す導線は、案が出たあとに置いてある。
         */}
-        {/* 黙って消さない。落としたものは名前で伝える */}
         {!cands && dropped.length > 0 && (
           <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
             日持ちが過ぎた <b className="text-foreground">{dropped.join('・')}</b> は、
-            もう無いものとして扱いました。まだあるなら「違うものがあれば直す」から戻せます。
-          </div>
-        )}
-
-        {!cands && stockNames.length > 0 && (
-          <div className="rounded-lg border p-3">
-            <div className="flex items-center gap-2">
-              <Boxes className="size-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 text-xs">
-                <b>{stockNames.slice(0, 6).join('・')}</b>
-                {stockNames.length > 6 && ' ほか' + (stockNames.length - 6) + '品'}
-                {' が家にあるものとして使われます'}
-              </span>
-            </div>
-            <button
-              onClick={() => nav('/stock')}
-              className="mt-2 min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
-            >
-              違うものがあれば直す
-            </button>
+            もう無いものとして扱いました。
+            <Link to="/stock" className="ml-1 underline underline-offset-2">
+              まだあるなら戻す
+            </Link>
           </div>
         )}
 
@@ -560,13 +532,15 @@ function CandidateView({
 }) {
   // 表示は「実際に容器へ詰める中身」から計算する。
   // ソルバーの見積りと日別配分がずれたとき、画面に出す数字は後者が正しい
+  // 目標カロリーを渡すと、ごはんの量を日ごとに増減して差を埋める。
+  // 量を決めている人には渡さない（commitWeek と同じ規則。ずらすと画面と中身が食い違う）
   const menus = buildDailyMenus(
     c.mains,
     c.sides,
     c.ricePlan,
     c.riceServings,
     ctx.meals,
-    ctx.target.kcal,
+    ctx.ricePolicy === 'auto' ? ctx.target.kcal : undefined,
     ctx.maxSameDishMeals,
   );
   const actual = averageMacros(menus);
@@ -630,6 +604,10 @@ function CandidateView({
           {ctx.inventoryCoveredYen > 0 && (
             <div className="text-muted-foreground">
               家にある食材（約{yen(ctx.inventoryCoveredYen)}ぶん）を優先して組んでいます
+              {/* 直すならここ。いくら効いたかを見てからのほうが、直す気になる */}
+              <Link to="/stock" className="ml-1 underline underline-offset-2">
+                残りを直す
+              </Link>
             </div>
           )}
         </div>
@@ -694,8 +672,10 @@ function CandidateView({
           <div className="text-xs text-muted-foreground">主食</div>
           <div className="mt-1 flex items-baseline justify-between">
             <span className="text-sm font-medium">{c.ricePlan.recipe.title}</span>
+            {/* 人前だけでは量が分からない。茶碗に盛る重さを添える */}
             <span className="text-xs tabular-nums text-muted-foreground">
-              1食 {c.riceServings} 人前
+              1食 {c.riceServings} 人前（約
+              {Math.round(gramsPerServing(c.ricePlan.recipe) * c.riceServings)}g）
             </span>
           </div>
         </div>

@@ -879,6 +879,20 @@ export interface ShoppingSettings {
   outsideUseRatio: number;
 }
 
+/**
+ * 1食のごはんの量の決め方。
+ * 'auto' は目標カロリーの不足分から決める。それ以外は毎食その量で固定する。
+ */
+export type RicePolicy = 'auto' | 'none' | 'small' | 'normal' | 'large';
+
+/** 固定したときの人前。ごはん1人前は約165g（茶碗1杯） */
+export const RICE_POLICY_SERVINGS: Record<Exclude<RicePolicy, 'auto'>, number> = {
+  none: 0,
+  small: 0.5,
+  normal: 1,
+  large: 1.5,
+};
+
 export interface CookingSettings {
   /** 作り置きをする曜日 */
   prepDay: Weekday;
@@ -908,6 +922,17 @@ export interface CookingSettings {
    * 以前は「カバーする日数」で割っていたので、週2回作る人の時間が7で割られていた。
    */
   cookSessionsPerWeek?: number;
+  /**
+   * 1食のごはんの量。
+   *
+   * 既定の 'auto' は、おかずで足りないカロリーをごはんで埋める（炭水化物の調整弁）。
+   * だが**ごはんを食べない人がいる。**糖質を抑えている人、パン派、
+   * 主食を別に用意している人。こちらで勝手に付けるものではなかった。
+   *
+   * 量を決めた場合、カロリーの調整はおかず側で行う。
+   * その結果、条件によっては組めなくなることがある（そのときは画面に出る）。
+   */
+  ricePolicy?: RicePolicy;
   /**
    * ごはんが炊き上がるまでの分数。
    *

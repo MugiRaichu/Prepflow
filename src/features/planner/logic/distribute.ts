@@ -9,6 +9,7 @@
  *   例) 照り焼き4人前・そぼろ4人前を5食に配ると
  *       照り焼き / そぼろ / 照り焼き / そぼろ / 両方を半分ずつ
  */
+import { RICE_MAX, RICE_STEP } from './solver';
 import type { Macros, Recipe } from '@/db/schema';
 import type { PlanItem } from './types';
 
@@ -228,27 +229,87 @@ export function buildDailyMenus(
 
   const menus: Portion[][] = [];
   for (let m = 0; m < meals; m++) {
-    const day: Portion[] = [...(mainAlloc[m] ?? []), ...(sideAlloc[m] ?? [])];
+    menus.push([...(mainAlloc[m] ?? []), ...(sideAlloc[m] ?? [])]);
+  }
 
+  // 主菜と副菜を別々に配っているので、両方の端数が同じ日に落ちることがある。
+  // ごはんを足す前に、おかずの側で日ごとの差を詰めておく
+  levelKcal(menus);
+
+  for (const day of menus) {
     // パスタなど主食を兼ねる主菜が入った日は、ごはんを付けない。
     // 数字の上では収まっても「パスタ＋ごはん」は誰も食べない
     const hasStapleDish = day.some((p) => p.recipe.tags.includes('主食込み'));
+    if (!rice || riceServingsPerMeal <= 0 || hasStapleDish) continue;
 
-    if (rice && riceServingsPerMeal > 0 && !hasStapleDish) {
-      let servings = riceServingsPerMeal;
-      const perServingKcal = rice.recipe.nutritionPerServing.kcal;
-      if (targetKcal && perServingKcal > 0) {
-        const without = portionMacros(day).kcal;
-        const wanted = (targetKcal - without) / perServingKcal;
-        // パスタなど主食を兼ねる主菜の日は、ごはんを 0 まで落とせるようにする。
-        // 下限を持たせると「パスタ + ごはん」という食べない組合せが出る
-        const hi = riceServingsPerMeal * 1.8;
-        servings = Math.round(Math.min(Math.max(wanted, 0), hi) * 10) / 10;
-      }
-      if (servings > 0) day.push({ recipe: rice.recipe, servings });
+    let servings = riceServingsPerMeal;
+    const perServingKcal = rice.recipe.nutritionPerServing.kcal;
+    if (targetKcal && perServingKcal > 0) {
+      const without = portionMacros(day).kcal;
+      const wanted = (targetKcal - without) / perServingKcal;
+      // パスタなど主食を兼ねる主菜の日は、ごはんを 0 まで落とせるようにする。
+      // 下限を持たせると「パスタ + ごはん」という食べない組合せが出る
+      // 盛れる単位（0.5人前＝茶碗に軽く1杯）に丸める。solver.ts と同じ刻み。
+      // 上限も先に丸めておく。あとから丸めると、上限を超えたところに着地する
+      const hi = Math.floor(Math.min(riceServingsPerMeal * 1.8, RICE_MAX) / RICE_STEP) * RICE_STEP;
+      const capped = Math.min(Math.max(wanted, 0), hi);
+      servings = Math.round(capped / RICE_STEP) * RICE_STEP;
     }
-
-    menus.push(day);
+    if (servings > 0) day.push({ recipe: rice.recipe, servings });
   }
   return menus;
+}
+
+/**
+ * 日ごとのカロリーを均す。
+ *
+ * 主菜と副菜を別々に配っているので、どちらの端数も同じ日に落ちることがある。
+ * 実際、5日のうち1日が 1374 kcal、別の2日が 399 kcal になっていた（本人指摘）。
+ * **1食あたりの平均は目標と 0% 差でも、どの日も目標から外れていた。**
+ * 平均だけを見ていたので、画面の数字は正しいのに献立は成立していなかった。
+ *
+ * 配り直しはしない。**多い日から少ない日へ、1品ずつ移すだけ。**
+ * 総量は動かないので、買い物も調理も容器の数も変わらない。
+ *
+ * ごはんを足す前に呼ぶ。ごはんはこのあと日ごとに量を変えて微調整するので、
+ * 先におかずの側の大きな段差を消しておくほうが、ごはんの振れ幅が小さくなる。
+ */
+function levelKcal(menus: Portion[][], maxMoves = 16): void {
+  const kcalOf = (p: Portion) => p.recipe.nutritionPerServing.kcal * p.servings;
+  const isStaple = (p: Portion) => p.recipe.tags.includes('主食込み');
+
+  for (let move = 0; move < maxMoves; move++) {
+    const kcal = menus.map((m) => portionMacros(m).kcal);
+    let hi = 0;
+    let lo = 0;
+    for (let i = 1; i < menus.length; i++) {
+      if (kcal[i]! > kcal[hi]!) hi = i;
+      if (kcal[i]! < kcal[lo]!) lo = i;
+    }
+    const gap = kcal[hi]! - kcal[lo]!;
+    if (hi === lo || gap < 1) return;
+
+    // 空の日を作らない。1品しかない日から抜くと、その日が消える
+    if (menus[hi]!.length <= 1) return;
+
+    let best = -1;
+    let bestGap = gap;
+    for (let k = 0; k < menus[hi]!.length; k++) {
+      const p = menus[hi]![k]!;
+      // 同じ料理が1食に2回並ぶのを避ける（distributeAcrossMeals と同じ規則）
+      if (menus[lo]!.some((q) => q.recipe.id === p.recipe.id)) continue;
+      // 主食を兼ねる品どうしを同じ食に入れない
+      if (isStaple(p) && menus[lo]!.some(isStaple)) continue;
+      const c = kcalOf(p);
+      const after = Math.abs(kcal[hi]! - c - (kcal[lo]! + c));
+      // 移して差が広がるなら移さない
+      if (after < bestGap) {
+        bestGap = after;
+        best = k;
+      }
+    }
+    // これ以上どこを動かしても縮まらない
+    if (best < 0) return;
+    menus[lo]!.push(menus[hi]!.splice(best, 1)[0]!);
+  }
 }

@@ -40,6 +40,20 @@ const MEAT_MORE: SeedIngredient[] = [
     fridge: 14,
     allergens: ['pork'],
   }),
+  ing('牛もも薄切り肉', 'ぎゅうももにく', 'meat_fish', [148, 21.2, 6.7, 0.4], ['pack', 250, 650], {
+    aliases: ['牛もも', '牛薄切り'],
+    fridge: 2,
+    freezer: 21,
+    freezeOk: true,
+    allergens: ['beef'],
+  }),
+  ing('牛バラ薄切り肉', 'ぎゅうばらにく', 'meat_fish', [338, 14.4, 32.9, 0.2], ['pack', 300, 700], {
+    aliases: ['牛バラ'],
+    fridge: 2,
+    freezer: 21,
+    freezeOk: true,
+    allergens: ['beef'],
+  }),
   ing('むきえび', 'えび', 'meat_fish', [82, 18.4, 0.3, 0.3], ['pack', 200, 500], {
     aliases: ['えび', 'エビ'],
     fridge: 2,

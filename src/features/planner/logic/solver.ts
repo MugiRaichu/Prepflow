@@ -14,6 +14,7 @@
  */
 import { totalMinutes, handsOnMinutes } from '@/db/data/build';
 import { timeMetric } from './time';
+import { RICE_POLICY_SERVINGS } from '@/db/schema';
 import type { AllergenTag, Macros, Recipe } from '@/db/schema';
 import type { PlanItem, SolveInput, SolveResult, WeekPlanCandidate } from './types';
 
@@ -46,7 +47,10 @@ const maxBatchesFor = (k: number): number => (k >= 4 ? 1 : MAX_BATCHES);
 const MAX_FAT_RATIO = 1.35;
 
 /** 1食あたりのごはんは 0〜2 人前まで */
-const RICE_MAX = 2;
+/** 1食のごはんは 2人前（約330g）まで。これ以上は茶碗に入らない */
+export const RICE_MAX = 2;
+/** ごはんの最小単位。茶碗に軽く1杯が約0.5人前（83g）。これより細かく刻んでも盛れない */
+export const RICE_STEP = 0.5;
 
 /** 組合せ列挙（サイズ k） */
 function combinations<T>(arr: T[], k: number): T[][] {
@@ -668,12 +672,41 @@ export function solveWeek(input: SolveInput): SolveResult {
         const riceShare =
           mainServings > 0 ? Math.max(0, 1 - stapleServings / mainServings) : 1;
 
-        const need = input.target.kcal - base.kcal;
-        riceServings = Math.max(0, Math.min(need / rice.nutritionPerServing.kcal, RICE_MAX));
-        riceServings = Math.round(riceServings * riceShare * 10) / 10;
+        /*
+         * ごはんは**茶碗に盛れる単位**に丸める。
+         *
+         * ここは「目標カロリーの残り ÷ ごはん1人前」を 0.1 きざみで出していたので、
+         * 1食 0.1 人前（＝約17g、ひとくち）のような、盛れも詰めもしない量が
+         * 画面に出ていた。0.5人前（約83g、茶碗に軽く1杯）を最小の単位にして、
+         * それに満たない残りはごはんで埋めない。
+         */
+        const fixed =
+          input.ricePolicy && input.ricePolicy !== 'auto'
+            ? RICE_POLICY_SERVINGS[input.ricePolicy]
+            : undefined;
+        if (fixed !== undefined) {
+          // 量を決めている人には、こちらでカロリーを埋めさせない。
+          // 足りないぶんはおかずで合わせる（合わなければ案として落ちる）
+          riceServings = fixed;
+        } else {
+          const need = input.target.kcal - base.kcal;
+          const raw = Math.max(0, Math.min(need / rice.nutritionPerServing.kcal, RICE_MAX));
+          riceServings = Math.round(raw / RICE_STEP) * RICE_STEP;
+        }
+
         if (riceServings > 0) {
-          perMeal = addMacros(base, scaleMacros(rice.nutritionPerServing, riceServings));
-          const totalServings = riceServings * input.meals;
+          /*
+           * パスタの日はごはんを付けない（distribute.ts）。
+           * その割合を**盛る量から引いてはいけない。**
+           * 引くと、ごはんが付く日の茶碗まで小さくなる。
+           * 0.1人前まで縮んでいたのは、ここで二重に割り引いていたため。
+           * 割合を掛けるのは、週の平均として見積もるときと、買う量だけ。
+           */
+          perMeal = addMacros(
+            base,
+            scaleMacros(rice.nutritionPerServing, riceServings * riceShare),
+          );
+          const totalServings = riceServings * input.meals * riceShare;
           const batches = Math.max(1, Math.ceil(totalServings / rice.servings));
           ricePlan = { recipe: rice, batches, totalServings };
         }
@@ -733,7 +766,13 @@ export function solveWeek(input: SolveInput): SolveResult {
         deviation + mp.penalty + sp.penalty + costRatio * 0.25 + dishes * 0.02 + monotony + timeScore;
 
       const notes: string[] = [];
-      if (riceServings === 0) notes.push('ごはんなしで目標カロリーに届いています');
+      if (riceServings === 0) {
+        notes.push(
+          input.ricePolicy === 'none'
+            ? 'ごはんは付けません（設定どおり）。おかずだけで目標カロリーに届いています'
+            : 'ごはんなしで目標カロリーに届いています',
+        );
+      }
       if (costRatio < 0.7) notes.push('予算に余裕があります（' + Math.round(costRatio * 100) + '%）');
       if (perMeal.proteinG < input.target.proteinG * 0.9)
         notes.push('たんぱく質がやや不足しています');

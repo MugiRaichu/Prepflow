@@ -28,6 +28,7 @@ import type {
   Macros,
   MealSlot,
   Profile,
+  RicePolicy,
   ShoppingList,
   Weekday,
   WeekPlan,
@@ -89,6 +90,12 @@ export interface GenerateContext {
   cookDays: number;
   /** 同じ主菜を何食まで載せてよいか。日別の割り振りで守る */
   maxSameDishMeals: number;
+  /**
+   * ごはんの量の決め方。**画面と保存で同じ配り方をするために持つ。**
+   * 案の画面（PlanScreen）と確定処理（commitWeek）が別々に日別配分を
+   * 計算しているので、片方だけが目標カロリーを渡すと中身が食い違う。
+   */
+  ricePolicy: RicePolicy;
   target: Macros;
   weekStart: string;
   /** 週の途中で作り直すときの情報。通常の週プランでは undefined */
@@ -419,6 +426,7 @@ export async function proposeWeek(
         maxProteinDeviation: 0.2,
         minFatRatio: 0.6,
         maxSameDishMeals: settings.cooking.maxSameDishMeals ?? 3,
+        ricePolicy: settings.cooking.ricePolicy ?? 'auto',
         // 既定値は設定画面の値。今週の希望で上書きされたときだけ true になる
         timeCapIsExplicit: false,
       },
@@ -444,6 +452,7 @@ export async function proposeWeek(
       // 緩和後の値を使う。設定値のまま配ると、ソルバーが4食ぶんとして組んだ案を
       // 3食にしか配れず、最後の食が空になる
       maxSameDishMeals: result.maxSameDishMeals,
+      ricePolicy: settings.cooking.ricePolicy ?? 'auto',
       // 毎日その日に作るなら保存しないので、冷凍の案内は出さない。
       // 週に何回か作る場合も、次に作るまでが maxFridgeDays 以内なら要らない
       freezeFromDay:
@@ -580,14 +589,20 @@ export async function commitWeek(
         await db.weekPlans.add(weekPlan);
       }
 
-      // 日ごとに違う組合せを作る。買い物も調理も変えず、詰める中身だけを日替わりにする
+      /*
+       * 日ごとに違う組合せを作る。買い物も調理も変えず、詰める中身だけを日替わりにする。
+       *
+       * 目標カロリーを渡すと、ごはんの量を日ごとに増減して差を埋める。
+       * **量を決めている人には渡さない。**「毎食 茶碗1杯」と決めたのに
+       * 日によって 0.5杯や1.5杯になるのでは、決めた意味がない。
+       */
       const menus = buildDailyMenus(
         plan.mains,
         plan.sides,
         plan.ricePlan,
         plan.riceServings,
         ctx.meals,
-        ctx.target.kcal,
+        ctx.ricePolicy === 'auto' ? ctx.target.kcal : undefined,
         ctx.maxSameDishMeals,
       );
 

@@ -79,18 +79,50 @@
           stroke-dashoffset: 0;
         }
       }
-      #pf-splash p {
+      /*
+        キャッチコピーと名前を**同じ升に重ねる。**
+        縦に並べて片方を消すと、消えた瞬間にもう片方が動く。
+        重ねておけば、入れ替わっても文字の位置が変わらない。
+      */
+      #pf-splash .pf-words {
+        display: grid;
+        place-items: center;
+      }
+      #pf-splash .pf-words > p {
+        grid-area: 1 / 1;
         margin: 0;
-        font:
-          500 15px/1.6 system-ui,
+        color: #2b2724;
+        font-family:
+          system-ui,
           -apple-system,
           "Hiragino Sans",
           "Noto Sans JP",
           sans-serif;
+      }
+      /*
+        先に何のアプリかを言い、あとから名前を置く。
+        名前を先に出しても、初めての人には読む手がかりが無い。
+      */
+      #pf-splash .pf-tagline {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.6;
         letter-spacing: 0.16em;
-        color: #2b2724;
-        opacity: 0;
-        animation: pf-fade 700ms ease 900ms forwards;
+        animation:
+          pf-fade 700ms ease 900ms both,
+          pf-swap-out 420ms ease 1900ms forwards;
+      }
+      #pf-splash .pf-name {
+        font-size: 23px;
+        font-weight: 600;
+        line-height: 1.4;
+        /*
+          字間が詰まりながら定まる。散らばった文字が1つの名前になる。
+          落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
+          1文字ずつ読むことになり、名前として一息に読めない。
+          右端の字送りぶんだけ左に寄って見えるので、その半分を戻す。
+        */
+        animation: pf-swap-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 2120ms both;
       }
       @keyframes pf-fade {
         from {
@@ -102,13 +134,47 @@
           transform: none;
         }
       }
-      /* 動きが苦手な人には出さない。文字だけ静かに置く */
+      @keyframes pf-swap-out {
+        to {
+          opacity: 0;
+          transform: translateY(-9px);
+        }
+      }
+      @keyframes pf-swap-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px) translateX(0.17em);
+          letter-spacing: 0.34em;
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0.06em);
+          letter-spacing: 0.12em;
+        }
+      }
+      /*
+        動きが苦手な人には出さない。
+        入れ替えの代わりに、2つを縦に並べて静かに置く（どちらも読める）。
+      */
       @media (prefers-reduced-motion: reduce) {
-        #pf-splash path,
-        #pf-splash p {
+        #pf-splash path {
           animation: none;
           stroke-dashoffset: 0;
+        }
+        #pf-splash .pf-words {
+          grid-auto-flow: row;
+          gap: 12px;
+        }
+        #pf-splash .pf-words > p {
+          grid-area: auto;
+          animation: none;
           opacity: 1;
+          transform: none;
+        }
+        /* 上の transform: none のあとに、字送りぶんの寄りだけ戻す */
+        #pf-splash .pf-name {
+          letter-spacing: 0.12em;
+          transform: translateX(0.06em);
         }
       }
     </style>
@@ -122,7 +188,10 @@
         <path d="M112 360 H208" />
         <path d="M336 312 L384 360 L336 408" />
       </svg>
-      <p>食と暮らしに寄り添う。</p>
+      <div class="pf-words">
+        <p class="pf-tagline">食と暮らしに寄り添う。</p>
+        <p class="pf-name">Prepflow</p>
+      </div>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
