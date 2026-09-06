@@ -107,14 +107,6 @@ export function PlanScreen() {
     });
   }, []);
 
-  const stockNames =
-    useLiveQuery(
-      async () =>
-        (await db.inventory.where('deleted').equals(0).toArray())
-          .filter((r) => r.quantity > 0)
-          .map((r) => r.ingredientName),
-      [],
-    ) ?? [];
   const [error, setError] = useState<string | null>(null);
 
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
@@ -268,42 +260,21 @@ export function PlanScreen() {
         {error && <div className="rounded-lg border border-foreground/40 p-3 text-xs">{error}</div>}
 
         {/*
-          献立を作る直前だけ、家にあるものを確かめてもらう。
-          在庫が効くのはこの瞬間だけで、それ以外のタイミングで正確でも意味がない。
-          触らなければ見込みのまま進むので、飛ばしても止まらない
-        */}
-        {/*
-          **画面を開かせない。**在庫を確かめるだけのために別の画面へ飛ばすと、
-          20行の一覧を前にして面倒になる（本人指摘）。
+          **在庫の一覧はここに出さない。**
+          「カレー粉・バター・ごま油…ほか29品が家にあるものとして使われます」を
+          読んで、人にできることは何も無い（本人指摘）。並ぶものの大半は調味料で、
+          切れていないのが当たり前のものだった。
 
-          傷んだはずのものは既に自動で落としてある（dropExpiredStock）ので、
-          残っているのは数品のはず。その名前をここに並べて、
-          合っていれば押さずに進める。違うときだけ直しに行く。
+          献立を作る前に伝える必要があるのは、**アプリが勝手に捨てたものだけ**。
+          在庫が効いた結果と、直す導線は、案が出たあとに置いてある。
         */}
-        {/* 黙って消さない。落としたものは名前で伝える */}
         {!cands && dropped.length > 0 && (
           <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
             日持ちが過ぎた <b className="text-foreground">{dropped.join('・')}</b> は、
-            もう無いものとして扱いました。まだあるなら「違うものがあれば直す」から戻せます。
-          </div>
-        )}
-
-        {!cands && stockNames.length > 0 && (
-          <div className="rounded-lg border p-3">
-            <div className="flex items-center gap-2">
-              <Boxes className="size-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 text-xs">
-                <b>{stockNames.slice(0, 6).join('・')}</b>
-                {stockNames.length > 6 && ' ほか' + (stockNames.length - 6) + '品'}
-                {' が家にあるものとして使われます'}
-              </span>
-            </div>
-            <button
-              onClick={() => nav('/stock')}
-              className="mt-2 min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
-            >
-              違うものがあれば直す
-            </button>
+            もう無いものとして扱いました。
+            <Link to="/stock" className="ml-1 underline underline-offset-2">
+              まだあるなら戻す
+            </Link>
           </div>
         )}
 
@@ -630,6 +601,10 @@ function CandidateView({
           {ctx.inventoryCoveredYen > 0 && (
             <div className="text-muted-foreground">
               家にある食材（約{yen(ctx.inventoryCoveredYen)}ぶん）を優先して組んでいます
+              {/* 直すならここ。いくら効いたかを見てからのほうが、直す気になる */}
+              <Link to="/stock" className="ml-1 underline underline-offset-2">
+                残りを直す
+              </Link>
             </div>
           )}
         </div>
