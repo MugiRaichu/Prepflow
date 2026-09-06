@@ -125,6 +125,7 @@ export function Onboarding() {
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [goal, setGoal] = useState<DietGoal>('maintain');
   const [sex, setSex] = useState<Sex>('unspecified');
@@ -163,11 +164,21 @@ export function Onboarding() {
 
   const finish = async () => {
     setSaving(true);
+    setError(null);
     try {
       await createProfile({ sex, birthYear, heightCm, weightKg, goal, activityLevel, allergens });
 
+      /*
+       * 器具と容器は**すでにあれば作らない**。
+       *
+       * この画面は2回通ることがある（「あとで設定する」で抜けたあと、
+       * 設定から入り直す）。毎回足していると、コンロが2倍になり、
+       * 容器は labelCode が重複して**保存そのものが失敗する**。
+       * 実際、「はじめる」を押しても何も起きない状態になっていた。
+       */
       const eq = EQUIPMENT_PRESETS.find((p) => p.id === equipmentPresetId);
-      if (eq) {
+      const haveEquipment = await db.equipment.count();
+      if (eq && haveEquipment === 0) {
         await db.equipment.bulkAdd(
           eq.items.map((i) => ({
             ...newEntity(),
@@ -181,7 +192,8 @@ export function Onboarding() {
       }
 
       const cp = CONTAINER_PRESETS.find((p) => p.id === containerPresetId);
-      if (cp && cp.count > 0) {
+      const haveContainers = await db.containers.count();
+      if (cp && cp.count > 0 && haveContainers === 0) {
         await db.containers.add({
           ...newEntity(),
           labelCode: 'A',
@@ -218,6 +230,13 @@ export function Onboarding() {
       await requestPersistence();
       await markOnboarded();
       nav('/dashboard', { replace: true });
+    } catch (e) {
+      /*
+       * **黙って止まらない。**
+       * ここは try/finally だけで、失敗しても画面には何も出なかった。
+       * 押しても何も起きないボタンは、壊れているのか自分が悪いのか分からない。
+       */
+      setError(e instanceof Error ? e.message : '保存できませんでした');
     } finally {
       setSaving(false);
     }
@@ -556,6 +575,11 @@ export function Onboarding() {
       </main>
 
       <footer className="pf-safe-bottom shrink-0 space-y-2 border-t px-4 py-3">
+        {error && (
+          <div className="rounded-md border border-primary/50 p-2 text-[11px] leading-relaxed">
+            保存できませんでした（{error}）。もう一度押すか、設定から入り直してください。
+          </div>
+        )}
         <button
           onClick={next}
           disabled={saving}
