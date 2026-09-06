@@ -39,19 +39,26 @@ export function useUndoBar() {
     }, SHOW_MS);
   }, []);
 
+  /*
+   * 見た目。
+   *
+   * 取り消しは**押してほしい側**の操作なので、地の文と同じ濃さでは読めない。
+   * 反転（白地に黒）にして、面積も文字も大きくする。
+   * モノクロなので、色ではなく反転と太さで強さを出す（D-008）。
+   */
   const bar = pending ? (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[86px]">
-      <div className="pf-rise pointer-events-auto flex items-center gap-3 rounded-xl border bg-card px-4 py-3 shadow-lg">
-        <span className="min-w-0 flex-1 truncate text-xs">{pending.label}</span>
+      <div className="pf-rise pointer-events-auto flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 shadow-lg">
+        <span className="min-w-0 flex-1 truncate text-xs leading-snug">{pending.label}</span>
         <button
           onClick={async () => {
             window.clearTimeout(timer.current);
             setPending(null);
             await pending.undo();
           }}
-          className="flex min-h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium active:bg-accent"
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-foreground px-4 text-sm font-semibold text-background"
         >
-          <Undo2 className="size-3.5" />
+          <Undo2 className="size-4" />
           取り消す
         </button>
       </div>
