@@ -102,7 +102,8 @@ export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): B
       seed.title + ': 1食 ' + Math.round(perServingGrams) + 'g は多すぎます。yieldFactor を確認',
     );
   }
-  if (perServingGrams < PLAUSIBLE_GRAMS.min && seed.role !== 'side') {
+  // 副菜と間食は少量で当たり前。プロテイン1杯30g を「少なすぎる」とは言わない
+  if (perServingGrams < PLAUSIBLE_GRAMS.min && seed.role !== 'side' && seed.role !== 'snack') {
     warnings.push(
       seed.title + ': 1食 ' + Math.round(perServingGrams) + 'g は少なすぎます。分量を確認',
     );

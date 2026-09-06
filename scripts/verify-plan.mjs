@@ -52,8 +52,22 @@ console.log('レシピ ' + recipes.length + ' 品 / 食材 ' + ingredients.lengt
 console.log(
   '  主菜 ' + recipes.filter((r) => r.role === 'main').length +
   ' / 副菜 ' + recipes.filter((r) => r.role === 'side').length +
-  ' / 主食 ' + recipes.filter((r) => r.role === 'staple').length,
+  ' / 主食 ' + recipes.filter((r) => r.role === 'staple').length +
+  ' / 間食 ' + recipes.filter((r) => r.role === 'snack').length,
 );
+
+// 間食の枠に食事が入っていないか。1食ぶんの重さになっていたら不具合
+{
+  const snacks = recipes.filter((r) => r.role === 'snack');
+  const heavy = snacks.filter((r) => r.nutritionPerServing.kcal > 400);
+  if (heavy.length) {
+    ng++;
+    console.log('  ! 間食が重すぎます: ' + heavy.map((r) => r.title + ' ' + Math.round(r.nutritionPerServing.kcal) + 'kcal').join(' / '));
+  } else if (snacks.length) {
+    const avg = Math.round(snacks.reduce((n, r) => n + r.nutritionPerServing.kcal, 0) / snacks.length);
+    console.log('  間食は平均 ' + avg + ' kcal（上限400）');
+  }
+}
 if (problems.length) {
   console.log('\n[シードの警告]');
   for (const p of problems) console.log('  ! ' + p);

@@ -95,6 +95,7 @@ export const RECIPE_ROLE_LABELS: Record<RecipeRole, string> = {
   main: '主菜',
   side: '副菜',
   staple: '主食',
+  snack: '間食',
 };
 
 export const yen = (n: number | undefined) =>

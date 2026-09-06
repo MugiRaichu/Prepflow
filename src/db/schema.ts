@@ -591,7 +591,14 @@ export type RecipeSource = 'ai_cloud' | 'ai_local' | 'user' | 'builtin';
  * 「主菜1品＋副菜1品＋ごはん」で1食を組み立てる。
  * たんぱく質は主に主菜から、炭水化物はごはんの量で調整する。
  */
-export type RecipeRole = 'main' | 'side' | 'staple';
+/**
+ * 献立の中での役割。
+ *
+ * `snack` を分けているのは、**間食の枠に食事を入れないため**。
+ * 枠を等しく扱っていたとき、間食に主菜＋副菜＋ごはんで1.3kg・1289kcal が
+ * 入っていた（本人指摘）。間食は料理ではなく、手軽に食べられるもの。
+ */
+export type RecipeRole = 'main' | 'side' | 'staple' | 'snack';
 
 export interface Recipe extends Entity {
   title: string;

@@ -903,6 +903,7 @@ const SIDES3: SeedRecipe[] = [
 
 import { BUILTIN_RECIPES_MORE } from './recipes-more';
 import { BUILTIN_RECIPES_WORLD } from './recipes-world';
+import { BUILTIN_RECIPES_SNACK } from './recipes-snack';
 
 export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...MAINS,
@@ -919,4 +920,6 @@ export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...BUILTIN_RECIPES_MORE,
   // 洋食・中華・カレー・麺類。和食だけだと毎週同じ顔になる
   ...BUILTIN_RECIPES_WORLD,
+  // 間食とパンの朝食。間食の枠に食事が入っていたのを直すために要る
+  ...BUILTIN_RECIPES_SNACK,
 ];

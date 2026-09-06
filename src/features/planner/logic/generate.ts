@@ -97,6 +97,12 @@ export interface GenerateContext {
   inventoryCoveredYen: number;
   /** この回だけ外した食材の名前。何を避けて組んだのかを画面で言うために持つ */
   excludedNames: string[];
+  /** 献立に出す食事の枠（間食を除く） */
+  mealSlots: MealSlot[];
+  /** 間食の枠。ここは専用のレシピで埋める */
+  snackSlots: MealSlot[];
+  /** 間食に割り当てたレシピ。枠の数だけ並ぶ */
+  snacks: Recipe[];
   /** 買い出しに行かない前提で組んだか。画面の言い方が変わる */
   stockOnly: boolean;
   /** そのとき候補にできた料理の数。少なすぎるなら諦めてもらうしかない */
@@ -116,6 +122,44 @@ export interface ReplanInfo {
   dates: string[];
   /** 作ったぶんがあるので残す日 */
   lockedDates: string[];
+}
+
+/**
+ * 間食を選ぶ。
+ *
+ * **探索にはかけない。**間食は1日の目標の端数を埋めるもので、
+ * 主菜・副菜のように組合せを探す対象ではない。数百通りを比べる意味がない。
+ *
+ * 選び方は単純に「1枠あたりの目標カロリーにいちばん近いもの」。
+ * 同じものばかりにならないよう、選んだら後ろへ回す。
+ */
+function pickSnacks(
+  pool: Recipe[],
+  count: number,
+  target: Macros,
+  bannedAllergens: Set<AllergenTag>,
+  bannedIngredientIds: Set<string>,
+): Recipe[] {
+  if (count <= 0) return [];
+
+  const usable = pool.filter(
+    (r) =>
+      r.role === 'snack' &&
+      !r.allergens.some((a) => bannedAllergens.has(a)) &&
+      !r.ingredients.some((i) => bannedIngredientIds.has(i.ingredientId)),
+  );
+  if (usable.length === 0) return [];
+
+  // 目標に近い順。同点なら、たんぱく質が多いほうを先に
+  const ranked = [...usable].sort((a, b) => {
+    const da = Math.abs(a.nutritionPerServing.kcal - target.kcal);
+    const dbv = Math.abs(b.nutritionPerServing.kcal - target.kcal);
+    return da - dbv || b.nutritionPerServing.proteinG - a.nutritionPerServing.proteinG;
+  });
+
+  const out: Recipe[] = [];
+  for (let i = 0; i < count; i++) out.push(ranked[i % ranked.length]!);
+  return out;
 }
 
 /**
@@ -264,7 +308,19 @@ export async function proposeWeek(
     budgetYen = Math.max(Math.round(budgetYen * 0.3), budgetYen - spent);
   }
 
-  const meals = dayCount * slots.length;
+  /*
+   * 間食の枠は、食事の枠と分けて数える。
+   *
+   * 等しく扱っていたとき、間食に主菜＋副菜＋ごはんで1.3kg・1289kcal が
+   * 入っていた（本人指摘）。**間食は料理ではない。**
+   * 探索の対象は食事の枠だけにして、間食は専用のレシピで別に埋める。
+   *
+   * 1枠あたりの目標は今まで通り「全部の枠で割った量」を使う。
+   * 食事の枠だけを解くと、その差が間食に回るぶんとしてちょうど残る。
+   */
+  const mealSlots = slots.filter((s) => s !== 'snack');
+  const snackSlots = slots.filter((s) => s === 'snack');
+  const meals = dayCount * Math.max(mealSlots.length, 1);
   const target = sumMacros(profiles.map((p) => perSlotTarget(p, slots)));
 
   // 家にある食材はただ同然として扱う。今週の余りを使う案が自然に勝ち、
@@ -323,7 +379,9 @@ export async function proposeWeek(
       return (stock.get(it.ingredientId) ?? 0) >= it.quantity * STOCK_TOLERANCE;
     });
 
-  const pool = opts.stockOnly ? recipes.filter(cookableFromStock) : recipes;
+  // 間食は探索にかけない（別枠で選ぶ）。主菜・副菜として選ばれると献立が崩れる
+  const searchable = recipes.filter((r) => r.role !== 'snack');
+  const pool = opts.stockOnly ? searchable.filter(cookableFromStock) : searchable;
 
   const result = solveWithRequest(
     applyRequest(
@@ -378,6 +436,9 @@ export async function proposeWeek(
       profiles,
       meals,
       slots,
+      mealSlots,
+      snackSlots,
+      snacks: pickSnacks(recipes, snackSlots.length * dayCount, target, bannedAllergens, banned),
       mode,
       cookDays: sessions,
       // 緩和後の値を使う。設定値のまま配ると、ソルバーが4食ぶんとして組んだ案を
@@ -438,6 +499,8 @@ export async function commitWeek(
     ...plan.mains.map((i) => i.recipe.id),
     ...plan.sides.map((i) => i.recipe.id),
     ...(plan.ricePlan ? [plan.ricePlan.recipe.id] : []),
+    // 間食も買い出しの対象。ここに入れないとプロテインもバナナも買われない
+    ...ctx.snacks.map((r) => r.id),
   ];
 
   return db.transaction(
@@ -549,9 +612,42 @@ export async function commitWeek(
       const n = Math.max(ctx.profiles.length, 1);
       let mealIndex = 0;
 
+      let snackIndex = 0;
+
       for (let d = 0; d < days; d++) {
         const date = replan ? replan.dates[d]! : addDaysIso(ctx.weekStart, d);
         for (const slot of slots) {
+          /*
+           * 間食の枠は、探索の結果ではなく専用のレシピで埋める。
+           * ここを食事と同じ扱いにしていたとき、間食に主菜＋副菜＋ごはんが
+           * 入って1.3kg・1289kcal になっていた。
+           * 容器にも詰めない（その場で作って食べるもの）。
+           */
+          if (slot === 'snack') {
+            const snack = ctx.snacks[snackIndex++];
+            if (!snack) continue;
+            for (const profile of ctx.profiles) {
+              await db.plannedMeals.add({
+                ...newEntity(),
+                weekPlanId: weekPlan.id,
+                profileId: profile.id,
+                date,
+                slot,
+                items: [
+                  {
+                    recipeId: snack.id,
+                    recipeTitle: snack.title,
+                    grams: Math.round(gramsPerServing(snack)),
+                  },
+                ],
+                nutrition: { ...snack.nutritionPerServing },
+                status: 'planned',
+                source: 'plan',
+              });
+            }
+            continue;
+          }
+
           const portions = menus[mealIndex++] ?? [];
           const nutrition = portionMacros(portions);
           const items = portions.map((p) => ({
