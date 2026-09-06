@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { foodPreferenceOf, setFoodPreference } from '@/db/repositories/profiles';
@@ -30,12 +31,32 @@ const NEXT: Record<string, 'dislike' | 'exclude' | null> = {
 };
 
 export function DislikePicker({ profile }: { profile: Profile }) {
+  const [open, setOpen] = useState(false);
   const all = useLiveQuery(() => db.ingredients.where('deleted').equals(0).toArray(), []);
   if (!all) return null;
 
   const items = all.filter((i) => !HIDDEN_SECTIONS.includes(i.section));
   const sections = [...new Set(items.map((i) => i.section))];
   const chosen = items.filter((i) => foodPreferenceOf(profile, i.id));
+
+  /*
+   * ふだんは畳んでおく。
+   *
+   * 食材が99品あるので、開いたままだと60個以上のチップが並ぶ。
+   * **苦手なものが無い人のほうが多い**のに、全員がその壁を見ることになる。
+   * 選んだものは畳んでいても見えるようにして、開くのは足すときだけにする。
+   */
+  if (!open && chosen.length === 0) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex min-h-11 w-full items-center justify-between rounded-md border px-3 text-left active:bg-accent"
+      >
+        <span className="text-sm font-medium">好き嫌い</span>
+        <span className="text-[10px] text-muted-foreground">指定なし・押して選ぶ</span>
+      </button>
+    );
+  }
 
   const cycle = (ing: Ingredient) => {
     const cur = foodPreferenceOf(profile, ing.id) ?? 'none';
@@ -53,7 +74,17 @@ export function DislikePicker({ profile }: { profile: Profile }) {
         押すたびに変わります。1回で「苦手」、もう1回で「入れない」、もう1回で解除。
       </p>
 
-      {sections.map((sec) => (
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+        >
+          ほかの食材も指定する
+        </button>
+      )}
+
+      {open &&
+        sections.map((sec) => (
         <div key={sec} className="space-y-1.5 pt-1">
           <div className="text-[10px] text-muted-foreground">{STORE_SECTION_LABELS[sec]}</div>
           <div className="flex flex-wrap gap-1.5">
@@ -79,8 +110,8 @@ export function DislikePicker({ profile }: { profile: Profile }) {
                 );
               })}
           </div>
-        </div>
-      ))}
+          </div>
+        ))}
 
       {/* 何を選んだのかを、状態ごとに言葉で返す。見た目の差だけでは伝わらない（D-084） */}
       {chosen.length > 0 && (
