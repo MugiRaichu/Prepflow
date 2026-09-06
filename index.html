@@ -12,7 +12,13 @@
     <!-- iOS Safari: ホーム画面追加時の全画面表示 -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!--
+      black-translucent にすると、iOS はステータスバーの裏まで本文を伸ばす。
+      ところが実機（iPhone 17）ではビューの高さがステータスバーぶん足りず、
+      本文が時刻に重なったまま、下端に 62px の届かない帯が残った。
+      背景がもともと黒なので、不透明の black で見た目は変わらない。
+    -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Prepflow" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
 

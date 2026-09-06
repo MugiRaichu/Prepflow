@@ -21,24 +21,6 @@
  * セーフエリアから差し引く。
  */
 
-/** env(safe-area-inset-*) の実効値。CSS からは読めないので要素を置いて測る */
-function measureInset(side: 'top' | 'bottom'): number {
-  try {
-    const probe = document.createElement('div');
-    probe.style.cssText =
-      'position:fixed;left:0;width:1px;pointer-events:none;visibility:hidden;' +
-      (side === 'bottom'
-        ? 'bottom:0;height:env(safe-area-inset-bottom);'
-        : 'top:0;height:env(safe-area-inset-top);');
-    document.body.appendChild(probe);
-    const h = probe.getBoundingClientRect().height;
-    probe.remove();
-    return Math.round(h);
-  } catch {
-    return 0;
-  }
-}
-
 export function trackViewportInsets(): void {
   const vv = window.visualViewport;
   const root = document.documentElement;
@@ -53,20 +35,6 @@ export function trackViewportInsets(): void {
     const bottom = Math.max(0, Math.round(hidden));
     root.style.setProperty('--app-bottom', bottom + 'px');
 
-    /*
-     * 画面のうち、アプリの領域になっていない量。
-     * ホーム画面から起動した iPhone では、ここに Dynamic Island ぶんが入る。
-     * すでに避けられているので、セーフエリアの余白から差し引く。
-     *
-     * 縦向き固定なので screen.height と比べてよい。
-     * 想定外の値（横向き・分割表示）は無視する
-     */
-    const screenH = window.screen?.height ?? 0;
-    const offscreen = screenH > 0 ? screenH - window.innerHeight - bottom : 0;
-    const already = offscreen > 0 && offscreen < 200 ? Math.round(offscreen) : 0;
-
-    const padTop = Math.max(0, measureInset('top') - already);
-    root.style.setProperty('--app-pad-top', padTop + 'px');
   };
 
   set();

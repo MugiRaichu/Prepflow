@@ -190,21 +190,30 @@
    */
   /*
    * ノッチ・Dynamic Island ぶんの余白。
-   * **アプリの領域がすでにその下から始まっている場合は 0 にする。**
-   * iPhone 17 では画面874・領域812・セーフエリア上62 で、
-   * そのまま足すと使えるはずの62pxを二重に空けていた。
-   * 実測は src/lib/viewport.ts。
+   *
+   * ここは env() をそのまま信じる。画面とアプリの領域の差から
+   * 「すでに避けられている」と判断して差し引いたところ、iPhone で
+   * 見出しが時刻表示に重なった。差の 62px は上ではなかった。
    */
   .pf-safe-top {
-    padding-top: var(--app-pad-top, env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
   }
   /*
-   * ホームバーぶんの余白。**ブラウザのバーで持ち上げたぶんは差し引く。**
-   * バーが出ている間はホームバーもそのバーの裏にあるので、
-   * 両方引くとタブバーが二重に浮く。
+   * ホームバーぶんの余白。
+   *
+   * env(safe-area-inset-bottom) は iPhone で 34px を返すが、**そのぶん空けると
+   * タブバーが画面の下端から浮いて見える**（下が全部黒いので、余白が
+   * ただの空白に見える）。ホームバーの線そのものは細いので、
+   * 触れる高さを確保できる範囲まで詰める。
+   *
+   * ブラウザのバーで持ち上げたぶんは差し引く。バーが出ている間は
+   * ホームバーもそのバーの裏にあり、両方引くと二重に浮く。
    */
   .pf-safe-bottom {
-    padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - var(--app-bottom, 0px)));
+    padding-bottom: max(
+      0px,
+      calc(min(env(safe-area-inset-bottom), 20px) - var(--app-bottom, 0px))
+    );
   }
 
   /* 残り時間が尽きたタイマー。色を使えないので明滅で気づかせる */
