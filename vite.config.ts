@@ -24,6 +24,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // 共有シートから投げられたものを POST で受け取るため、SW は自前で書く。
+      // 生成まかせ（generateSW）では POST の口を足せない → src/sw.ts
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['icons/favicon.svg', 'icons/apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Prepflow',
@@ -36,6 +41,27 @@ export default defineConfig({
         id: base,
         display: 'standalone',
         orientation: 'portrait',
+        /*
+         * 共有シートに Prepflow を出す。
+         *
+         * レシピを見ているアプリ（ブラウザ・SNS・写真）から「共有 → Prepflow」で
+         * 材料を投げ込めるようにする。**外からは取りに行かない**（規約・著作権。D-073）。
+         * 動くのは本人が共有を押したときだけ。
+         *
+         * 対応は Android と、デスクトップの Chrome / Edge。
+         * iOS は share_target を持たないので、そちらは写真選択と貼り付けで受ける。
+         */
+        share_target: {
+          action: base + 'share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [{ name: 'image', accept: ['image/*'] }],
+          },
+        },
         background_color: '#000000',
         theme_color: '#000000',
         icons: [
@@ -51,19 +77,11 @@ export default defineConfig({
           { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
       },
-      workbox: {
-        // アプリ本体（JS/CSS/HTML/アイコン）はすべて precache してオフライン起動を保証する
+      injectManifest: {
+        // アプリ本体（JS/CSS/HTML/アイコン）はすべて precache してオフライン起動を保証する。
+        // 文字認識のモデル（数MB）は初回に取りに行くので、ここには含めない
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        navigateFallback: base + 'index.html',
-        // WebLLM のモデル重み（数百MB〜）は Workbox に触らせない。
-        // WebLLM 自身が Cache API に格納するので、ここは NetworkOnly で素通しにする。
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/(huggingface\.co|raw\.githubusercontent\.com)\/.*/i,
-            handler: 'NetworkOnly',
-          },
-        ],
       },
       devOptions: {
         // 開発中に SW を有効にするとキャッシュで混乱するので既定は無効。

@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Camera, Check, ClipboardPaste, Trash2, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Chips } from '@/components/shared/Chips';
@@ -10,6 +10,7 @@ import { readImageText, ocrSupported } from '@/features/shopping/logic/ocr';
 import type { OcrProgress } from '@/features/shopping/logic/ocr';
 import { guessStep, matchIngredient, parseAmountText, splitRecipeText } from './logic/parse';
 import { addRecipe } from '@/db/repositories/userRecipes';
+import { isLinkOnly, takeShared } from './logic/shared';
 import { cn } from '@/lib/utils';
 import type { Ingredient, RecipeRole } from '@/db/schema';
 
@@ -43,6 +44,7 @@ const ROLE_OPTIONS: { value: RecipeRole; label: string; hint: string }[] = [
 export function RecipeImport() {
   const nav = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [params] = useSearchParams();
 
   const [text, setText] = useState('');
   const [pasting, setPasting] = useState(false);
@@ -53,6 +55,8 @@ export function RecipeImport() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [steps, setSteps] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /** 共有で URL だけが来たとき、次に何をすればよいかを出す */
+  const [sharedLink, setSharedLink] = useState<string | null>(null);
 
   const pool = useLiveQuery(() => db.ingredients.where('deleted').equals(0).toArray(), []);
 
@@ -103,6 +107,39 @@ export function RecipeImport() {
     }
   };
 
+  /*
+   * 共有シートから飛んできたときの受け取り。
+   *
+   * 画像なら文字認識にかけ、文なら解析にかける。どちらも本人が「共有」を
+   * 押した結果なので、開いた瞬間に始めてよい。手数を1つでも減らす。
+   */
+  const took = useRef(false);
+  useEffect(() => {
+    // 食材マスタの読み込みを待つ。共有から来たときは画面が開いた瞬間に
+    // 解析が走るので、待たないと**全行が「未選択」になる**（照合先が空のまま）
+    if (params.get('shared') !== '1' || !pool || took.current) return;
+    took.current = true;
+    void (async () => {
+      const got = await takeShared();
+      if (got.file) {
+        if (got.text && !isLinkOnly(got.text)) setTitle(got.text.split(/\r?\n/)[0].slice(0, 30));
+        await onImage(got.file);
+        return;
+      }
+      if (!got.text) return;
+      if (isLinkOnly(got.text)) {
+        // ページの中身は取りに行かない（規約・著作権）。何をすれば進むかだけ言う
+        setSharedLink(got.text.split(/\r?\n/).find((l) => /^https?:/.test(l.trim())) ?? null);
+        setTitle(got.text.split(/\r?\n/).find((l) => !/^https?:/.test(l.trim()))?.slice(0, 30) ?? '');
+        return;
+      }
+      setText(got.text);
+      analyze(got.text);
+    })();
+    // 受け取りは開いたとき1回だけ。params が変わっても繰り返さない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, pool]);
+
   const save = async () => {
     if (!rows) return;
     setError(null);
@@ -135,6 +172,17 @@ export function RecipeImport() {
       <PageHeader title="レシピを足す" backTo="/recipes" />
 
       <div className="space-y-4 p-4">
+        {!rows && sharedLink && (
+          <div className="pf-rise space-y-2 rounded-lg border p-3">
+            <div className="text-xs font-medium">ページを受け取りました</div>
+            <div className="truncate text-[10px] text-muted-foreground">{sharedLink}</div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              中身は自動では読みません。材料の部分を長押しで選んでもう一度共有するか、
+              その画面を撮って共有すると、そのまま取り込めます。
+            </p>
+          </div>
+        )}
+
         {!rows && (
           <>
             {/* 主役は1つ。画像を撮って選ぶだけで終わる。文の貼り付けは脇に置く */}
