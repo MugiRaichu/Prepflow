@@ -164,7 +164,7 @@ export function ShoppingScreen() {
           <ReceiptScan items={done} onDone={(t) => { if (t != null) setTotal(String(t)); }} />
 
           <div className="space-y-2 rounded-lg border p-4">
-            <div className="text-sm font-medium">レシートの合計</div>
+            <div className="text-sm font-medium">食材だけの合計</div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               見込みは {yen(current.estimatedTotalYen)} でした。
               {store
@@ -174,7 +174,9 @@ export function ShoppingScreen() {
                     ? ' 実績' + store.sampleCount + '回ぶんで調整中です。'
                     : ' 実績' + store.sampleCount + '回で調整済みです。'
                 : ''}
-              実際の合計を入れると、次の週の見込みがあなたの店に寄ります。飛ばしても構いません。
+              実際の額を入れると、次の週の見込みがあなたの店に寄ります。飛ばしても構いません。
+              同じ会計で日用品を買っていても構いません。上のレシート読み取りを使えば、
+              今回の食材の行だけを拾って合計します。
             </p>
             <div className="flex items-center gap-2">
               <span className="text-sm">¥</span>
@@ -214,7 +216,8 @@ export function ShoppingScreen() {
             })()}
 
             <p className="text-[10px] leading-relaxed text-muted-foreground">
-              レシートの「合計」の欄です。「お預り」ではありません。
+              レシート全体の額ではなく、食材だけの額です。
+              日用品を一緒に買った週は、その分を引いた額を入れてください。
             </p>
           </div>
 

@@ -94,25 +94,43 @@ export function distributeAcrossMeals(
   slots.sort((a, b) => a.key - b.key || a.dish - b.dish);
 
   const perMeal: number[][] = Array.from({ length: meals }, () => []);
+
+  /** 主食を兼ねる品（パスタ・麺・カレー・丼）。1食に2つ来ると成立しない */
+  const isStaple = dishes.map((d) => d.recipe.tags.includes('主食込み'));
+
+  /*
+   * その食にこの品を置いてよいか。
+   *
+   * 1. 同じ品を同じ食に2回入れない。入れると献立が
+   *    「小松菜のおひたし + 小松菜のおひたし」と並ぶ（実際にそうなった）
+   * 2. **主食を兼ねる品どうしを同じ食に入れない。**
+   *    「パスタ + 焼きそば」「カレー + 丼」は誰も食べない。
+   *    ごはんを付けない規則（buildDailyMenus）だけでは、主菜どうしの
+   *    重なりは防げなかった
+   */
+  const canPlace = (mealIdx: number, dish: number): boolean => {
+    const cur = perMeal[mealIdx]!;
+    if (cur.includes(dish)) return false;
+    if (isStaple[dish] && cur.some((j) => isStaple[j])) return false;
+    return true;
+  };
+
   // 先頭から1食に1品ずつ。余った出番は、位置に応じた食に2品目として足す。
-  //
-  // 同じ品が同じ食に2回入らないようにする。入れてしまうと献立が
-  // 「小松菜のおひたし + 小松菜のおひたし」と並ぶ（実際にそうなった）。
   // 希望の位置が埋まっていたら、前後の近い食から空いているところを探す
   slots.forEach((s, k) => {
     const want = k < meals ? k : Math.min(meals - 1, Math.floor(s.key * meals));
     let meal = want;
-    if (perMeal[meal]!.includes(s.dish)) {
+    if (!canPlace(meal, s.dish)) {
       meal = -1;
       for (let d = 1; d < meals && meal < 0; d++) {
         for (const cand of [want - d, want + d]) {
-          if (cand >= 0 && cand < meals && !perMeal[cand]!.includes(s.dish)) {
+          if (cand >= 0 && cand < meals && canPlace(cand, s.dish)) {
             meal = cand;
             break;
           }
         }
       }
-      // どの食にも既に入っているなら諦めて元の位置へ（量だけ増える）
+      // どこにも置けないなら諦めて元の位置へ（量だけ増える）
       if (meal < 0) meal = want;
     }
     perMeal[meal]!.push(s.dish);

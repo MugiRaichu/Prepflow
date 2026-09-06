@@ -176,6 +176,45 @@ for (const limit of [7, 5, 3, 2]) {
   );
 }
 
+// --- 主食の重なり ----------------------------------------------------------
+// 「パスタ + ごはん」「焼きそば + 丼」のような、誰も食べない組合せが
+// 1食の中に出ていないか。主食を兼ねる品は1食に1つまで、ごはんは付けない
+console.log('');
+console.log('[主食の重なり] 1食に主食が2つ入っていないか');
+for (const tag of ['麺', 'パスタ', 'カレー']) {
+  const inp = {
+    ...base('batch'),
+    meals: 14,
+    budgetYen: 12000,
+    requiredTagMeals: [{ tag, meals: 4 }],
+  };
+  const t0 = Date.now();
+  const r = solveWithRequest(inp);
+  const ms = Date.now() - t0;
+  const c = r.candidates[0];
+  if (!c) { console.log(`  ${tag.padEnd(5)} 解なし（この条件では組めない） ${ms}ms`); continue; }
+  const menus = buildDailyMenus(
+    c.mains, c.sides, c.ricePlan, c.riceServings, 14, inp.target.kcal, inp.maxSameDishMeals,
+  );
+  let worst = null;
+  for (const day of menus) {
+    const staples = day.filter((p) => p.recipe.tags.includes('主食込み'));
+    const rice = day.filter((p) => p.recipe.role === 'staple');
+    if (staples.length > 1 || (staples.length > 0 && rice.length > 0)) {
+      worst = [...staples, ...rice].map((p) => p.recipe.title).join(' + ');
+      break;
+    }
+  }
+  slowest = Math.max(slowest, ms);
+  if (worst) { ng++; console.log(`  ${tag.padEnd(5)} NG ${worst}  ${ms}ms`); }
+  else {
+    const sample = menus.find((d) => d.some((p) => p.recipe.tags.includes('主食込み')));
+    console.log(
+      `  ${tag.padEnd(5)} OK ${(sample ?? menus[0]).map((p) => p.recipe.title).join(' / ')}  ${ms}ms`,
+    );
+  }
+}
+
 // --- アレルゲン ------------------------------------------------------------
 // 指定したアレルゲンが献立から本当に消えるか。ここは緩和されてはいけない
 console.log('');

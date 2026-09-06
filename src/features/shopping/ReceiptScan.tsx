@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Camera, Check, X } from 'lucide-react';
 import { db, nowIso } from '@/db/db';
 import { readReceipt, ocrSupported } from './logic/ocr';
-import { extractTotal, matchLine, toLines } from './logic/receipt';
+import { extractTotal, matchLine, sumMatchedYen, sumUnmatchedYen, toLines } from './logic/receipt';
 import type { MatchCandidate, ReceiptLine } from './logic/receipt';
 import { yen } from '@/lib/labels';
 import type { ShoppingListItem } from '@/db/schema';
@@ -91,7 +91,9 @@ export function ReceiptScan({
         }
       }
     }
-    onDone(total);
+    // **レシートの合計ではなく、食材だけの合計を返す。**
+    // 同じ会計で日用品を買っていても、食費の実績が汚れない
+    onDone(sumMatchedYen(lines));
   };
 
   if (!ocrSupported()) return null;
@@ -180,17 +182,23 @@ function ScanResult({
 
   const matched = lines.filter((l) => l.ingredientId);
   const unmatched = lines.filter((l) => !l.ingredientId && l.priceYen != null);
+  const foodYen = sumMatchedYen(lines);
+  const otherYen = sumUnmatchedYen(lines);
 
   return (
     <div className="space-y-3">
+      {/*
+        出すのは**食材だけの合計**。レシート全体の額は参考として小さく添える。
+        同じ会計で洗剤やティッシュを買っても、食費の実績には入れない
+      */}
       <div className="rounded-md border p-3">
-        <div className="text-[10px] text-muted-foreground">読み取った合計</div>
-        <div className="text-lg font-semibold tabular-nums">
-          {total != null ? yen(total) : '見つかりませんでした'}
+        <div className="text-[10px] text-muted-foreground">今回の食材だけの合計</div>
+        <div className="text-lg font-semibold tabular-nums">{yen(foodYen)}</div>
+        <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+          {total != null && <>レシート全体は {yen(total)}。</>}
+          {otherYen > 0 && <> 食材と判断できなかった {yen(otherYen)} は数えていません。</>}
+          {foodYen === 0 && '1件も読み取れませんでした。下の欄に手で入れてください。'}
         </div>
-        {total == null && (
-          <p className="text-[10px] text-muted-foreground">下の欄に手で入れてください。</p>
-        )}
       </div>
 
       {matched.length > 0 && (

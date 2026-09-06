@@ -213,3 +213,22 @@ export function toLines(text: string): string[] {
   }
   return out;
 }
+
+/**
+ * 読み取った行のうち、**今回の買い出しに載っている食材だけ**の合計。
+ *
+ * レシートの「合計」をそのまま使うと、同じ会計で洗剤やティッシュを買った
+ * 瞬間に食費が跳ね上がり、次の週の見込みが狂う。
+ * スーパーで日用品を買えない、という制約はアプリ側の都合でしかない。
+ *
+ * 割り当てられた行の金額だけを足せば、日用品が混ざっていても食材だけの額が出る。
+ * 割り当てられなかった行は数えない（食材かどうか分からないものを足さない）。
+ */
+export function sumMatchedYen(lines: ReceiptLine[]): number {
+  return lines.reduce((n, l) => (l.ingredientId && l.priceYen != null ? n + l.priceYen : n), 0);
+}
+
+/** 割り当てられなかったのに金額がある行の合計。「食材以外」の目安として出す */
+export function sumUnmatchedYen(lines: ReceiptLine[]): number {
+  return lines.reduce((n, l) => (!l.ingredientId && l.priceYen != null ? n + l.priceYen : n), 0);
+}
