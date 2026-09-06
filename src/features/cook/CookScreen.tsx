@@ -38,7 +38,7 @@ const fmtClock = (sec: number) => {
 export function CookScreen() {
   const [showAll, setShowAll] = useState(false);
   const nav = useNavigate();
-  /** 「材料が使えない」を開いているか。ふだんは畳んでおく */
+  /** 「材料が傷んでいた」を開いているか。ふだんは畳んでおく */
   const [swapping, setSwapping] = useState(false);
   const undo = useUndoBar();
 
@@ -340,24 +340,34 @@ export function CookScreen() {
         )}
 
         {/*
-          買った材料が傷んでいた、足りなかった、という事故はここで分かる。
-          献立ごと組み直すので、押した先は「今日以降の作り直し」になる。
-          ふだんは畳んでおく（D-083）。
+          **ここは例外の場所。**
+          作り置きを始めた時点で買い物は終わっている。売り切れや買い忘れが
+          分かるのは店であって、台所ではない（本人指摘）。だから通常の入口は
+          買い出し画面に置いた。
+
+          それでも台所で分かることはある——袋を開けたら傷んでいた、
+          思ったより少なかった。**その1つの場合にだけ**、ここから直せるようにする。
+          言葉もその場合に絞る。ふだんは畳んでおく（D-083）。
         */}
         {next && swapChoices.length > 0 && (
           <div>
             <button
               onClick={() => setSwapping(!swapping)}
-              className="min-h-10 w-full text-xs text-muted-foreground"
+              className="min-h-10 w-full text-[11px] text-muted-foreground"
             >
-              材料が使えない
+              開けたら傷んでいた・量が足りない
             </button>
             {swapping && (
-              <div className="pf-rise space-y-2 rounded-lg border p-3">
-                <div className="text-[10px] text-muted-foreground">
-                  使えないものを選ぶと、それを使わない献立に組み直します。
-                  作って詰めたぶんはそのまま残ります。
-                </div>
+              <div className="pf-rise mt-2 space-y-3 rounded-lg border p-3">
+                <p className="text-[11px] leading-relaxed">
+                  使えなくなった材料を選んでください。
+                  <b>その材料を使わない献立に、今日のぶんから作り直します。</b>
+                </p>
+                <ul className="space-y-0.5 text-[10px] leading-relaxed text-muted-foreground">
+                  <li>・すでに作って詰めたぶんは、そのまま残ります</li>
+                  <li>・家に余っている食材から先に使います</li>
+                  <li>・押しても案が出るだけです。気に入らなければ戻れます</li>
+                </ul>
                 <div className="flex flex-wrap gap-1.5">
                   {swapChoices.map((ing) => (
                     <button
@@ -377,6 +387,12 @@ export function CookScreen() {
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => setSwapping(false)}
+                  className="min-h-9 w-full text-[10px] text-muted-foreground"
+                >
+                  やめる
+                </button>
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link } from 'react-router-dom';
-import { Check, Eye, Minus, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AlertTriangle, Check, Eye, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { addPurchased, setPurchaseUnits } from '@/db/repositories/inventory';
 import { markPurchased } from '@/db/repositories/staples';
@@ -12,7 +12,7 @@ import { ReceiptScan } from './ReceiptScan';
 import { db, nowIso } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { STORE_SECTION_LABELS, formatDateJa, yen } from '@/lib/labels';
+import { STORE_SECTION_LABELS, formatDateJa, todayIso, yen } from '@/lib/labels';
 import { useWakeLock } from './useWakeLock';
 import type { ShoppingListItem } from '@/db/schema';
 import { cn } from '@/lib/utils';
@@ -40,8 +40,11 @@ export function ShoppingScreen() {
   );
 
   const wake = useWakeLock(Boolean(current));
+  const nav = useNavigate();
   const [stocked, setStocked] = useState(false);
   const [total, setTotal] = useState('');
+  /** 「売り切れ・見つからない」を開いているか */
+  const [missing, setMissing] = useState(false);
   const store = useLiveQuery(
     async () => (await db.stores.where('deleted').equals(0).toArray()).find((x) => x.isDefault === 1),
     [],
@@ -266,6 +269,66 @@ export function ShoppingScreen() {
           </div>
         </div>
       ))}
+
+      {/*
+        売り切れ・見つからない。**買い出しの最中が、それが分かる唯一の場所。**
+
+        作り置きを始めた時点では買い物は終わっている。台所で気づくのは
+        「開けたら傷んでいた」くらいで、ふつうは店で分かる（本人指摘）。
+        だから献立の組み直しは、ここから始められるようにする。
+
+        かごに入れていないものが、そのまま「買えなかったもの」の候補になる。
+        行ごとにボタンを足さない（全行が2択になると、押すだけの流れが壊れる）。
+      */}
+      {remaining.length > 0 && (
+        <div className="px-4 py-3">
+          <button
+            onClick={() => setMissing(!missing)}
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border text-xs text-muted-foreground active:bg-accent"
+          >
+            <AlertTriangle className="size-3.5" />
+            売り切れ・見つからないものがある
+          </button>
+          {missing && (
+            <div className="pf-rise mt-2 space-y-3 rounded-lg border p-3">
+              <p className="text-[11px] leading-relaxed">
+                買えなかったものを選んでください。
+                <b>それを使わない献立に作り直します。</b>
+              </p>
+              <ul className="space-y-0.5 text-[10px] leading-relaxed text-muted-foreground">
+                <li>・かごに入れたものは、そのまま使います</li>
+                <li>・家に余っている食材から先に使います</li>
+                <li>・押しても案が出るだけです。気に入らなければ戻れます</li>
+              </ul>
+              <div className="flex flex-wrap gap-1.5">
+                {remaining.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() =>
+                      nav('/plan', {
+                        state: {
+                          fromDate: todayIso(),
+                          withoutIngredientIds: [r.ingredientId],
+                          withoutNames: [r.name],
+                        },
+                      })
+                    }
+                    className="min-h-10 rounded-md border px-3 text-xs active:bg-accent"
+                  >
+                    {r.name}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setMissing(false)}
+                className="min-h-9 w-full text-[10px] text-muted-foreground"
+              >
+                やめる
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <StapleCheck list={current} />
 
