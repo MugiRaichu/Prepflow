@@ -158,3 +158,52 @@ export async function markOnboarded(): Promise<void> {
   if (!s) return;
   await db.settings.put({ ...s, onboardedAt: nowIso(), updatedAt: nowIso() });
 }
+
+/**
+ * 好き嫌いを設定する。
+ *
+ * アレルギーとは別に持つ。アレルギーは体の問題で絶対に緩めないが、
+ * 好き嫌いは「できれば避けたい」から「絶対に無理」まで幅がある。
+ * 同じ扱いにすると、苦手なもの1つで献立が組めなくなる。
+ *
+ *   dislike … できるだけ避ける（スコアで減点。ほかに手がなければ出る）
+ *   exclude … 絶対に入れない（アレルギーと同じ強さ）
+ *   null    … 解除
+ *
+ * 食材IDで持つ。アレルゲンと違ってタグに畳めない（にんじんが嫌い、は
+ * にんじんという食材そのものの話で、分類の話ではない）。
+ */
+export async function setFoodPreference(
+  profileId: UUID,
+  ingredient: { id: UUID; name: string; aliases: string[] },
+  kind: 'dislike' | 'exclude' | null,
+): Promise<void> {
+  await db.transaction('rw', db.profiles, async () => {
+    const p = await db.profiles.get(profileId);
+    if (!p) return;
+    const rest = p.preferences.filter((t) => !t.ingredientIds?.includes(ingredient.id));
+    const next = kind
+      ? [
+          ...rest,
+          {
+            id: crypto.randomUUID(),
+            kind,
+            label: ingredient.name,
+            aliases: ingredient.aliases,
+            ingredientIds: [ingredient.id],
+            // 「できるだけ避ける」を弱くしすぎると効いている実感が出ない。
+            // 強くしすぎると栄養や予算に勝ってしまうので 0.8
+            ...(kind === 'dislike' ? { weight: 0.8 } : {}),
+          },
+        ]
+      : rest;
+    await db.profiles.put({ ...p, preferences: next, updatedAt: nowIso() });
+  });
+}
+
+/** その食材にいま付いている設定。付いていなければ null */
+export function foodPreferenceOf(p: Profile, ingredientId: UUID): 'dislike' | 'exclude' | null {
+  const tag = p.preferences.find((t) => t.ingredientIds?.includes(ingredientId));
+  if (!tag) return null;
+  return tag.kind === 'exclude' ? 'exclude' : tag.kind === 'dislike' ? 'dislike' : null;
+}

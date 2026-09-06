@@ -83,15 +83,21 @@ export function GasSetupGuide({
         )}
 
         <Step n={n()} title="スクリプトを置く">
+          {/*
+            /home/projects/create は、ログイン状態や利用状況によって
+            Apps Script ではない画面（Drive の案内など）に飛ばされる。
+            入口そのものを開いて、新規作成は本人に押してもらう
+          */}
           <a
-            href="https://script.google.com/home/projects/create"
+            href="https://script.google.com/"
             target="_blank"
             rel="noreferrer"
             className="underline underline-offset-2"
           >
             Google Apps Script
           </a>
-          で新しいプロジェクトを作り、最初から入っているコードを消して、下のコードを貼ります。
+          を開き、左上の「新しいプロジェクト」を押します。最初から入っているコードを消して、
+          下のコードを貼ります。
           {needCalendar && (
             <span className="text-muted-foreground">
               {' '}

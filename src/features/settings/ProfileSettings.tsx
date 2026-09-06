@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Trash2 } from 'lucide-react';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { DislikePicker } from './DislikePicker';
 import { Chips, MultiChips } from '@/components/shared/Chips';
 import {
   ALLERGEN_LABELS,
@@ -163,6 +164,7 @@ function ProfileRow({
           </Labeled>
 
           <AllergenPicker profile={profile} />
+          <DislikePicker profile={profile} />
 
           <TargetPreview targets={t} />
 

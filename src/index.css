@@ -171,10 +171,8 @@
     position: fixed;
     left: 0;
     right: 0;
-    /* 下端に素直に付ける。持ち上げるのはキーボードが出ているときだけで、
-       その量を src/lib/viewport.ts が --app-bottom に入れる（ふだんは 0）。
-       ここで「見えている高さ」を引くと、端末ごとの報告のずれがそのまま
-       余白になり、タブバーが画面の下端から浮く */
+    /* ブラウザのバーとキーボードで隠れているぶんだけ持ち上げる。
+       src/lib/viewport.ts が実測して --app-bottom に入れる */
     top: 0;
     bottom: var(--app-bottom, 0px);
     /* 丸角・ノッチの内側に本文を寄せる。背景は端まで塗る */
@@ -193,8 +191,13 @@
   .pf-safe-top {
     padding-top: env(safe-area-inset-top);
   }
+  /*
+   * ホームバーぶんの余白。**ブラウザのバーで持ち上げたぶんは差し引く。**
+   * バーが出ている間はホームバーもそのバーの裏にあるので、
+   * 両方引くとタブバーが二重に浮く。
+   */
   .pf-safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - var(--app-bottom, 0px)));
   }
 
   /* 残り時間が尽きたタイマー。色を使えないので明滅で気づかせる */
