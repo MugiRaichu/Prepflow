@@ -11,6 +11,7 @@ import { useWakeLock } from '@/features/shopping/useWakeLock';
 import { schedule } from './logic/scheduler';
 import { CookTimeline } from './CookTimeline';
 import { adaptRice, hasRiceCooker } from './logic/rice';
+import { amountLabel, stepIngredients } from './logic/stepItems';
 import { DishPhotoInput } from '@/features/recipes/DishImage';
 import { PackStep } from './PackStep';
 import { consumeForPlan } from '@/db/repositories/inventory';
@@ -209,6 +210,32 @@ export function CookScreen() {
    * しょうゆまで並ぶと目的の材料が探せなくなる。
    */
   /**
+   * いま出している手順で使う材料。
+   * 手順の文に名前が出ていればそれ、出ていなければ全部（混ぜる・煮る の類）。
+   */
+  const nextItems = (() => {
+    if (!next) return [];
+    // 段取りは差し替え後のレシピで組んである（ごはんの炊き方）。
+    // 元のレシピで手順を引くと、番号が同じでも中身が違う
+    const raw = (recipes ?? []).find((x: Recipe) => x.id === next.recipeId);
+    const r = raw
+      ? adaptRice(raw, {
+          hasRiceCooker: hasRiceCooker(equipment ?? []),
+          ...(settings?.cooking.riceCookMinutes
+            ? { riceMinutes: settings.cooking.riceCookMinutes }
+            : {}),
+        })
+      : undefined;
+    const step = r?.steps.find((x) => x.index === next.stepIndex);
+    if (!r || !step) return [];
+    // 同じレシピを2回作るぶんは、1回ぶんずつ順に作る。分量は1回ぶん
+    return stepIngredients(r, step).map((it) => ({
+      name: it.ingredientName,
+      amount: amountLabel(it, 1),
+    }));
+  })();
+
+  /**
    * 今日作った料理のうち、まだ写真の無いもの。
    * 作り終えた直後にだけ勧める（目の前に皿がある唯一の瞬間）。
    */
@@ -272,6 +299,7 @@ export function CookScreen() {
         {next ? (
           <NextCard
             task={next}
+            items={nextItems}
             running={hasTimer(next.id)}
             onStart={(sec) => void startTimer(next.id, next.recipeTitle + '　' + next.label, sec)}
             // タイマーは止めない。止めると、次の作業に進んだ瞬間に
@@ -404,11 +432,14 @@ const TIMER_THRESHOLD_SEC = 90;
 
 function NextCard({
   task,
+  items,
   running,
   onStart,
   onDone,
 }: {
   task: ScheduledTask;
+  /** この手順で使う材料と分量。無ければ出さない */
+  items: { name: string; amount: string }[];
   running: boolean;
   onStart: (seconds: number) => void;
   onDone: () => void;
@@ -427,6 +458,22 @@ function NextCard({
       </div>
 
       <p className="text-xl font-semibold leading-snug">{task.label}</p>
+
+      {/*
+        **材料を手順の中に出す。**「材料を混ぜる」とだけ書いてあっても、
+        何をどれだけ混ぜるのか分からなければ作れない（本人指摘）。
+        レシピを開き直さずに、この画面だけで手が動くようにする。
+      */}
+      {items.length > 0 && (
+        <div className="divide-y rounded-lg border">
+          {items.map((it) => (
+            <div key={it.name} className="flex items-baseline gap-3 px-3 py-2">
+              <span className="min-w-0 flex-1 truncate text-sm">{it.name}</span>
+              <span className="shrink-0 text-sm font-medium tabular-nums">{it.amount}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-4 text-xs tabular-nums text-muted-foreground">
         <span>かかる時間 {fmtMin(task.durationSec)}</span>
