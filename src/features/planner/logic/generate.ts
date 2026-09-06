@@ -515,8 +515,14 @@ export async function commitWeek(
             : settings.cooking.maxFridgeDays;
 
           // 冷蔵で持つ日数を超える日ぶんは冷凍に回す。
-          // これを冷蔵のままにすると、5日目に傷んだものを食べることになる
-          const freeze = d >= settings.cooking.maxFridgeDays && settings.cooking.allowFreezing;
+          // これを冷蔵のままにすると、5日目に傷んだものを食べることになる。
+          //
+          // 上限は自己ルール（maxFridgeDays）だけでは足りない。品によっては
+          // それより先に傷む（ゆで野菜は2日）ので、短いほうに合わせる。
+          // ここを自己ルールだけで見ていたとき、保存2日の副菜が4日目まで
+          // 冷蔵に置かれ、賞味期限が食べる日より前になっていた
+          const limitDays = Math.min(settings.cooking.maxFridgeDays, keeps);
+          const freeze = d >= limitDays && settings.cooking.allowFreezing;
 
           for (const profile of ctx.profiles) {
             const label = 'A' + (++labelSeq);

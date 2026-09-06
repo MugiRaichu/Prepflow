@@ -29,19 +29,30 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
   if (!next) {
     // 行き先は容器ごとに違う。冷蔵で持たない日ぶんは冷凍に回してある（generate.ts）。
     // 全部「冷蔵庫へ」と言うと、4日目以降のぶんを冷蔵に入れて傷ませることになる
-    const fridge = assignments.filter((a) => a.storage === 'fridge').length;
-    const freezer = assignments.length - fridge;
+    const fridge = assignments.filter((a) => a.storage === 'fridge');
+    const freezer = assignments.length - fridge.length;
+
+    // **何日置くのかを言う。**「冷蔵庫へ4食ぶん」だけでは、いつまでに
+    // 食べればよいのか分からない（本人指摘）。最後に食べる日を数字で出す
+    const lastDate = fridge
+      .map((a) => a.intendedDate)
+      .sort()
+      .at(-1);
+
     const where =
       freezer === 0
-        ? '冷蔵庫へ ' + fridge + '食ぶん。'
-        : fridge === 0
+        ? '冷蔵庫へ ' + fridge.length + '食ぶん。'
+        : fridge.length === 0
           ? '冷凍庫へ ' + freezer + '食ぶん。'
-          : '冷蔵庫へ ' + fridge + '食ぶん、冷凍庫へ ' + freezer + '食ぶん。';
+          : '冷蔵庫へ ' + fridge.length + '食ぶん、冷凍庫へ ' + freezer + '食ぶん。';
+
+    const until = lastDate ? ' 冷蔵のぶんは ' + formatDateJa(lastDate) + ' までに食べきります。' : '';
+
     return (
       <EmptyState
         title="全部詰め終わりました"
         description={
-          where + (freezer > 0 ? ' 冷凍したぶんは、食べる前日に冷蔵へ移してください。' : '')
+          where + until + (freezer > 0 ? ' 冷凍したぶんは、食べる前日に冷蔵へ移してください。' : '')
         }
       />
     );
