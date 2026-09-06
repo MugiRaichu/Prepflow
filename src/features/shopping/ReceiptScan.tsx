@@ -102,8 +102,19 @@ export function ReceiptScan({
     <div className="space-y-3 rounded-lg border p-4">
       <div>
         <div className="text-sm font-medium">レシートを読み取る</div>
-        <p className="text-[11px] text-muted-foreground">
-          品目ごとの値段を読み取ります。初回は準備に少し時間がかかります。
+        {/*
+          何のために撮るのかを言う。「レシートを撮る」だけでは、
+          記録を取らされているようにしか見えない（D-084）。
+          撮ると何が良くなるのかを、具体で書く
+        */}
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          撮ると、次の週から<b>見込み金額があなたの店の値段に寄ります</b>。
+          品目ごとの実売価格を覚えるので、予算の中で組める献立の幅が広がります。
+          日用品が混ざっていても、食材の行だけを拾って合計します。
+        </p>
+        <p className="text-[10px] leading-relaxed text-muted-foreground">
+          撮らなくても献立は作れます（全国の平均的な値段で見積もります）。
+          初回だけ読み取りエンジンの準備に少し時間がかかります。
         </p>
       </div>
 

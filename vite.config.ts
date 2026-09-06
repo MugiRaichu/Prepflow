@@ -33,7 +33,7 @@ export default defineConfig({
       manifest: {
         name: 'Prepflow',
         short_name: 'Prepflow',
-        description: '週末に作り置きして、平日の食事を無思考にする',
+        description: 'ごはんを、その人の暮らしに合わせる。献立・買い出し・作り置きを自動で組む',
         lang: 'ja',
         // base 配下に置かれても正しく起動するよう、配信パスに合わせる
         start_url: base,
