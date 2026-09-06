@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { RefreshCw, Check, ChevronDown } from 'lucide-react';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -27,8 +27,17 @@ import { addDaysIso } from '@/lib/labels';
  * 週のプラン。生成は1タップで、選択肢は出さない（D-015）。
  * 気に入らなければ「別の案」で丸ごと差し替える。個別編集はさせない。
  */
+/** 調理画面から「この材料が使えない」で飛んでくるときに渡ってくるもの */
+interface SwapRequest {
+  fromDate: string;
+  withoutIngredientIds: string[];
+  /** 画面に出す食材名。ID だけでは何を外したのか言えない */
+  withoutNames: string[];
+}
+
 export function PlanScreen() {
   const nav = useNavigate();
+  const location = useLocation();
   const [cands, setCands] = useState<WeekPlanCandidate[] | null>(null);
   const [ctx, setCtx] = useState<GenerateContext | null>(null);
   const [rejections, setRejections] = useState<Record<string, number>>({});
@@ -56,15 +65,24 @@ export function PlanScreen() {
     today >= current!.weekStart &&
     today < addDaysIso(current!.weekStart, settings!.cooking.coverDays);
   const [replanFrom, setReplanFrom] = useState<string | null>(null);
+  const [withoutIds, setWithoutIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
-  const generate = async (req: WeekRequest = request, from: string | null = replanFrom) => {
+  const generate = async (
+    req: WeekRequest = request,
+    from: string | null = replanFrom,
+    without: string[] = withoutIds,
+  ) => {
     setBusy(true);
     setError(null);
     try {
       setReplanFrom(from);
-      const r = await proposeWeek(req, from ? { fromDate: from } : {});
+      setWithoutIds(without);
+      const r = await proposeWeek(req, {
+        ...(from ? { fromDate: from } : {}),
+        ...(without.length ? { withoutIngredientIds: without } : {}),
+      });
       setCands(r.candidates);
       setCtx(r.ctx);
       setRejections(r.rejections);
@@ -93,6 +111,26 @@ export function PlanScreen() {
       setBusy(false);
     }
   };
+
+  /*
+   * 調理画面からの「この材料が使えない」を受ける。
+   *
+   * 画面を開いた瞬間に組み直しを始める。作る手前で気づいた事故なので、
+   * ここでもう一度ボタンを押させる意味がない。
+   */
+  const swap = location.state as SwapRequest | null;
+  const swapped = useRef<string | null>(null);
+  useEffect(() => {
+    if (!swap?.withoutIngredientIds?.length) return;
+    const key = swap.fromDate + ':' + swap.withoutIngredientIds.join(',');
+    if (swapped.current === key) return;
+    swapped.current = key;
+    void generate(request, swap.fromDate, swap.withoutIngredientIds);
+    // 戻るで同じ組み直しが走らないよう、履歴からは消す
+    nav('.', { replace: true, state: null });
+    // 受け取りは1回だけ。generate は毎描画で作り直されるので依存に入れない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [swap]);
 
   const c = cands?.[idx];
 
@@ -386,8 +424,14 @@ function CandidateView({
       </div>
 
       {/* 何を残し、何を使っているかを先に言う。数字の前に前提を置く */}
-      {(ctx.replan || ctx.inventoryCoveredYen > 0) && (
+      {(ctx.replan || ctx.inventoryCoveredYen > 0 || ctx.excludedNames.length > 0) && (
         <div className="space-y-0.5 rounded-lg border p-3 text-xs leading-relaxed">
+          {ctx.excludedNames.length > 0 && (
+            <div>
+              <span className="font-medium">{ctx.excludedNames.join('・')}</span>{' '}
+              を使わない組み合わせにしました。
+            </div>
+          )}
           {ctx.replan && ctx.replan.lockedDates.length > 0 && (
             <div>
               {ctx.replan.lockedDates.map((d) => formatDateJa(d).replace(/（.）/, '')).join('・')}{' '}

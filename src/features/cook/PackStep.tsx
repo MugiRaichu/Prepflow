@@ -17,7 +17,7 @@ function daysFromToday(iso: string): string {
   const days = Math.round(
     (new Date(iso + 'T00:00:00').getTime() - new Date(todayIso() + 'T00:00:00').getTime()) / 86400000,
   );
-  if (days <= 0) return '今日まで';
+  if (days <= 0) return '今日中';
   if (days === 1) return '明日まで';
   return 'あと' + days + '日';
 }
@@ -58,7 +58,7 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
           : '冷蔵庫へ ' + fridge.length + '食ぶん、冷凍庫へ ' + freezer + '食ぶん。';
 
     const until = lastDate
-      ? ' 冷蔵のぶんは ' + formatDateJa(lastDate) + '（' + daysFromToday(lastDate) + '）までです。'
+      ? ' 冷蔵のぶんは ' + formatDateJa(lastDate) + 'まで、' + daysFromToday(lastDate) + 'です。'
       : '';
 
     return (

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, ChevronDown, Eye, Timer as TimerIcon } from 'lucide-react';
+import type { Recipe } from '@/db/schema';
 import { db, nowIso } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -33,6 +34,9 @@ const fmtClock = (sec: number) => {
  */
 export function CookScreen() {
   const [showAll, setShowAll] = useState(false);
+  const nav = useNavigate();
+  /** 「材料が使えない」を開いているか。ふだんは畳んでおく */
+  const [swapping, setSwapping] = useState(false);
 
   const mode = useCookingMode();
   const daily = mode === 'daily';
@@ -44,6 +48,8 @@ export function CookScreen() {
   );
   const recipes = useLiveQuery(() => db.recipes.where('deleted').equals(0).toArray(), []);
   const equipment = useLiveQuery(() => db.equipment.where('deleted').equals(0).toArray(), []);
+  // 差し替え候補から調味料を外すために、種別だけ引く
+  const ingredients = useLiveQuery(() => db.ingredients.where('deleted').equals(0).toArray(), []);
   // 炊飯にかかる時間は機種で違うので設定から取る（D-100）
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   // 毎日作る人は、週ぶんではなく今日のぶんだけを作る
@@ -175,6 +181,31 @@ export function CookScreen() {
   const upcoming = remaining.slice(1, 4);
   const saved = result.sequentialSec - result.makespanSec;
 
+  /*
+   * 差し替え候補に出す材料。
+   *
+   * **いま作る料理のぶんだけでは足りない。** 傷んでいたにんじんは、
+   * これから作る別の料理でも使う。セッション（作り置きなら週ぶん、
+   * 毎日作るならその日ぶん）でまだ作っていない料理の材料を全部出す。
+   *
+   * 調味料は外す。傷んで使えなくなるのは生鮮で、
+   * しょうゆまで並ぶと目的の材料が探せなくなる。
+   */
+  const swapChoices = (() => {
+    const byId = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
+    const seasonings = new Set(
+      (ingredients ?? []).filter((i) => i.section === 'seasoning').map((i) => i.id),
+    );
+    const seen = new Map<string, string>();
+    for (const t of remaining) {
+      for (const ing of byId.get(t.recipeId)?.ingredients ?? []) {
+        if (seasonings.has(ing.ingredientId)) continue;
+        if (!seen.has(ing.ingredientId)) seen.set(ing.ingredientId, ing.ingredientName);
+      }
+    }
+    return [...seen].map(([id, name]) => ({ id, name }));
+  })();
+
   return (
     <div className="pb-6">
       <PageHeader title={daily ? '今日作る' : '作り置き'} />
@@ -221,6 +252,49 @@ export function CookScreen() {
           </div>
         ) : (
           <PackStep weekPlanId={plan.id} />
+        )}
+
+        {/*
+          買った材料が傷んでいた、足りなかった、という事故はここで分かる。
+          献立ごと組み直すので、押した先は「今日以降の作り直し」になる。
+          ふだんは畳んでおく（D-083）。
+        */}
+        {next && swapChoices.length > 0 && (
+          <div>
+            <button
+              onClick={() => setSwapping(!swapping)}
+              className="min-h-10 w-full text-xs text-muted-foreground"
+            >
+              材料が使えない
+            </button>
+            {swapping && (
+              <div className="pf-rise space-y-2 rounded-lg border p-3">
+                <div className="text-[10px] text-muted-foreground">
+                  使えないものを選ぶと、それを使わない献立に組み直します。
+                  作って詰めたぶんはそのまま残ります。
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {swapChoices.map((ing) => (
+                    <button
+                      key={ing.id}
+                      onClick={() =>
+                        nav('/plan', {
+                          state: {
+                            fromDate: today,
+                            withoutIngredientIds: [ing.id],
+                            withoutNames: [ing.name],
+                          },
+                        })
+                      }
+                      className="min-h-10 rounded-md border px-3 text-xs active:bg-accent"
+                    >
+                      {ing.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {upcoming.length > 0 && (

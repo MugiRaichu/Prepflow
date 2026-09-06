@@ -95,6 +95,8 @@ export interface GenerateContext {
   replan?: ReplanInfo;
   /** 家にある食材の見込み価値（円）。0 なら在庫なし */
   inventoryCoveredYen: number;
+  /** この回だけ外した食材の名前。何を避けて組んだのかを画面で言うために持つ */
+  excludedNames: string[];
 }
 
 /**
@@ -164,6 +166,13 @@ export function nextWeekStart(weekStartsOn: Weekday): string {
 }
 
 export interface ProposeOptions {
+  /**
+   * この回だけ使わない食材。
+   *
+   * 買ったにんじんが傷んでいた、店に無かった、という当日の事故に使う。
+   * 設定の「除外」と違って残さない。理由が消えれば次の週には戻ってくる。
+   */
+  withoutIngredientIds?: string[];
   /**
    * この日から作り直す（週の途中の変更）。
    * 指定すると、いまの週プランの残りの日だけを対象にし、
@@ -272,6 +281,10 @@ export async function proposeWeek(
     }
   }
 
+  // その場で使えなくなった食材（傷んでいた・売り切れ）。
+  // この回かぎりの除外で、設定には残さない。次の週にはまた候補に戻る
+  for (const id of opts.withoutIngredientIds ?? []) banned.add(id);
+
   const recent = new Set(
     recipes.filter((r) => r.lastCookedAt && r.lastCookedAt > addDaysIso(todayIso(), -10)).map((r) => r.id),
   );
@@ -345,6 +358,9 @@ export async function proposeWeek(
       target,
       weekStart,
       ...(replan ? { replan } : {}),
+      excludedNames: (opts.withoutIngredientIds ?? [])
+        .map((id) => ingredientMap.get(id)?.name)
+        .filter((n): n is string => Boolean(n)),
       inventoryCoveredYen: coveredYen,
     },
   };
