@@ -141,7 +141,20 @@ export function ReceiptScan({
 
       {error && <div className="text-[11px] text-foreground">読み取れませんでした: {error}</div>}
 
-      {lines && <ScanResult lines={lines} total={total} items={items} />}
+      {lines && (
+        <ScanResult
+          lines={lines}
+          total={total}
+          items={items}
+          onAssign={(index, ingredientId) =>
+            setLines((cur) =>
+              (cur ?? []).map((l, i) =>
+                i === index ? { ...l, ingredientId, score: ingredientId ? 1 : 0 } : l,
+              ),
+            )
+          }
+        />
+      )}
 
       {lines && (
         <div className="grid grid-cols-2 gap-2">
@@ -172,16 +185,29 @@ function ScanResult({
   lines,
   total,
   items,
+  onAssign,
 }: {
   lines: ReceiptLine[];
   total: number | null;
   items: ShoppingListItem[];
+  onAssign: (index: number, ingredientId: string | null) => void;
 }) {
   const nameOf = (id: string | null) =>
     id ? (items.find((i) => i.ingredientId === id)?.name ?? null) : null;
 
-  const matched = lines.filter((l) => l.ingredientId);
-  const unmatched = lines.filter((l) => !l.ingredientId && l.priceYen != null);
+  // 行の位置を保ったまま拾う。割り当ては index で書き戻す
+  const matched = lines.map((l, i) => ({ l, i })).filter((x) => x.l.ingredientId);
+  const unmatched = lines.map((l, i) => ({ l, i })).filter((x) => !x.l.ingredientId && x.l.priceYen != null);
+
+  /*
+   * まだ見つかっていない買い出しの品。
+   *
+   * **これが空なら、残りの行は日用品とみなして何も聞かない。**
+   * レシートの大半は食材以外なので、全部について尋ねると作業になる。
+   * 「買ったはずなのに読み取れなかった食材」が残っているときだけ拾わせる。
+   */
+  const takenIds = new Set(matched.map((x) => x.l.ingredientId));
+  const missing = items.filter((i) => !takenIds.has(i.ingredientId));
   const foodYen = sumMatchedYen(lines);
   const otherYen = sumUnmatchedYen(lines);
 
@@ -203,8 +229,8 @@ function ScanResult({
 
       {matched.length > 0 && (
         <div className="overflow-hidden rounded-md border">
-          {matched.map((l, i) => (
-            <div key={i} className={cn('flex items-center gap-2 px-3 py-2', i > 0 && 'border-t')}>
+          {matched.map(({ l, i }, n) => (
+            <div key={i} className={cn('flex items-center gap-2 px-3 py-2', n > 0 && 'border-t')}>
               <span className="min-w-0 flex-1 truncate text-xs">{nameOf(l.ingredientId)}</span>
               <span
                 className={cn(
@@ -215,24 +241,50 @@ function ScanResult({
                 {l.score >= 0.6 ? '' : '要確認'}
               </span>
               <span className="shrink-0 text-xs tabular-nums">{yen(l.priceYen ?? 0)}</span>
+              {/* 違うものに当てていたら外せる。外すと下の「これは？」に戻る */}
+              <button
+                onClick={() => onAssign(i, null)}
+                aria-label="外す"
+                className="shrink-0 p-1 text-muted-foreground"
+              >
+                <X className="size-3" />
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      {unmatched.length > 0 && (
-        <details>
-          <summary className="cursor-pointer text-[10px] text-muted-foreground">
-            割り当てなかった行（{unmatched.length}）
-          </summary>
-          <div className="mt-1 space-y-0.5">
-            {unmatched.map((l, i) => (
-              <div key={i} className="truncate text-[10px] text-muted-foreground">
-                {l.raw}
-              </div>
-            ))}
+      {/*
+        読み取れなかった食材が残っているときだけ、拾う手を出す。
+        全部見つかっていれば、残りの行は日用品なので触らせない
+      */}
+      {missing.length > 0 && unmatched.length > 0 && (
+        <div className="space-y-2 rounded-md border p-3">
+          <div className="text-[10px] leading-relaxed text-muted-foreground">
+            {missing.map((i) => i.name).join('・')} が見つかりませんでした。
+            この中にあれば押してください。無ければそのままで構いません
+            （日用品は数えません）。
           </div>
-        </details>
+          {unmatched.map(({ l, i }) => (
+            <div key={i} className="space-y-1 border-t pt-2 first:border-t-0 first:pt-0">
+              <div className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate text-[11px]">{l.raw}</span>
+                <span className="shrink-0 text-[11px] tabular-nums">{yen(l.priceYen ?? 0)}</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {missing.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => onAssign(i, m.ingredientId)}
+                    className="min-h-8 rounded border px-2 text-[11px] active:bg-accent"
+                  >
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       <p className="text-[10px] text-muted-foreground">違っていたら撮り直してください。</p>
