@@ -171,10 +171,11 @@
     position: fixed;
     left: 0;
     right: 0;
-    /* 上下は「見えている範囲」に合わせる。src/lib/viewport.ts が実測して入れる。
-       高さで持つと env(safe-area-inset-bottom) と二重に引かれ、
-       タブバーの下に空きができて下端に合わなくなる */
-    top: var(--app-top, 0px);
+    /* 下端に素直に付ける。持ち上げるのはキーボードが出ているときだけで、
+       その量を src/lib/viewport.ts が --app-bottom に入れる（ふだんは 0）。
+       ここで「見えている高さ」を引くと、端末ごとの報告のずれがそのまま
+       余白になり、タブバーが画面の下端から浮く */
+    top: 0;
     bottom: var(--app-bottom, 0px);
     /* 丸角・ノッチの内側に本文を寄せる。背景は端まで塗る */
     padding-left: env(safe-area-inset-left);
