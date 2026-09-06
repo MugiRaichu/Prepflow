@@ -40,10 +40,10 @@ export function AppShell() {
       {/*
         外枠が 100dvh なので、ここは常に画面の一番下に来る。
 
-        背景も余白も足さない。バーの範囲を見せようと1段明るくし、
-        ホームバーぶんの余白を入れていたが、どちらも要らなかった。
+        背景は足さない（バーの範囲を見せようと1段明るくしたが、要らなかった）。
+        下の余白だけ少し取る（pf-safe-bottom は最大10px）。
       */}
-      <nav className="grid shrink-0 grid-cols-5 border-t">
+      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
