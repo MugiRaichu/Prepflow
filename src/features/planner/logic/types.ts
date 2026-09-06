@@ -1,4 +1,4 @@
-import type { AllergenTag, CookingMode, Macros, Recipe, Yen } from '@/db/schema';
+import type { AllergenTag, CookingMode, Macros, Recipe, RicePolicy, Yen } from '@/db/schema';
 
 /** 1品を何バッチ作るか */
 export interface PlanItem {
@@ -60,6 +60,12 @@ export interface SolveInput {
   pinnedRecipeIds?: Set<string>;
   /** 今週は避けたいタグ */
   avoidTags: string[];
+  /**
+   * ごはんの量の決め方。既定（未指定）は 'auto' で、
+   * おかずで足りないカロリーをごはんで埋める。
+   * 固定した場合、カロリーはおかずだけで合わせることになる。
+   */
+  ricePolicy?: RicePolicy;
   /**
    * 1食あたりカロリーの許容差（0.25 なら ±25%）。
    * これを超える案は採らない。身体づくりのアプリで50%超過を黙って出すのは害。

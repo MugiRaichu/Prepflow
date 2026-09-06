@@ -14,6 +14,7 @@
  */
 import { totalMinutes, handsOnMinutes } from '@/db/data/build';
 import { timeMetric } from './time';
+import { RICE_POLICY_SERVINGS } from '@/db/schema';
 import type { AllergenTag, Macros, Recipe } from '@/db/schema';
 import type { PlanItem, SolveInput, SolveResult, WeekPlanCandidate } from './types';
 
@@ -679,9 +680,19 @@ export function solveWeek(input: SolveInput): SolveResult {
          * 画面に出ていた。0.5人前（約83g、茶碗に軽く1杯）を最小の単位にして、
          * それに満たない残りはごはんで埋めない。
          */
-        const need = input.target.kcal - base.kcal;
-        const raw = Math.max(0, Math.min(need / rice.nutritionPerServing.kcal, RICE_MAX));
-        riceServings = Math.round(raw / RICE_STEP) * RICE_STEP;
+        const fixed =
+          input.ricePolicy && input.ricePolicy !== 'auto'
+            ? RICE_POLICY_SERVINGS[input.ricePolicy]
+            : undefined;
+        if (fixed !== undefined) {
+          // 量を決めている人には、こちらでカロリーを埋めさせない。
+          // 足りないぶんはおかずで合わせる（合わなければ案として落ちる）
+          riceServings = fixed;
+        } else {
+          const need = input.target.kcal - base.kcal;
+          const raw = Math.max(0, Math.min(need / rice.nutritionPerServing.kcal, RICE_MAX));
+          riceServings = Math.round(raw / RICE_STEP) * RICE_STEP;
+        }
 
         if (riceServings > 0) {
           /*
@@ -755,7 +766,13 @@ export function solveWeek(input: SolveInput): SolveResult {
         deviation + mp.penalty + sp.penalty + costRatio * 0.25 + dishes * 0.02 + monotony + timeScore;
 
       const notes: string[] = [];
-      if (riceServings === 0) notes.push('ごはんなしで目標カロリーに届いています');
+      if (riceServings === 0) {
+        notes.push(
+          input.ricePolicy === 'none'
+            ? 'ごはんは付けません（設定どおり）。おかずだけで目標カロリーに届いています'
+            : 'ごはんなしで目標カロリーに届いています',
+        );
+      }
       if (costRatio < 0.7) notes.push('予算に余裕があります（' + Math.round(costRatio * 100) + '%）');
       if (perMeal.proteinG < input.target.proteinG * 0.9)
         notes.push('たんぱく質がやや不足しています');

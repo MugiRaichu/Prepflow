@@ -419,6 +419,7 @@ export async function proposeWeek(
         maxProteinDeviation: 0.2,
         minFatRatio: 0.6,
         maxSameDishMeals: settings.cooking.maxSameDishMeals ?? 3,
+        ricePolicy: settings.cooking.ricePolicy ?? 'auto',
         // 既定値は設定画面の値。今週の希望で上書きされたときだけ true になる
         timeCapIsExplicit: false,
       },
@@ -580,14 +581,21 @@ export async function commitWeek(
         await db.weekPlans.add(weekPlan);
       }
 
-      // 日ごとに違う組合せを作る。買い物も調理も変えず、詰める中身だけを日替わりにする
+      /*
+       * 日ごとに違う組合せを作る。買い物も調理も変えず、詰める中身だけを日替わりにする。
+       *
+       * 目標カロリーを渡すと、ごはんの量を日ごとに増減して差を埋める。
+       * **量を決めている人には渡さない。**「毎食 茶碗1杯」と決めたのに
+       * 日によって 0.5杯や1.5杯になるのでは、決めた意味がない。
+       */
+      const fixedRice = (settings.cooking.ricePolicy ?? 'auto') !== 'auto';
       const menus = buildDailyMenus(
         plan.mains,
         plan.sides,
         plan.ricePlan,
         plan.riceServings,
         ctx.meals,
-        ctx.target.kcal,
+        fixedRice ? undefined : ctx.target.kcal,
         ctx.maxSameDishMeals,
       );
 

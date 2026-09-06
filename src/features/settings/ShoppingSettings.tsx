@@ -10,7 +10,7 @@ import { getDefaultStore, setPriceBand, reliabilityOf } from '@/db/repositories/
 import { cadenceLabel } from '@/features/planner/logic/cadence';
 import { BUDGET_OPTIONS } from '@/features/onboarding/options';
 import { MEAL_SLOT_LABELS, sortSlots } from '@/lib/labels';
-import type { MealSlot, PriceBand, Weekday } from '@/db/schema';
+import type { MealSlot, PriceBand, RicePolicy, Weekday } from '@/db/schema';
 
 /**
  * 買い物と予算。**買い物に関わることだけ**を置く。
@@ -47,6 +47,32 @@ export function ShoppingSettings() {
     </div>
   );
 }
+
+/*
+ * ごはんの量の選択肢。
+ *
+ * グラム数を併記する。「1人前」では茶碗何杯か分からない（人前は作る側の単位で、
+ * 食べる側の感覚ではない）。ごはん1人前は約165g。
+ *
+ * **選んだ結果を必ず書く**（[[D-084]]）。ここは特に、量を決めると
+ * カロリーの調整がおかず側に移るので、その影響を出しておかないと
+ * 「条件に合う献立がありません」が急に増えた理由が読めなくなる。
+ */
+const RICE_OPTIONS: { value: RicePolicy; label: string }[] = [
+  { value: 'auto', label: 'おまかせ' },
+  { value: 'none', label: '食べない' },
+  { value: 'small', label: '少なめ' },
+  { value: 'normal', label: 'ふつう' },
+  { value: 'large', label: '多め' },
+];
+
+const RICE_HINT: Record<RicePolicy, string> = {
+  auto: 'おかずで足りないカロリーぶんだけ付けます（0〜2杯）',
+  none: 'ごはんは付けません。カロリーはおかずだけで合わせます',
+  small: '毎食 茶碗に軽く1杯（約80g）。カロリーはおかずで合わせます',
+  normal: '毎食 茶碗1杯（約165g）。カロリーはおかずで合わせます',
+  large: '毎食 大盛り1杯（約250g）。カロリーはおかずで合わせます',
+};
 
 /**
  * 作り方。目に入る順に「何回」「何日分」「どの食事」。
@@ -112,6 +138,22 @@ export function CookingSettings() {
                 return { coverSlots: sortSlots(next.length ? next : (['dinner'] as MealSlot[])) };
               })
             }
+            columns={3}
+          />
+        </Labeled>
+
+        {/*
+          ごはんの量。**畳まない。**
+
+          これまでは目標カロリーの不足分から勝手に決めていた。だが
+          ごはんを食べない人がいる（糖質を抑えている・パン派・主食は別に用意する）。
+          こちらで付けるものではなかったので、細かい設定ではなく表に出す。
+        */}
+        <Labeled label="1食のごはん" hint={RICE_HINT[s.cooking.ricePolicy ?? 'auto']}>
+          <Chips
+            options={RICE_OPTIONS}
+            value={s.cooking.ricePolicy ?? 'auto'}
+            onChange={(v: RicePolicy) => updateCooking(() => ({ ricePolicy: v }))}
             columns={3}
           />
         </Labeled>
