@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutGrid, CalendarDays, ShoppingCart, Flame, Settings } from 'lucide-react';
-import { Logo } from './Logo';
 import { useCookingMode } from '@/features/household/useCookingMode';
 import { cn } from '@/lib/utils';
 
@@ -20,19 +19,20 @@ const navFor = (daily: boolean) =>
     { to: '/settings', label: '設定', icon: Settings },
   ] as const;
 
-/** モバイル前提の外枠。上にロゴ、下にタブバー。中身は Outlet */
+/**
+ * モバイル前提の外枠。下にタブバー、中身は Outlet。
+ *
+ * **上のロゴ帯は置かない。**どの画面にも自分の見出し（PageHeader）があり、
+ * その上にロゴを重ねても、いま何の画面かは1文字も増えない。
+ * 縦48pxはスマホでは大きく、献立や手順がそのぶん削られていた。
+ * ロゴは起動画面で見せている。
+ */
 export function AppShell() {
   const daily = useCookingMode() === 'daily';
   const nav = navFor(daily);
 
   return (
     <div className="pf-shell flex flex-col bg-background text-foreground">
-      <header className="pf-safe-top shrink-0 border-b">
-        <div className="flex h-12 items-center px-4">
-          <Logo />
-        </div>
-      </header>
-
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <Outlet />
       </main>
