@@ -59,11 +59,35 @@ export function PlanScreen() {
 
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   const today = todayIso();
-  // 週の途中なら「今日から作り直す」を出す。始まる前なら普通に作り直せばよい
+  // 週の途中なら作り直しを出す。始まる前なら普通に作り直せばよい
   const canReplan =
     Boolean(current && settings) &&
     today >= current!.weekStart &&
     today < addDaysIso(current!.weekStart, settings!.cooking.coverDays);
+
+  /*
+   * 作り直しの対象になる日数。**作って詰めた日は数えない。**
+   *
+   * まとめて作る人にとって、作り直すとは「もう一度台所に立つ」こと。
+   * 何日ぶん作ることになるのかを先に出さないと、押してから気づくことになる。
+   */
+  const packedDates = useLiveQuery(
+    async () =>
+      current
+        ? new Set(
+            (await db.containerAssignments.where('weekPlanId').equals(current.id).toArray())
+              .filter((a) => a.packed === 1 && a.deleted === 0)
+              .map((a) => a.intendedDate),
+          )
+        : new Set<string>(),
+    [current?.id],
+  );
+  const remainingDays =
+    current && settings
+      ? Array.from({ length: settings.cooking.coverDays }, (_, i) =>
+          addDaysIso(current.weekStart, i),
+        ).filter((d) => d >= today && !(packedDates ?? new Set()).has(d)).length
+      : 0;
   const [replanFrom, setReplanFrom] = useState<string | null>(null);
   const [withoutIds, setWithoutIds] = useState<string[]>([]);
 
@@ -181,6 +205,8 @@ export function PlanScreen() {
         {!cands && current && (
           <SavedPlanCard
             plan={current}
+            daily={mode === 'daily'}
+            remainingDays={remainingDays}
             onReplan={canReplan ? () => void generate(request, today) : undefined}
           />
         )}
@@ -344,7 +370,18 @@ function topReasons(rejections: Record<string, number>): string[] {
  * 作った本人が中身を見返せないのは、作っていないのとほとんど変わらない。
  * 保存済みの日別メニュー（plannedMeals）をそのまま開く。
  */
-function SavedPlanCard({ plan, onReplan }: { plan: WeekPlan; onReplan?: () => void }) {
+function SavedPlanCard({
+  plan,
+  onReplan,
+  daily,
+  remainingDays,
+}: {
+  plan: WeekPlan;
+  onReplan?: () => void;
+  daily: boolean;
+  /** 作って詰めていない、今日以降の日数。作り直しの重さがここで決まる */
+  remainingDays: number;
+}) {
   const [open, setOpen] = useState(false);
   const meals = useLiveQuery(
     async () =>
@@ -397,17 +434,30 @@ function SavedPlanCard({ plan, onReplan }: { plan: WeekPlan; onReplan?: () => vo
         </div>
       )}
 
-      {/* 週の途中の変更。作って詰めた日は残し、それ以外の今日以降を組み直す。
-          家にある食材を優先するので、今週の余りが次の献立に回る */}
+      {/*
+        週の途中の変更。作って詰めた日は残し、それ以外の今日以降を組み直す。
+        家にある食材を優先するので、今週の余りが次の献立に回る。
+
+        **言い方を作り方で変える。**「今日から作り直す」は、まとめて作る人には
+        「今日もう一度台所に立つ」という意味になる。作り置きをした人が水曜に
+        もう一度作ることは、ふつう無い（本人指摘）。
+        残りが何日ぶんで、もう一度作ることになる、と先に言う。
+      */}
       {onReplan && (
-        <div className="border-t p-3">
+        <div className="space-y-1.5 border-t p-3">
           <button
             onClick={onReplan}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-sm active:bg-accent"
           >
             <RefreshCw className="size-3.5" />
-            今日から作り直す
+            {daily ? '今日からの献立を変える' : '残り' + remainingDays + '日ぶんを作り直す'}
           </button>
+          <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+            {daily
+              ? '作って食べたぶんはそのままです。'
+              : '作って詰めたぶんはそのまま残します。' +
+                'もう一度台所に立つことになります（家に余っている食材から先に使います）。'}
+          </p>
         </div>
       )}
     </div>
