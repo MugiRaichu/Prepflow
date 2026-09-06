@@ -532,13 +532,15 @@ function CandidateView({
 }) {
   // 表示は「実際に容器へ詰める中身」から計算する。
   // ソルバーの見積りと日別配分がずれたとき、画面に出す数字は後者が正しい
+  // 目標カロリーを渡すと、ごはんの量を日ごとに増減して差を埋める。
+  // 量を決めている人には渡さない（commitWeek と同じ規則。ずらすと画面と中身が食い違う）
   const menus = buildDailyMenus(
     c.mains,
     c.sides,
     c.ricePlan,
     c.riceServings,
     ctx.meals,
-    ctx.target.kcal,
+    ctx.ricePolicy === 'auto' ? ctx.target.kcal : undefined,
     ctx.maxSameDishMeals,
   );
   const actual = averageMacros(menus);
