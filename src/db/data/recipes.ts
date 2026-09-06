@@ -902,6 +902,7 @@ const SIDES3: SeedRecipe[] = [
 ];
 
 import { BUILTIN_RECIPES_MORE } from './recipes-more';
+import { BUILTIN_RECIPES_WORLD } from './recipes-world';
 
 export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...MAINS,
@@ -916,4 +917,6 @@ export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...STAPLES,
   // 書き起こしの追加分。主菜と副菜が少ないと、14食を2〜3品で埋めることになる
   ...BUILTIN_RECIPES_MORE,
+  // 洋食・中華・カレー・麺類。和食だけだと毎週同じ顔になる
+  ...BUILTIN_RECIPES_WORLD,
 ];

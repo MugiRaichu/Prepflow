@@ -29,7 +29,7 @@ interface Opts {
 }
 
 /** 1行で1食材を定義するためのヘルパー */
-function ing(
+export function ing(
   name: string,
   nameKey: string,
   section: StoreSection,
@@ -229,6 +229,8 @@ const SNACK_PROTEIN: SeedIngredient[] = [
     { freezer: 365, freezeOk: true }),
 ];
 
+import { BUILTIN_INGREDIENTS_MORE } from './ingredients-more';
+
 export const BUILTIN_INGREDIENTS: SeedIngredient[] = [
   ...SNACK_PROTEIN,
   ...MEAT_FISH,
@@ -236,4 +238,6 @@ export const BUILTIN_INGREDIENTS: SeedIngredient[] = [
   ...PRODUCE,
   ...DRY,
   ...SEASONING,
+  // 洋・中・カレー・麺類の土台。ここが無いと和食しか書けない
+  ...BUILTIN_INGREDIENTS_MORE,
 ];

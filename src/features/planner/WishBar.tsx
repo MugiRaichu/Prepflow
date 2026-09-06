@@ -11,7 +11,15 @@ import type { WeekRequest } from './logic/request';
  * 以前は食べたい側に鶏肉があるのに避けたい側には無い、という非対称な並びで、
  * 「無いものは指定できないのか、指定する必要がないのか」が読み取れなかった。
  */
-const FOOD_TAGS = ['鶏肉', '豚肉', '魚', 'パスタ'] as const;
+const FOOD_TAGS = [
+  '鶏肉',
+  '豚肉',
+  '魚',
+  '洋食',
+  '中華',
+  'カレー',
+  '麺',
+] as const;
 
 /** 指定した食材を主菜に入れる既定の日数 */
 const DEFAULT_WANT_MEALS = 2;
