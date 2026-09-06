@@ -7,6 +7,7 @@
  * 差分が「余り」として残り、次の週の買い出しリストから引かれる。
  */
 import { db, newEntity, nowIso } from '@/db/db';
+import { addDaysIso } from '@/lib/labels';
 import { UNIT_LABEL } from '@/features/planner/logic/shoppingList';
 import type { Ingredient, InventoryItem, ShoppingListItem, WeekPlan } from '@/db/schema';
 
@@ -198,4 +199,54 @@ export async function markStockChecked(): Promise<void> {
  */
 export async function restoreStock(before: InventoryItem): Promise<void> {
   await db.inventory.put({ ...before, updatedAt: nowIso() });
+}
+
+/**
+ * 傷んだはずのものを在庫から落とす。
+ *
+ * **棚卸しの手間の大半は、これで消える。**
+ * 20日前に買ったにんじんが冷蔵庫に残っていることはない。それでもアプリが
+ * 「にんじん 450g」と言い続けるので、人が毎回それを打ち消していた。
+ * 買った日と日持ちが分かっているのだから、こちらで落とすべきだった。
+ *
+ * 黙って消さない。落としたものは名前で返し、画面で伝える。
+ * 「まだある」ものは棚卸しで戻せる。
+ *
+ * 常備品（調味料）は対象にしない。半年もつうえ、切れたかどうかは
+ * 別の仕組み（StapleStatus）で見ている。
+ */
+export async function dropExpiredStock(today = nowIso().slice(0, 10)): Promise<string[]> {
+  const rows = (await db.inventory.where('deleted').equals(0).toArray()).filter(
+    (r) => r.quantity > 0,
+  );
+  if (rows.length === 0) return [];
+
+  const ings = new Map(
+    (await db.ingredients.bulkGet(rows.map((r) => r.ingredientId)))
+      .filter((i): i is Ingredient => Boolean(i))
+      .map((i) => [i.id, i]),
+  );
+
+  const dropped: string[] = [];
+  for (const r of rows) {
+    const ing = ings.get(r.ingredientId);
+    if (!ing || ing.isStaple === 1) continue;
+
+    const days =
+      r.location === 'freezer'
+        ? ing.shelfLife.freezerDays
+        : r.location === 'pantry'
+          ? ing.shelfLife.pantryDays
+          : ing.shelfLife.fridgeDays;
+    // 日持ちが分からないものは触らない（推測で消さない）
+    if (!days) continue;
+
+    const from = r.purchasedAt ?? r.createdAt.slice(0, 10);
+    const limit = addDaysIso(from, days);
+    if (today <= limit) continue;
+
+    await db.inventory.put({ ...r, quantity: 0, deleted: 1, updatedAt: nowIso() });
+    dropped.push(r.ingredientName);
+  }
+  return dropped;
 }

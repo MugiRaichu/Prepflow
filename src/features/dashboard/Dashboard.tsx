@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Boxes, ChevronRight } from 'lucide-react';
+import { Boxes, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '@/db/db';
 import { todayIso, formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
 import { sumMacros } from '@/lib/nutrition';
@@ -52,17 +52,37 @@ function weekStreak(plans: WeekPlan[], today: string): number {
   return streak;
 }
 
+/** 見出しに出す日付の呼び方。日付だけだと、今日との距離が頭の中で計算になる */
+function dayLabel(date: string, today: string): string {
+  const days = Math.round(
+    (new Date(date + 'T00:00:00').getTime() - new Date(today + 'T00:00:00').getTime()) / 86400000,
+  );
+  if (days === -1) return '昨日の食事';
+  if (days === 1) return '明日の食事';
+  if (days < 0) return Math.abs(days) + '日前の食事';
+  return days + '日後の食事';
+}
+
 /**
  * 平日に開く画面。入力させない（D-015）。
  * 「今日これを食べる」を1つ大きく出すだけで、記録も操作も要らない。
  */
 export function Dashboard() {
   const today = todayIso();
+  /*
+   * 見ている日。**今日から動かせる。**
+   *
+   * 昨日なにを食べたか、明日なにを食べるかは、その日になる前に知りたい
+   * （本人指摘）。日付を押して前後に動かす。今日以外を見ているときは
+   * そのことが分かるようにして、1タップで今日へ戻れるようにする。
+   */
+  const [date, setDate] = useState(todayIso());
+  const isToday = date === today;
 
   const profiles = useLiveQuery(() => db.profiles.where('deleted').equals(0).toArray(), []);
   const meals = useLiveQuery(
-    () => db.plannedMeals.where('date').equals(today).toArray(),
-    [today],
+    () => db.plannedMeals.where('date').equals(date).toArray(),
+    [date],
   );
   /*
    * 「今日の食事」の欄に出すのは**献立だけ**。
@@ -72,8 +92,8 @@ export function Dashboard() {
    */
   const planned = (meals ?? []).filter((m) => m.source !== 'leftover');
   const assignments = useLiveQuery(
-    () => db.containerAssignments.where('intendedDate').equals(today).toArray(),
-    [today],
+    () => db.containerAssignments.where('intendedDate').equals(date).toArray(),
+    [date],
   );
   // 期限切れは PreppedStrip の中でラベルを反転させて示す。別枠にしない
   const plans = useLiveQuery(
@@ -106,10 +126,46 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4 p-4">
-      <div>
-        <div className="text-xs text-muted-foreground">{formatDateJa(today)}</div>
-        <h1 className="text-2xl font-semibold tracking-tight">今日の食事</h1>
+      {/*
+        日付の行。左右で前後の日へ。**指を離さずに1週間をたどれる。**
+        今日以外を見ているときだけ「今日へ」を出す（居場所を見失わないため）。
+      */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setDate(addDaysIso(date, -1))}
+          className="flex size-9 shrink-0 items-center justify-center rounded-md border active:bg-accent"
+          aria-label="前の日"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+
+        <div className="min-w-0 flex-1 text-center">
+          <div className="text-xs text-muted-foreground">
+            {formatDateJa(date)}
+            {isToday && ' ・今日'}
+          </div>
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
+            {isToday ? '今日の食事' : dayLabel(date, today)}
+          </h1>
+        </div>
+
+        <button
+          onClick={() => setDate(addDaysIso(date, 1))}
+          className="flex size-9 shrink-0 items-center justify-center rounded-md border active:bg-accent"
+          aria-label="次の日"
+        >
+          <ChevronRight className="size-4" />
+        </button>
       </div>
+
+      {!isToday && (
+        <button
+          onClick={() => setDate(today)}
+          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+        >
+          今日へ戻る
+        </button>
+      )}
 
       {undo.bar}
 
@@ -129,7 +185,7 @@ export function Dashboard() {
         </div>
       ) : (
         <EmptyState
-          title="今日の予定はまだありません"
+          title={isToday ? '今日の予定はまだありません' : 'この日の予定はありません'}
           description="週のプランを作ると、ここに毎日の食事が並びます。"
           action={
             <Link
@@ -142,7 +198,8 @@ export function Dashboard() {
         />
       )}
 
-      {settings && (
+      {/* 今日の流れ・目標・連続週は「今日」の話。ほかの日を見ているときは出さない */}
+      {isToday && settings && (
         <TimelineCard
           settings={settings}
           habits={habits ?? []}
@@ -156,7 +213,7 @@ export function Dashboard() {
         食べられなかった日も目標を満たしたことになっていた。
         食べたら押す、という一手間の意味がここにある
       */}
-      {me && (
+      {isToday && me && (
         <TargetCard
           profile={me}
           eaten={sumMacros(
@@ -166,7 +223,7 @@ export function Dashboard() {
         />
       )}
 
-      {streak > 0 && (
+      {isToday && streak > 0 && (
         <div className="rounded-lg border p-3 text-xs leading-relaxed">
           <span className="font-medium tabular-nums">{streak} 週</span> 続いています
         </div>

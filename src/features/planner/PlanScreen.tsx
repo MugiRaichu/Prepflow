@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { RefreshCw, Check, ChevronDown, ChevronRight, Boxes, CalendarRange } from 'lucide-react';
+import { RefreshCw, Check, ChevronDown, Boxes, CalendarRange } from 'lucide-react';
 import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -11,6 +11,7 @@ import { WishBar } from './WishBar';
 import { PinPicker } from './PinPicker';
 import { EMPTY_REQUEST } from './logic/request';
 import { autoBackup } from '@/db/repositories/backup';
+import { dropExpiredStock } from '@/db/repositories/inventory';
 import { publishIfEnabled } from '@/calendar/gasCalendar';
 import type { WeekRequest } from './logic/request';
 import type { CookingMode, MealSlot, WeekPlan } from '@/db/schema';
@@ -92,15 +93,28 @@ export function PlanScreen() {
   const [replanFrom, setReplanFrom] = useState<string | null>(null);
   const [withoutIds, setWithoutIds] = useState<string[]>([]);
 
-  // 家にあることになっている食材の数と、最後に確かめた日
-  const stockCount = useLiveQuery(
-    async () =>
-      (await db.inventory.where('deleted').equals(0).toArray()).filter((r) => r.quantity > 0).length,
-    [],
-  ) ?? 0;
-  const checkedAt = useLiveQuery(async () => (await db.meta.get('stockCheckedAt'))?.value, []);
-  const staleStock =
-    typeof checkedAt !== 'string' || checkedAt < new Date(Date.now() - 6 * 864e5).toISOString();
+  /*
+   * 家にあることになっている食材。
+   *
+   * 開く前に、傷んだはずのものを落としておく。20日前のにんじんが残っている
+   * ことはないのに、アプリが言い続けるから人が打ち消すことになっていた。
+   * 落としたものは下の表示から消えるので、残った数品だけを見ればよくなる。
+   */
+  const [dropped, setDropped] = useState<string[]>([]);
+  useEffect(() => {
+    void dropExpiredStock().then((names) => {
+      if (names.length > 0) setDropped(names);
+    });
+  }, []);
+
+  const stockNames =
+    useLiveQuery(
+      async () =>
+        (await db.inventory.where('deleted').equals(0).toArray())
+          .filter((r) => r.quantity > 0)
+          .map((r) => r.ingredientName),
+      [],
+    ) ?? [];
   const [error, setError] = useState<string | null>(null);
 
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
@@ -258,22 +272,39 @@ export function PlanScreen() {
           在庫が効くのはこの瞬間だけで、それ以外のタイミングで正確でも意味がない。
           触らなければ見込みのまま進むので、飛ばしても止まらない
         */}
-        {!cands && stockCount > 0 && (
-          <button
-            onClick={() => nav('/stock')}
-            className="flex w-full items-center gap-3 rounded-lg border p-3 text-left active:bg-accent"
-          >
-            <Boxes className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">家にあるものを確かめる</span>
-              <span className="block text-[10px] text-muted-foreground">
-                {stockCount} 品ぶんの見込みがあります。
-                {staleStock ? 'しばらく確認していません。' : ''}
-                合っていれば触らなくて構いません
+        {/*
+          **画面を開かせない。**在庫を確かめるだけのために別の画面へ飛ばすと、
+          20行の一覧を前にして面倒になる（本人指摘）。
+
+          傷んだはずのものは既に自動で落としてある（dropExpiredStock）ので、
+          残っているのは数品のはず。その名前をここに並べて、
+          合っていれば押さずに進める。違うときだけ直しに行く。
+        */}
+        {/* 黙って消さない。落としたものは名前で伝える */}
+        {!cands && dropped.length > 0 && (
+          <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
+            日持ちが過ぎた <b className="text-foreground">{dropped.join('・')}</b> は、
+            もう無いものとして扱いました。まだあるなら「違うものがあれば直す」から戻せます。
+          </div>
+        )}
+
+        {!cands && stockNames.length > 0 && (
+          <div className="rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Boxes className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1 text-xs">
+                <b>{stockNames.slice(0, 6).join('・')}</b>
+                {stockNames.length > 6 && ' ほか' + (stockNames.length - 6) + '品'}
+                {' が家にあるものとして使われます'}
               </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          </button>
+            </div>
+            <button
+              onClick={() => nav('/stock')}
+              className="mt-2 min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+            >
+              違うものがあれば直す
+            </button>
+          </div>
         )}
 
         {!cands && (
