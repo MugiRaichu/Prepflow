@@ -297,3 +297,22 @@ export const formatBytes = (n: number | null): string => {
   if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
   return (n / 1024 / 1024).toFixed(1) + ' MB';
 };
+
+/**
+ * 最初からやり直す。
+ *
+ * **端末に貯めたものを全部消す。**献立も、自作レシピも、撮った写真も、
+ * 買い出しの実績も戻らない。
+ *
+ * ブラウザの設定から消すのと同じことを、アプリの中でできるようにしただけ。
+ * あちらは「Cookieと他のサイトデータ」を探し当てる必要があり、
+ * ホーム画面から起動している人には辿り着けない。
+ *
+ * 消す前に書き出しを勧めるのは画面側の仕事。ここは頼まれたら消す。
+ */
+export async function resetEverything(): Promise<void> {
+  db.close();
+  await db.delete();
+  // 開き直すと ensureSeeded が走り、初期設定からやり直しになる
+  location.reload();
+}

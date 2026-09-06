@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, Upload, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { resetEverything } from '@/db/repositories/backup';
 import { ViewportInfo } from './ViewportInfo';
 import {
   autoBackupSupported,
@@ -31,6 +32,7 @@ export function DataSettings() {
   const [bk, setBk] = useState<Awaited<ReturnType<typeof backupInfo>> | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reload = () => {
@@ -219,6 +221,44 @@ export function DataSettings() {
 
         {msg && <div className="text-xs text-muted-foreground">{msg}</div>}
 
+        {/*
+          最初からやり直す。**2回押させる。**1回で消えると、押し間違いで全部が消える。
+          取り消しの効かない操作はここだけなので、ここだけ確認を挟む。
+
+          ブラウザの設定から消すのと同じことだが、ホーム画面から起動している人は
+          「Cookieと他のサイトデータ」に辿り着けない。だからアプリの中に置く。
+        */}
+        <div className="space-y-2 border-t pt-6">
+          <div className="text-sm font-medium">最初から始める</div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            端末に貯めたものを全部消して、初期設定からやり直します。
+            献立・自作レシピ・撮った写真・買い出しの実績は戻りません。
+            {!bk?.lastAt && ' 先に上の「ファイルに書き出す」をしておくと、あとで戻せます。'}
+          </p>
+          {confirmReset ? (
+            <div className="space-y-2">
+              <button
+                onClick={() => void resetEverything()}
+                className="min-h-12 w-full rounded-lg bg-destructive text-sm font-semibold text-destructive-foreground"
+              >
+                本当に全部消す
+              </button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                className="min-h-9 w-full text-xs text-muted-foreground"
+              >
+                やめる
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmReset(true)}
+              className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
+            >
+              全部消して最初から始める
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
