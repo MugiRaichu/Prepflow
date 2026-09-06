@@ -12,9 +12,11 @@ import type {
   Macros,
   PlannedMeal,
   Profile,
+  Recipe,
   Weekday,
   WeekPlan,
 } from '@/db/schema';
+import { DishImage } from '@/features/recipes/DishImage';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
 import type { CalendarBlock } from '@/features/rhythm/logic/timeline';
@@ -79,6 +81,8 @@ export function Dashboard() {
   const habits = useLiveQuery(() => db.habits.where('deleted').equals(0).toArray(), []);
   const recipes = useLiveQuery(() => db.recipes.where('deleted').equals(0).toArray(), []);
   const mode = useCookingMode();
+  // 献立に絵を出すのに使う。写真があれば写真、無ければ料理から決まる絵
+  const byRecipeId = new Map((recipes ?? []).map((r) => [r.id, r]));
 
   // カレンダーの予定。今日タブを開いたとき、古ければ取り直す
   const calendar = useLiveQuery(readCache, []);
@@ -118,7 +122,12 @@ export function Dashboard() {
       {meals && meals.length > 0 ? (
         <div className="space-y-3">
           {meals.map((m) => (
-            <MealCard key={m.id} meal={m} assignments={assignments ?? []} />
+            <MealCard
+              key={m.id}
+              meal={m}
+              assignments={assignments ?? []}
+              recipes={byRecipeId}
+            />
           ))}
         </div>
       ) : (
@@ -159,9 +168,11 @@ export function Dashboard() {
 function MealCard({
   meal,
   assignments,
+  recipes,
 }: {
   meal: PlannedMeal;
   assignments: ContainerAssignment[];
+  recipes: Map<string, Recipe>;
 }) {
   const eaten = meal.status === 'eaten';
 
@@ -186,17 +197,22 @@ function MealCard({
 
       {meal.items.map((it, idx) => {
         const a = assignments.find((x) => x.id === it.containerAssignmentId);
+        const r = recipes.get(it.recipeId);
         return (
-          <div key={idx} className="flex items-baseline gap-2">
-            {a && (
-              <span className="rounded border px-1.5 py-0.5 text-xs font-mono font-semibold">
-                {a.containerLabel}
+          <div key={idx} className="flex items-center gap-2.5">
+            {/* 名前だけの行が並ぶと、どれがどれか読まないと分からない */}
+            {r && <DishImage recipe={r} className="size-11" />}
+            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+              {a && (
+                <span className="rounded border px-1.5 py-0.5 text-xs font-mono font-semibold">
+                  {a.containerLabel}
+                </span>
+              )}
+              <span className="text-lg font-semibold">{it.recipeTitle}</span>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {Math.round(it.grams)}g
               </span>
-            )}
-            <span className="text-lg font-semibold">{it.recipeTitle}</span>
-            <span className="text-sm tabular-nums text-muted-foreground">
-              {Math.round(it.grams)}g
-            </span>
+            </div>
           </div>
         );
       })}

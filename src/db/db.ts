@@ -38,6 +38,7 @@ import type {
   StapleStatus,
   Store,
   UUID,
+  RecipePhoto,
 } from './schema';
 
 export const DB_NAME = 'prepflow';
@@ -70,6 +71,7 @@ export class PrepflowDB extends Dexie {
   meta!: Table<MetaRecord, string>;
   stapleStatus!: Table<StapleStatus, UUID>;
   stores!: Table<Store, UUID>;
+  recipePhotos!: Table<RecipePhoto, UUID>;
 
   constructor() {
     super(DB_NAME);
@@ -149,7 +151,19 @@ export class PrepflowDB extends Dexie {
       shoppingLists: 'id, weekPlanId, shoppingDate, status, storeId, deleted',
     });
 
-    // 以後、スキーマ変更時は version(6).stores({...}).upgrade(tx => ...) を
+    /*
+     * 料理の写真。**レシピ本体とは別のテーブルに置く。**
+     *
+     * 写真は1枚で数十〜数百KBあり、レシピ行に混ぜるとレシピを1件読むたびに
+     * 画像まで読むことになる（一覧は毎回全件読む）。
+     * 別テーブルなら、表示する画面だけが取りに行く。
+     * 書き出し・バックアップから外すのも、テーブルごとなら簡単。
+     */
+    this.version(6).stores({
+      recipePhotos: 'recipeId, updatedAt',
+    });
+
+    // 以後、スキーマ変更時は version(7).stores({...}).upgrade(tx => ...) を
     // 追記する。既存の version は消さない（Dexie は履歴を必要とする）。
   }
 }

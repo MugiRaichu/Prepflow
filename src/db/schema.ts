@@ -983,6 +983,24 @@ export interface AppSettings {
 }
 
 /**
+ * 料理の写真。
+ *
+ * **レシピ本体とは別のテーブル**に置く（1枚で数十〜数百KBあり、
+ * レシピ一覧を読むたびに画像まで読むことになるため）。
+ *
+ * 中身は Blob。IndexedDB は Blob をそのまま保存できるので、
+ * base64 にして膨らませる必要はない。保存前に長辺640pxまで縮めている。
+ */
+export interface RecipePhoto {
+  recipeId: UUID;
+  blob: Blob;
+  /** 撮った端末の向きなどを考えず、表示は object-fit: cover に任せる */
+  width: number;
+  height: number;
+  updatedAt: ISODateTime;
+}
+
+/**
  * APIキー等は通常設定と別テーブルに置く。
  * 理由: バックアップ／エクスポート機能で丸ごと除外できるようにするため。
  * 注意: IndexedDB は平文であり、これは「漏洩しない」保証ではない。
