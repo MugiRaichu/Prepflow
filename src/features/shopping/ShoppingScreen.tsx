@@ -1,8 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Check, Eye } from 'lucide-react';
+import { Check, Eye, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { addPurchased } from '@/db/repositories/inventory';
+import { addPurchased, setPurchaseUnits } from '@/db/repositories/inventory';
 import { markPurchased } from '@/db/repositories/staples';
 import { autoBackup } from '@/db/repositories/backup';
 import { getDefaultStore, learnFromReceipt, reliabilityOf } from '@/db/repositories/stores';
@@ -276,30 +276,68 @@ export function ShoppingScreen() {
   );
 }
 
+/**
+ * 1行。押すとかごに入る。
+ *
+ * 個数は**押した後**にだけ直せるようにする。野菜はちょうどの個数で
+ * 売っていないので、3本入りしか無かった、まとめ買いのほうが安かった、
+ * という場面のほうが普通で、そのまま記録すると在庫が実際と合わなくなる。
+ *
+ * かごに入れる前から個数の増減を出すと、全行に操作が2つ並んで
+ * 「押すだけ」の流れが壊れる（D-083）。入れた行にだけ出す。
+ */
 function ItemRow({ item, onToggle }: { item: ShoppingListItem; onToggle: () => void }) {
   const checked = item.checked === 1;
   return (
-    <button
-      onClick={onToggle}
-      className="pf-press flex min-h-16 w-full items-center gap-3 px-4 text-left"
-    >
-      <span
-        className={cn(
-          'flex size-7 shrink-0 items-center justify-center rounded-full border',
-          checked ? 'border-foreground bg-foreground text-background pf-pop' : 'border-border',
-        )}
+    <div>
+      <button
+        onClick={onToggle}
+        className="pf-press flex min-h-16 w-full items-center gap-3 px-4 text-left"
       >
-        {checked && <Check className="size-4" />}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className={cn('block text-base font-medium', checked && 'line-through')}>
-          {item.name}
+        <span
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-full border',
+            checked ? 'border-foreground bg-foreground text-background pf-pop' : 'border-border',
+          )}
+        >
+          {checked && <Check className="size-4" />}
         </span>
-        <span className="block text-xs text-muted-foreground">{item.displayQuantity}</span>
-      </span>
-      <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-        {yen(item.estimatedPriceYen)}
-      </span>
-    </button>
+        <span className="min-w-0 flex-1">
+          <span className={cn('block text-base font-medium', checked && 'line-through')}>
+            {item.name}
+          </span>
+          <span className="block text-xs text-muted-foreground">{item.displayQuantity}</span>
+        </span>
+        <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+          {yen(item.estimatedPriceYen)}
+        </span>
+      </button>
+
+      {checked && (
+        <div className="flex items-center gap-2 px-4 pb-2 pl-14">
+          <span className="text-[10px] text-muted-foreground">買った数</span>
+          <button
+            onClick={() => void setPurchaseUnits(item, item.purchaseUnits - 1)}
+            disabled={item.purchaseUnits <= 1}
+            className="flex size-8 items-center justify-center rounded-md border text-sm active:bg-accent disabled:opacity-30"
+            aria-label="減らす"
+          >
+            <Minus className="size-3.5" />
+          </button>
+          <span className="min-w-6 text-center text-sm tabular-nums">{item.purchaseUnits}</span>
+          <button
+            onClick={() => void setPurchaseUnits(item, item.purchaseUnits + 1)}
+            className="flex size-8 items-center justify-center rounded-md border text-sm active:bg-accent"
+            aria-label="増やす"
+          >
+            <Plus className="size-3.5" />
+          </button>
+          {/* 増やした先で何が起きるかを言う。言わないと、ただの数字になる（D-084） */}
+          <span className="text-[10px] text-muted-foreground">
+            余ったぶんは来週の献立で先に使います
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

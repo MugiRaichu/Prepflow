@@ -7,6 +7,7 @@
  * 差分が「余り」として残り、次の週の買い出しリストから引かれる。
  */
 import { db, newEntity, nowIso } from '@/db/db';
+import { UNIT_LABEL } from '@/features/planner/logic/shoppingList';
 import type { Ingredient, ShoppingListItem, WeekPlan } from '@/db/schema';
 
 /** 買った量を在庫へ入れる。同じ食材が既にあれば足す */
@@ -94,5 +95,43 @@ export async function consumeForPlan(plan: WeekPlan): Promise<void> {
         });
       }
     }
+  });
+}
+
+/**
+ * 買った個数を、リストに出した数から変える。
+ *
+ * 野菜はちょうどの個数で売っていない。にんじん1本が要るのに3本入りしか
+ * 置いていない、まとめ買いのほうが安い、という状況のほうが普通で、
+ * 「リストどおり買った」ことにすると在庫が実際と合わなくなる。
+ *
+ * 直すのは個数だけ。表示と見込み額はそこから引き直す。
+ * 余分は買い物を終えた時点で在庫に入り、`effectiveCosts` が
+ * 在庫ぶんを原価から引くので、**次の献立でそれを使う案が自然に勝つ**。
+ */
+export async function setPurchaseUnits(
+  item: ShoppingListItem,
+  units: number,
+): Promise<void> {
+  const next = Math.max(1, Math.round(units));
+  if (next === item.purchaseUnits) return;
+
+  const ing = await db.ingredients.get(item.ingredientId);
+  const gramsPerUnit = ing?.purchase.gramsPerUnit ?? 0;
+  const perUnitYen = item.estimatedPriceYen / Math.max(item.purchaseUnits, 1);
+  const grams = next * gramsPerUnit;
+  const label = UNIT_LABEL[item.unit];
+
+  await db.shoppingListItems.put({
+    ...item,
+    purchaseUnits: next,
+    displayQuantity:
+      item.unit === 'g' || item.unit === 'ml'
+        ? Math.round(grams) + label
+        : next + label + '（約' + Math.round(grams) + 'g）',
+    estimatedPriceYen: Math.round(perUnitYen * next),
+    // 切り上げで余る量。作り置きのあと在庫に戻る
+    expectedLeftover: Math.round(Math.max(grams - item.requiredQuantity, 0)),
+    updatedAt: nowIso(),
   });
 }

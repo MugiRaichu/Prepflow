@@ -34,7 +34,7 @@ export interface BuildListInput {
   priceFactor: number;
 }
 
-const UNIT_LABEL: Record<Unit, string> = {
+export const UNIT_LABEL: Record<Unit, string> = {
   g: 'g',
   ml: 'ml',
   piece: '個',
