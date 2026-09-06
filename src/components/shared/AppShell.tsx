@@ -32,26 +32,25 @@ export function AppShell() {
   const nav = navFor(daily);
 
   return (
-    <div className="pf-shell flex flex-col bg-background text-foreground">
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div className="pf-shell relative flex flex-col bg-background text-foreground">
+      {/* タブバーが本文の上に浮くので、最後の行が隠れないぶんだけ下を空ける */}
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
         <Outlet />
       </main>
 
       {/*
-        外枠が 100dvh なので、ここは常に画面の一番下に来る。
-
-        色は本文と同じ（bg-background）。一度バーの範囲を見せようと1段明るく
-        したが、浮いて見えるだけだった。下に足した余白もこの色のままなので、
-        バーと地続きに見える。
+        画面の下端に貼り付けた帯ではなく、少し浮かせた角丸のバーにする。
+        背景は半透明＋ぼかしで、下を通っていく本文がうっすら見える。
+        位置と質感の指定は .pf-tabbar（src/index.css）。
       */}
-      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t bg-background">
+      <nav className="pf-tabbar grid grid-cols-5">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center gap-0.5 py-2 text-[10px]',
+                'flex flex-col items-center justify-center gap-0.5 py-2.5 text-[10px]',
                 isActive ? 'text-foreground' : 'text-muted-foreground',
               )
             }

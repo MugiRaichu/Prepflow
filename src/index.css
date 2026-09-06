@@ -167,10 +167,10 @@
    * 端末が返す数字の食い違いをこちらで解釈することになり、iPhone で
    * 上が時刻に重なる／下に帯が残る、を繰り返した。
    *
-   * **`100dvh` も使わない。**ホーム画面から起動した iPhone では、
-   * ビューがステータスバーの裏まで（874px）伸びているのに `100dvh` は
-   * その内側（812px）を返す。差の 62px がそのまま**下端のデッドスペース**になる。
-   * `height: 100%`（html から繋ぐ）ならビューの実寸そのものになる。
+   * ホーム画面から起動した iPhone では、ビューがステータスバーの裏まで
+   * （874px）伸びているのに `100dvh` はその内側（812px）を返す。
+   * 差の 62px がそのまま**下端のデッドスペース**になるので、
+   * standalone のときだけ `100vh`（ビュー全体）に切り替える（下の @media）。
    *
    * 上の余白はここで取る。ビューがステータスバーの裏まで来ている場合だけ
    * env() が値を返すので、そうでない端末では 0 になり何も起きない。
@@ -228,6 +228,39 @@
    */
   .pf-safe-bottom {
     padding-bottom: min(env(safe-area-inset-bottom), 10px);
+  }
+
+  /*
+   * タブバー。**帯ではなく、浮かせた角丸のバー。**
+   *
+   * 下端に貼り付けると画面が上下で切られて、縦の狭いスマホでは本文が
+   * 箱に閉じ込められて見える。左右と下を空けて角を丸めると、
+   * 本文がバーの下に続いていることが分かり、画面が広く感じる。
+   *
+   * 背景は半透明＋ぼかし。スクロールしている本文がうっすら透けるので、
+   * 「まだ下に続いている」ことが動きで伝わる。
+   * 色相は足さない（背景色そのものの不透明度を下げているだけ）。
+   */
+  .pf-tabbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    /* ホームバーぶん（最大10px）＋浮かせるぶん */
+    bottom: calc(min(env(safe-area-inset-bottom), 10px) + 10px);
+    margin-inline: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--background) 72%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  /* ぼかしが効かない環境では透けるだけになるので、その場合は濃くする */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .pf-tabbar {
+      background: var(--background);
+    }
   }
 
   /* 残り時間が尽きたタイマー。色を使えないので明滅で気づかせる */
