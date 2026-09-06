@@ -9,6 +9,10 @@ import './index.css';
 // Service Worker 登録（autoUpdate: 新版があればバックグラウンドで差し替え）
 registerSW({ immediate: true });
 
+// iPhone のショートカットが GAS へ送った歩数・消費カロリーを取り込む。
+// 未設定・圏外なら何もしない
+void import('./health/gasHealth').then((m) => m.pullHealthIfStale());
+
 // 圏外で溜まった送信を、起動時とオンライン復帰時に流す
 const flush = () => void flushOutbox().catch(() => {});
 window.addEventListener('online', flush);

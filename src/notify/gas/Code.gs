@@ -37,6 +37,20 @@ var PREPFLOW_CALENDAR = 'Prepflow';
  * コードを貼り直して機能が増えたときは出ないことがある。
  * ここを実行すれば、必要な許可がまとめて求められる。
  */
+/**
+ * 古い健康データを捨てる。
+ * スクリプトプロパティは 500KB までなので、貯め続けると詰まる。
+ * アプリは開くたびに取りに来るので、60日ぶんあれば十分。
+ */
+function pruneHealth() {
+  var keep = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+  var all = PROPS.getProperties();
+  for (var k in all) {
+    if (k.indexOf('health:') !== 0) continue;
+    if (k.slice(7) < keep) PROPS.deleteProperty(k);
+  }
+}
+
 function authorize() {
   CalendarApp.getDefaultCalendar().getName();
   ScriptApp.getProjectTriggers();
@@ -130,6 +144,49 @@ function doPost(e) {
       PROPS.setProperty('UPDATED_AT', new Date().toISOString());
       setupTrigger();
       return json({ ok: true, count: body.schedule.length });
+    }
+
+    /*
+     * health: iPhone のショートカットから、その日の歩数と消費カロリーを受ける。
+     *
+     * ショートカット側は「URLの内容を取得」で POST する。「URLを開く」ではないので
+     * **画面は開かない**。オートメーションに載せれば、設定は最初の1回で済む。
+     *
+     * 貯めるのはスクリプトプロパティ。日付をキーにして上書きするので、
+     * 同じ日に何度送っても増えない。持つのは日付・歩数・kcal だけで、
+     * 名前も位置も持たない。
+     */
+    if (body.action === 'health') {
+      var date = String(body.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return json({ ok: false, error: 'bad date' });
+      }
+      var rec = {
+        date: date,
+        steps: Math.max(0, Math.round(Number(body.steps) || 0)),
+        activeKcal: Math.max(0, Math.round(Number(body.activeKcal) || 0)),
+      };
+      PROPS.setProperty('health:' + date, JSON.stringify(rec));
+      pruneHealth();
+      return json({ ok: true, saved: rec });
+    }
+
+    // healthPull: 貯めてあるぶんをアプリが取りに来る
+    if (body.action === 'healthPull') {
+      var out = [];
+      var all = PROPS.getProperties();
+      for (var k in all) {
+        if (k.indexOf('health:') !== 0) continue;
+        try {
+          out.push(JSON.parse(all[k]));
+        } catch (err) {
+          // 壊れている行は捨てる
+        }
+      }
+      out.sort(function (a, b) {
+        return a.date < b.date ? -1 : 1;
+      });
+      return json({ ok: true, samples: out });
     }
 
     return json({ ok: false, error: 'unknown action' });
