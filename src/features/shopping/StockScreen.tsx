@@ -19,16 +19,29 @@ import { cn } from '@/lib/utils';
  * **グラム数は聞かない。**「にんじん あと2本くらい」を 300g に換算できる人は
  * いない。買う単位を基準にした3択なら、見た瞬間に答えられる。
  *
- * 開くのは献立を作る直前でいい。在庫が効くのはそのときだけで、
- * それ以外のタイミングで正確でも意味がない（D-037 の延長）。
- * 気づいたときに1品だけ直したい場合も、同じ画面で足りる。
+ * ただし3択を全品に出すと、20品で60個のボタンが並ぶ。面倒で閉じられる
+ * （本人指摘）。**聞く相手を絞る。**
+ *
+ *   - 常備品（調味料）は出さない。しょうゆが切れていることは滅多にない
+ *   - 見込みが正しい前提で、**「切れているものだけ」を押してもらう**
+ *   - 押すと1段階ずつ減る（ある → 少し → 無い → ある）
+ *
+ * 「ある」ものは触らなくてよい。押すのは減っているものだけになる。
+ * 開くのは献立を作る直前でいい。在庫が効くのはそのときだけ（D-037 の延長）。
  */
 
-const LEVELS: { value: StockLevel; label: string }[] = [
-  { value: 'plenty', label: 'ある' },
-  { value: 'little', label: '少し' },
-  { value: 'none', label: '無い' },
-];
+const LABEL: Record<StockLevel, string> = {
+  plenty: 'ある',
+  little: '少し',
+  none: '無い',
+};
+
+/** 押すたびに減る。減りきったら「ある」へ戻る */
+const NEXT: Record<StockLevel, StockLevel> = {
+  plenty: 'little',
+  little: 'none',
+  none: 'plenty',
+};
 
 /** いまの見込み量が3択のどれに当たるか。押す前から現在地が分かるようにする */
 function levelOf(item: InventoryItem, perUnit: number): StockLevel {
@@ -48,7 +61,10 @@ export function StockScreen() {
   if (!rows || !ingredients) return null;
 
   const byId = new Map<string, Ingredient>(ingredients.map((i) => [i.id, i]));
-  const sections = [...new Set(rows.map((r) => byId.get(r.ingredientId)?.section ?? 'other'))];
+
+  // 常備品は出さない。しょうゆやサラダ油の残量を毎週聞かれても答えようがない
+  const asked = rows.filter((r) => byId.get(r.ingredientId)?.isStaple !== 1);
+  const sections = [...new Set(asked.map((r) => byId.get(r.ingredientId)?.section ?? 'other'))];
 
   const done = async () => {
     await markStockChecked();
@@ -60,7 +76,7 @@ export function StockScreen() {
       <PageHeader title="家にあるもの" backTo="/plan" />
       {undo.bar}
 
-      {rows.length === 0 ? (
+      {asked.length === 0 ? (
         <div className="p-4">
           <EmptyState
             title="記録されている食材はありません"
@@ -70,8 +86,9 @@ export function StockScreen() {
       ) : (
         <div className="space-y-4 p-4">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            見たままを押してください。ここで直したぶんは、次の献立でそのまま使われます。
+            減っているものだけ押してください。押すたびに「少し」「無い」と減ります。
             触らなかったものは、いまの見込みのままにします。
+            調味料は聞きません。
           </p>
 
           {sections.map((sec) => (
@@ -80,7 +97,7 @@ export function StockScreen() {
                 {STORE_SECTION_LABELS[sec as StoreSection]}
               </div>
               <div className="divide-y rounded-lg border">
-                {rows
+                {asked
                   .filter((r) => (byId.get(r.ingredientId)?.section ?? 'other') === sec)
                   .map((r) => {
                     const perUnit = byId.get(r.ingredientId)?.purchase.gramsPerUnit ?? r.quantity;
@@ -93,31 +110,28 @@ export function StockScreen() {
                             見込み {Math.round(r.quantity)}g
                           </div>
                         </div>
-                        <div className="flex shrink-0 gap-1">
-                          {LEVELS.map((l) => (
-                            <button
-                              key={l.value}
-                              onClick={() => {
-                                // 押す前の行をそのまま覚えておく。「無い」を
-                                // 誤って押しても、量を推測し直さずに戻せる
-                                const before = { ...r };
-                                void setStockLevel(r, l.value);
-                                undo.offer(
-                                  r.ingredientName + 'を「' + l.label + '」にしました',
-                                  () => restoreStock(before),
-                                );
-                              }}
-                              className={cn(
-                                'min-h-9 rounded-md border px-2.5 text-xs',
-                                cur === l.value
-                                  ? 'pf-pop border-foreground bg-foreground font-medium text-background'
-                                  : 'border-border text-muted-foreground',
-                              )}
-                            >
-                              {l.label}
-                            </button>
-                          ))}
-                        </div>
+                        {/* ボタンは1つ。押すたびに1段階ずつ減る */}
+                        <button
+                          onClick={() => {
+                            // 押す前の行をそのまま覚えておく。「無い」を
+                            // 誤って押しても、量を推測し直さずに戻せる
+                            const before = { ...r };
+                            const next = NEXT[cur];
+                            void setStockLevel(r, next);
+                            undo.offer(
+                              r.ingredientName + 'を「' + LABEL[next] + '」にしました',
+                              () => restoreStock(before),
+                            );
+                          }}
+                          className={cn(
+                            'min-h-10 w-20 shrink-0 rounded-md border text-xs',
+                            cur === 'plenty'
+                              ? 'border-border text-muted-foreground'
+                              : 'pf-pop border-primary bg-primary font-medium text-primary-foreground',
+                          )}
+                        >
+                          {LABEL[cur]}
+                        </button>
                       </div>
                     );
                   })}
