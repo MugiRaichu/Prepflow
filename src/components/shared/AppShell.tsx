@@ -40,10 +40,11 @@ export function AppShell() {
       {/*
         外枠が 100dvh なので、ここは常に画面の一番下に来る。
 
-        背景は足さない（バーの範囲を見せようと1段明るくしたが、要らなかった）。
-        下の余白だけ少し取る（pf-safe-bottom は最大10px）。
+        色は本文と同じ（bg-background）。一度バーの範囲を見せようと1段明るく
+        したが、浮いて見えるだけだった。下に足した余白もこの色のままなので、
+        バーと地続きに見える。
       */}
-      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t">
+      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t bg-background">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
