@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useUndoBar } from '@/components/shared/UndoBar';
-import { eatLeftover, listLeftovers, undoEatLeftover } from '@/db/repositories/leftovers';
+import { eatLeftover, listPrepped, undoEatLeftover } from '@/db/repositories/leftovers';
+import type { PreppedItem } from '@/db/repositories/leftovers';
 import { addDaysIso, formatDateJa, todayIso } from '@/lib/labels';
-import type { ContainerAssignment } from '@/db/schema';
 import { cn } from '@/lib/utils';
 
 /**
@@ -32,28 +32,29 @@ function daysLeft(useBy: string, today: string): number {
 
 export function FreezerScreen() {
   const undo = useUndoBar();
-  const rows = useLiveQuery(listLeftovers, []);
+  const rows = useLiveQuery(listPrepped, []);
   if (!rows) return null;
 
   const today = todayIso();
-  const freezer = rows.filter((c) => c.storage === 'freezer');
-  const fridge = rows.filter((c) => c.storage !== 'freezer');
-  const kcal = rows.reduce((n, c) => n + c.nutrition.kcal, 0);
+  const freezer = rows.filter((x) => x.container.storage === 'freezer');
+  const fridge = rows.filter((x) => x.container.storage !== 'freezer');
+  const kcal = rows.reduce((n, x) => n + x.container.nutrition.kcal, 0);
+  const free = rows.filter((x) => !x.plannedDate).length;
 
-  const eat = async (c: ContainerAssignment) => {
+  const eat = async (c: PreppedItem['container']) => {
     const before = { ...c };
     const meal = await eatLeftover(c);
     undo.offer(c.recipeTitle + 'を食べたことにしました', () => undoEatLeftover(meal, before));
   };
 
-  const Group = ({ title, items }: { title: string; items: ContainerAssignment[] }) =>
+  const Group = ({ title, items }: { title: string; items: PreppedItem[] }) =>
     items.length === 0 ? null : (
       <div className="space-y-2">
         <div className="text-[10px] text-muted-foreground">
           {title}（{items.length} 食ぶん）
         </div>
         <div className="divide-y rounded-lg border">
-          {items.map((c) => {
+          {items.map(({ container: c, plannedDate }) => {
             const over = c.useByDate < today;
             const soon = !over && c.useByDate <= addDaysIso(today, 2);
             return (
@@ -81,6 +82,9 @@ export function FreezerScreen() {
                   >
                     {formatDateJa(c.useByDate)}まで
                     {over ? '（過ぎています）' : '（あと' + daysLeft(c.useByDate, today) + '日）'}
+                    {plannedDate
+                      ? '・' + formatDateJa(plannedDate).replace(/（.）/, '') + 'に食べる予定'
+                      : '・予定なし'}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">食べた</span>
@@ -93,14 +97,14 @@ export function FreezerScreen() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="残っている作り置き" backTo="/dashboard" />
+      <PageHeader title="作り置き一覧" backTo="/dashboard" />
       {undo.bar}
 
       {rows.length === 0 ? (
         <div className="p-4">
           <EmptyState
-            title="残っているものはありません"
-            description="献立から外れた作り置きや、冷凍に回したぶんがここに並びます。"
+            title="作り置きはありません"
+            description="作って詰めたものが、ここに全部並びます。"
             action={
               <Link
                 to="/cook"
@@ -114,9 +118,11 @@ export function FreezerScreen() {
       ) : (
         <div className="space-y-4 p-4">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            予定の入っていない作り置きです。どれから食べるかは決めません。
-            期限を見て選んでください。食べたら押すだけで、その日の摂取に入り、
-            ここから消えます。合わせて {rows.length} 食ぶん・{Math.round(kcal)} kcal。
+            いま家にある作り置きです。合わせて {rows.length} 食ぶん・
+            {Math.round(kcal)} kcal
+            {free > 0 && '、うち ' + free + ' 食ぶんは予定が入っていません'}。
+            どれから食べるかは決めません。期限を見て選んでください。
+            食べたら押すだけで、その日の摂取に入り、ここから消えます。
           </p>
 
           <Group title="冷凍庫" items={freezer} />

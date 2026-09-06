@@ -15,6 +15,45 @@ import type { ContainerAssignment, PlannedMeal } from '@/db/schema';
  * **押すのは1回。**いつ食べたかは聞かない（押した日でいい）。
  */
 
+/**
+ * いま家にある作り置き**全部**。詰めてあって、まだ食べていないもの。
+ *
+ * 予定が立っているものも含める。作り置きは「何をどれだけ作ってあるか」が
+ * 見えないと管理できない。予定の有無は `plannedDate` で分かるようにする。
+ */
+export interface PreppedItem {
+  container: ContainerAssignment;
+  /** 食べる予定の日。予定が無ければ null（在庫として残っている） */
+  plannedDate: string | null;
+}
+
+export async function listPrepped(): Promise<PreppedItem[]> {
+  const all = (await db.containerAssignments.toArray()).filter(
+    (c) => c.deleted === 0 && c.packed === 1 && !c.consumedAt,
+  );
+  if (all.length === 0) return [];
+
+  const meals = await db.plannedMeals.toArray();
+  const today = todayIso();
+  const planned = new Map<string, string>();
+  for (const m of meals) {
+    if (m.deleted === 1 || m.status === 'skipped' || m.date < today) continue;
+    for (const it of m.items) {
+      if (it.containerAssignmentId) planned.set(it.containerAssignmentId, m.date);
+    }
+  }
+
+  return all
+    .map((c) => ({ container: c, plannedDate: planned.get(c.id) ?? null }))
+    .sort(
+      (a, b) =>
+        a.container.useByDate.localeCompare(b.container.useByDate) ||
+        a.container.containerLabel.localeCompare(b.container.containerLabel, 'ja', {
+          numeric: true,
+        }),
+    );
+}
+
 /** 予定の無い作り置き。詰めてあって、まだ食べていないもの */
 export async function listLeftovers(): Promise<ContainerAssignment[]> {
   const all = (await db.containerAssignments.toArray()).filter(

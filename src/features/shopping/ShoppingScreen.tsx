@@ -7,6 +7,7 @@ import { markPurchased } from '@/db/repositories/staples';
 import { autoBackup } from '@/db/repositories/backup';
 import { getDefaultStore, learnFromReceipt, reliabilityOf } from '@/db/repositories/stores';
 import { StapleCheck } from './StapleCheck';
+import { ContainerCheck } from './ContainerCheck';
 import { ReceiptScan } from './ReceiptScan';
 import { db, nowIso } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -247,6 +248,11 @@ export function ShoppingScreen() {
           </button>
         </div>
       )}
+
+      {/* 容器は買い出しに出る前が唯一の手当てできる時刻。足りていれば何も出さない */}
+      <div className="px-4 pb-2">
+        <ContainerCheck />
+      </div>
 
       {groups.map((g) => (
         <div key={g.section}>

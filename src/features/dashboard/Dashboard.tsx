@@ -215,7 +215,7 @@ function LeftoverLink() {
     >
       <Boxes className="size-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm">残っている作り置き {rows.length} 食ぶん</span>
+        <span className="block text-sm">作り置きが {rows.length} 食ぶん残っています</span>
         {soonest && (
           <span className="block text-[10px] text-muted-foreground">
             いちばん近い期限は {formatDateJa(soonest.useByDate)}（{soonest.recipeTitle}）
