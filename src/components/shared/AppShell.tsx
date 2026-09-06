@@ -26,16 +26,20 @@ export function AppShell() {
   const nav = navFor(daily);
 
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center border-b px-4">
-        <Logo />
+    <div className="pf-shell flex flex-col bg-background text-foreground">
+      <header className="pf-safe-top shrink-0 border-b">
+        <div className="flex h-12 items-center px-4">
+          <Logo />
+        </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <Outlet />
       </main>
 
-      <nav className="grid shrink-0 grid-cols-5 border-t">
+      {/* 外枠の高さを実測に合わせているので、ここは常に画面の一番下に残る。
+          スクロールでもキーボードでも隠れない（D-099） */}
+      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t bg-background">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

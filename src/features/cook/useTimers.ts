@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, nowIso } from '@/db/db';
 
@@ -24,6 +24,9 @@ type Stored = Record<string, { label: string; endsAt: number }>;
 
 const keyFor = (planId: string) => 'cookTimers:' + planId;
 
+/** これより前に鳴り終わったものは、前回の調理の残骸とみなして捨てる */
+const STALE_MS = 6 * 60 * 60 * 1000;
+
 export function useCookTimers(planId: string | undefined) {
   const row = useLiveQuery(
     async () => (planId ? await db.meta.get(keyFor(planId)) : undefined),
@@ -38,8 +41,21 @@ export function useCookTimers(planId: string | undefined) {
     return () => clearInterval(id);
   }, []);
 
+  // アプリに戻ってきた瞬間に描き直す。裏に回っている間は端末が
+  // setInterval を間引くので、戻ったとき古い残り時間が出たままになる
+  useEffect(() => {
+    const wake = () => tick((n) => n + 1);
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    return () => {
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
+    };
+  }, []);
+
   const now = Date.now();
   const timers: RunningTimer[] = Object.entries(stored)
+    .filter(([, t]) => t.endsAt > now - STALE_MS)
     .map(([taskId, t]) => ({
       taskId,
       label: t.label,
@@ -48,16 +64,56 @@ export function useCookTimers(planId: string | undefined) {
     }))
     .sort((a, b) => a.endsAt - b.endsAt);
 
-  const write = async (next: Stored) => {
-    if (!planId) return;
-    await db.meta.put({ key: keyFor(planId), value: next, updatedAt: nowIso() });
-  };
+  const write = useCallback(
+    async (next: Stored) => {
+      if (!planId) return;
+      await db.meta.put({ key: keyFor(planId), value: next, updatedAt: nowIso() });
+    },
+    [planId],
+  );
+
+  /*
+   * 鳴らす担当。描画の間引きに巻き込まれないよう、1秒ごとの再描画とは別に
+   * 「終了時刻ちょうど」の setTimeout を1本ずつ張る。
+   * 同じタイマーで二度鳴らさないよう、鳴らした鍵（id + 終了時刻）を覚えておく。
+   */
+  const firedRef = useRef<Set<string>>(new Set());
+  const sig = Object.entries(stored)
+    .map(([id, t]) => id + '@' + t.endsAt)
+    .join('|');
+
+  useEffect(() => {
+    const handles: number[] = [];
+    for (const part of sig ? sig.split('|') : []) {
+      const at = Number(part.slice(part.lastIndexOf('@') + 1));
+      if (!Number.isFinite(at)) continue;
+      const label = stored[part.slice(0, part.lastIndexOf('@'))]?.label ?? '';
+      const fire = () => {
+        if (firedRef.current.has(part)) return;
+        firedRef.current.add(part);
+        void alertTimerDone(label);
+        tick((n) => n + 1);
+      };
+      if (firedRef.current.has(part)) continue;
+      const wait = at - Date.now();
+      // 起動時にすでに過ぎているものは、前回の調理の残骸なので鳴らさない
+      if (wait <= -STALE_MS) firedRef.current.add(part);
+      else if (wait <= 0) fire();
+      else handles.push(window.setTimeout(fire, wait));
+    }
+    return () => handles.forEach((h) => clearTimeout(h));
+    // stored は毎回作り直されるので、中身を表す sig を鍵にする
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
 
   return {
     timers,
     /** 鳴っているもの（0秒になったが、まだ止めていない） */
     ringing: timers.filter((t) => t.remainSec === 0),
     start: async (taskId: string, label: string, seconds: number) => {
+      // 掛ける操作そのものが「鳴ったら知らせてほしい」という意思表示なので、
+      // 許可を求めるならこの瞬間しかない（設定画面に置いても意味が伝わらない）
+      void requestTimerNotice();
       await write({ ...stored, [taskId]: { label, endsAt: Date.now() + seconds * 1000 } });
     },
     stop: async (taskId: string) => {
@@ -65,27 +121,66 @@ export function useCookTimers(planId: string | undefined) {
       delete next[taskId];
       await write(next);
     },
-    has: (taskId: string) => Boolean(stored[taskId]),
+    // 古すぎて一覧から外したものは「動いていない」。ここが stored 直読みだと、
+    // 画面に出ていないタイマーのせいでボタンが消えたままになる
+    has: (taskId: string) => timers.some((t) => t.taskId === taskId),
+    /** 通知が使えるか。使えないときだけ画面で断りを入れる */
+    noticeBlocked:
+      typeof Notification !== 'undefined' && Notification.permission === 'denied',
   };
+}
+
+/**
+ * 通知の許可。**タップの中からしか呼ばない**（ブラウザが黙って拒否するため）。
+ * すでに許可・拒否が決まっているときは何もしない。
+ */
+export async function requestTimerNotice(): Promise<void> {
+  try {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission !== 'default') return;
+    await Notification.requestPermission();
+  } catch {
+    // 対応していない端末では何もしない
+  }
 }
 
 /**
  * 鳴ったことを体で分かるようにする。
  *
- * 手が濡れていて画面を見ていない前提なので、振動を主にする。
- * 通知は許可が要るうえ、許可を求める操作自体が邪魔なので、
- * **こちらからは求めない**。すでに許可されている場合だけ使う。
+ * 手が濡れていて画面を見ていない前提なので、振動と通知の両方を出す。
+ *
+ * 通知は **Service Worker 経由**で出す。Android の Chrome では
+ * `new Notification()` が例外になり、これまで通知が一切出ていなかった。
+ * ホーム画面に追加した iOS でも、出せるのはこの経路だけ。
  */
-export function alertTimerDone(label: string): void {
+export async function alertTimerDone(label: string): Promise<void> {
+  const pattern = [400, 200, 400, 200, 400];
   try {
-    navigator.vibrate?.([400, 200, 400, 200, 400]);
+    navigator.vibrate?.(pattern);
   } catch {
     // 対応していない端末では何もしない
   }
+
   try {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification('できあがりました', { body: label, tag: 'prepflow-timer' });
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    // 型定義が vibrate / renotify を知らないので、ここだけ緩める
+    const options = {
+      body: label,
+      tag: 'prepflow-timer',
+      renotify: true,
+      // 手が離せないことがあるので、触るまで消さない
+      requireInteraction: true,
+      vibrate: pattern,
+      icon: import.meta.env.BASE_URL + 'icons/pwa-192x192.png',
+      badge: import.meta.env.BASE_URL + 'icons/pwa-64x64.png',
+    } as NotificationOptions;
+
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) {
+      await reg.showNotification('できあがりました', options);
+      return;
     }
+    new Notification('できあがりました', options);
   } catch {
     // 通知が使えなくても、画面には出ているので困らない
   }

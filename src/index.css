@@ -88,13 +88,14 @@
     @apply border-border outline-ring/50;
   }
   html {
-    /* iOS のホーム画面起動でセーフエリアを尊重する */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
-    overscroll-behavior-y: none;
+    /* 外枠を fixed にしたので本文はスクロールしない。
+       ここが動くとアドレスバーが出入りして下端のタブが隠れる */
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   /*
@@ -161,9 +162,49 @@
     @apply bg-accent;
   }
 
+  /*
+   * 全画面の外枠。高さは src/lib/viewport.ts が実測して入れる。
+   * fixed にするのは、文書そのものをスクロールさせないため。
+   * 文書が動くとアドレスバーが出入りし、その分だけ下端のタブが画面外に出る。
+   * 変数が無い環境（JS 実行前の一瞬）でも崩れないよう dvh を控えに置く。
+   */
+  .pf-shell {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--app-h, 100dvh);
+    /* 丸角・ノッチの内側に本文を寄せる。背景は端まで塗る */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* fixed の外枠は html の padding が効かないので、上下は各自で避ける */
+  .pf-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pf-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* 残り時間が尽きたタイマー。色を使えないので明滅で気づかせる */
+  @keyframes pf-ring {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+  .pf-ring {
+    animation: pf-ring 900ms ease-in-out infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .pf-pop,
-    .pf-rise {
+    .pf-rise,
+    .pf-ring {
       animation: none;
     }
     button:active:not(:disabled) {

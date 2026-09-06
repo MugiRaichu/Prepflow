@@ -2,7 +2,10 @@
 <html lang="ja" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#000000" />
 
@@ -15,8 +18,106 @@
 
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
     <title>Prepflow</title>
+
+    <!--
+      起動画面。
+
+      ここに直接書いてあるのは、JS も CSS も待たずに最初の描画で出したいから。
+      React 側に置くと、真っ黒な画面がしばらく出てから急に本体が現れる。
+
+      出ている間に ensureSeeded()（食材マスタの投入）が走るので、
+      待ち時間を隠すという実利もある。演出のためだけに待たせてはいない。
+    -->
+    <style>
+      #pf-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        background: #000;
+        transition:
+          opacity 380ms ease,
+          transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      /* 本体に道を譲るとき、わずかに前に出しながら消す */
+      #pf-splash.is-gone {
+        opacity: 0;
+        transform: scale(1.04);
+        pointer-events: none;
+      }
+      #pf-splash svg {
+        width: 76px;
+        height: 76px;
+      }
+      /* 線を引く順に手が動く。リストが流れに変わる形をそのまま見せる */
+      #pf-splash path {
+        stroke-dasharray: 440;
+        stroke-dashoffset: 440;
+        animation: pf-draw 620ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      }
+      #pf-splash path:nth-child(2) {
+        animation-delay: 90ms;
+      }
+      #pf-splash path:nth-child(3) {
+        animation-delay: 180ms;
+      }
+      #pf-splash path:nth-child(4) {
+        animation-delay: 300ms;
+      }
+      @keyframes pf-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      #pf-splash p {
+        margin: 0;
+        font:
+          500 15px/1.6 system-ui,
+          -apple-system,
+          "Hiragino Sans",
+          "Noto Sans JP",
+          sans-serif;
+        letter-spacing: 0.16em;
+        color: #fafafa;
+        opacity: 0;
+        animation: pf-fade 520ms ease 460ms forwards;
+      }
+      @keyframes pf-fade {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      /* 動きが苦手な人には出さない。文字だけ静かに置く */
+      @media (prefers-reduced-motion: reduce) {
+        #pf-splash path,
+        #pf-splash p {
+          animation: none;
+          stroke-dashoffset: 0;
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
   <body class="bg-black text-white antialiased">
+    <div id="pf-splash" aria-hidden="true">
+      <svg viewBox="0 0 512 512" fill="none" stroke="#fafafa" stroke-width="34"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M112 152 H400" />
+        <path d="M112 256 H304" />
+        <path d="M112 360 H208" />
+        <path d="M336 312 L384 360 L336 408" />
+      </svg>
+      <p>考えない。だから、続く。</p>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

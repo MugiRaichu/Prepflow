@@ -111,23 +111,26 @@ export function Onboarding() {
   const next = () => (step === STEPS.length - 1 ? finish() : setStep(step + 1));
 
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-        {step > 0 ? (
-          <button
-            onClick={() => setStep(step - 1)}
-            className="-ml-1 flex size-8 items-center justify-center"
-            aria-label="戻る"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-        ) : (
-          <Logo withText={false} />
-        )}
-        <span className="flex-1 text-sm font-medium">{STEPS[step]}</span>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {step + 1} / {STEPS.length}
-        </span>
+    <div className="pf-shell flex flex-col bg-background text-foreground">
+      {/* セーフエリアは外側で避ける。h-12 に padding を足すと中身が潰れる */}
+      <header className="pf-safe-top shrink-0 border-b">
+        <div className="flex h-12 items-center gap-2 px-3">
+          {step > 0 ? (
+            <button
+              onClick={() => setStep(step - 1)}
+              className="-ml-1 flex size-8 items-center justify-center"
+              aria-label="戻る"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+          ) : (
+            <Logo withText={false} />
+          )}
+          <span className="flex-1 text-sm font-medium">{STEPS[step]}</span>
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {step + 1} / {STEPS.length}
+          </span>
+        </div>
       </header>
 
       <div className="flex shrink-0 gap-0.5 px-3 pt-2">
@@ -255,7 +258,7 @@ export function Onboarding() {
         )}
       </main>
 
-      <footer className="shrink-0 space-y-2 border-t px-4 py-3">
+      <footer className="pf-safe-bottom shrink-0 space-y-2 border-t px-4 py-3">
         <button
           onClick={next}
           disabled={saving}

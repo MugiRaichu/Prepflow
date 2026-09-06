@@ -11,7 +11,7 @@ import { CookTimeline } from './CookTimeline';
 import { PackStep } from './PackStep';
 import { consumeForPlan } from '@/db/repositories/inventory';
 import { useCookingMode } from '@/features/household/useCookingMode';
-import { alertTimerDone, useCookTimers } from './useTimers';
+import { useCookTimers } from './useTimers';
 import type { RunningTimer } from './useTimers';
 import { formatDateJa, todayIso } from '@/lib/labels';
 import type { ScheduledTask } from './logic/types';
@@ -102,23 +102,14 @@ export function CookScreen() {
     });
   }, [plan, recipes, equipment, daily, todayMeals]);
 
+  // 鳴らすのはフック側の仕事（1秒ごとの再描画に頼ると、裏に回ったとき鳴らない）
   const {
     timers,
-    ringing,
     start: startTimer,
     stop: stopTimer,
     has: hasTimer,
+    noticeBlocked,
   } = useCookTimers(plan?.id);
-
-  // 鳴った瞬間に1回だけ振動させる。画面を見ていない前提なので体で分かるようにする
-  const [alerted, setAlerted] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    for (const t of ringing) {
-      if (alerted.has(t.taskId)) continue;
-      alertTimerDone(t.label);
-      setAlerted((cur) => new Set([...cur, t.taskId]));
-    }
-  }, [ringing, alerted]);
 
   const allDone = Boolean(result) && result!.tasks.every((t) => done.has(t.id));
   // 作り終えたら画面を消してよい
@@ -178,6 +169,10 @@ export function CookScreen() {
     <div className="pb-6">
       <PageHeader title={daily ? '今日作る' : '作り置き'} />
 
+      {/* 手を止めずに並行で動いているものは、常に見える位置に置く。
+          スクロールしても隠れない（本人指摘: 同時並行の操作が見えない） */}
+      <RunningPanel timers={timers} onStop={(id) => void stopTimer(id)} blocked={noticeBlocked} />
+
       <div className="space-y-4 p-4">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="全体" value={fmtMin(result.makespanSec)} />
@@ -200,17 +195,14 @@ export function CookScreen() {
           </div>
         )}
 
-        <TimerBar timers={timers} onStop={(id) => void stopTimer(id)} />
-
         {next ? (
           <NextCard
             task={next}
             running={hasTimer(next.id)}
             onStart={(sec) => void startTimer(next.id, next.recipeTitle + '　' + next.label, sec)}
-            onDone={() => {
-              void stopTimer(next.id);
-              void markDone(next.id);
-            }}
+            // タイマーは止めない。止めると、次の作業に進んだ瞬間に
+            // 火にかけたままの鍋の残り時間が消える（本人指摘）
+            onDone={() => void markDone(next.id)}
           />
         ) : daily ? (
           // その場で食べるので詰める工程は出さない
@@ -333,15 +325,37 @@ function NextCard({
 }
 
 /**
- * 動いているタイマー。複数を同時に出す（並行調理では鍋とレンジが同時に動く）。
- * 鳴ったものは反転して先頭に出す。手が離せないときでも目の端で分かるように。
+ * いま並行して動いているもの。
+ *
+ * 段取りは「煮ている間に切る」を前提に組んでいるので、手元の作業と
+ * 放置中の鍋やレンジが常に同時に走る。手元だけを大きく出していると、
+ * 火にかけたものが視界から消えて焦がす。
+ * だから画面の上に貼り付けて、スクロールしても残す。
  */
-function TimerBar({ timers, onStop }: { timers: RunningTimer[]; onStop: (id: string) => void }) {
+function RunningPanel({
+  timers,
+  onStop,
+  blocked,
+}: {
+  timers: RunningTimer[];
+  onStop: (id: string) => void;
+  blocked: boolean;
+}) {
   if (timers.length === 0) return null;
   const sorted = [...timers].sort((a, b) => a.remainSec - b.remainSec);
+  const ringing = sorted.filter((t) => t.remainSec === 0).length;
 
   return (
-    <div className="space-y-2">
+    <div className="sticky top-12 z-10 space-y-2 border-b bg-background px-4 py-2">
+      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <TimerIcon className="size-3" />
+        {ringing > 0 ? (
+          <span className="font-medium text-foreground">できあがりました</span>
+        ) : (
+          <span>同時に進んでいます（{timers.length}）</span>
+        )}
+      </div>
+
       {sorted.map((t) => {
         const done = t.remainSec === 0;
         return (
@@ -350,10 +364,9 @@ function TimerBar({ timers, onStop }: { timers: RunningTimer[]; onStop: (id: str
             onClick={() => onStop(t.taskId)}
             className={cn(
               'flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 text-left',
-              done ? 'pf-pop border-foreground bg-foreground text-background' : 'border-border',
+              done ? 'pf-ring border-foreground bg-foreground text-background' : 'border-border',
             )}
           >
-            <TimerIcon className="size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate text-xs">{t.label}</span>
             <span className="shrink-0 text-lg font-semibold tabular-nums">
               {done ? 'できた' : fmtClock(t.remainSec)}
@@ -361,6 +374,13 @@ function TimerBar({ timers, onStop }: { timers: RunningTimer[]; onStop: (id: str
           </button>
         );
       })}
+
+      {/* 断りを入れるのは、実際に使えないときだけ。使えている人には何も出さない */}
+      {blocked && (
+        <p className="text-[10px] leading-relaxed text-muted-foreground">
+          通知が止められているので、鳴っても知らせられません。この画面を開いたままにしてください。
+        </p>
+      )}
     </div>
   );
 }
