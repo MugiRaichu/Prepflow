@@ -1,23 +1,44 @@
 /**
- * 外枠の下端を、実際に見えている下端に合わせ続ける。
+ * 外枠を、実際に見えている範囲に合わせ続ける。
  *
- * 下端を隠しうるものは3つある。
+ * 下端・上端を隠しうるものは3つある。
  *
  * 1. **ブラウザのバー。** iOS のバーは画面の下にある。`position: fixed` の
  *    `bottom: 0` はレイアウトの下端に付くが、レイアウトはバーの裏まで伸びて
  *    いるので、そのままではタブバーがバーの下に潜る
  * 2. **ソフトキーボード。** 画面に重なるだけでレイアウトの高さを変えない
- * 3. **ホームバー・ノッチ。** これは CSS の `env(safe-area-inset-*)` の担当で、
- *    JS からは見えない
+ * 3. **ノッチ・Dynamic Island・ホームバー。** `env(safe-area-inset-*)` の担当
  *
- * 1と2は「レイアウトの高さのうち、下から何 px が見えていないか」という
- * 同じ1つの数字になる。それを測って `--app-bottom` に入れる。
+ * ここで測るのは1と2、そして**3が二重になっていないか**。
  *
- * 3と足し算にならないよう、CSS 側では
- * `max(0px, calc(env(safe-area-inset-bottom) - var(--app-bottom)))` を使う。
- * ブラウザのバーが出ている間はホームバーもそのバーの裏なので、
- * 両方引くと二重になる。
+ * iPhone 17（ホーム画面から起動）で実測すると、
+ *   画面 874 / アプリの領域 812 / セーフエリア上 62
+ * つまり **アプリの領域はすでに Dynamic Island の下から始まっている**のに、
+ * `env(safe-area-inset-top)` は 62 を返す。そのまま余白にすると、
+ * 使えるはずの 62px を二重に空けることになる。
+ *
+ * 画面とアプリの領域の差（＝すでに避けられている量）を測って、
+ * セーフエリアから差し引く。
  */
+
+/** env(safe-area-inset-*) の実効値。CSS からは読めないので要素を置いて測る */
+function measureInset(side: 'top' | 'bottom'): number {
+  try {
+    const probe = document.createElement('div');
+    probe.style.cssText =
+      'position:fixed;left:0;width:1px;pointer-events:none;visibility:hidden;' +
+      (side === 'bottom'
+        ? 'bottom:0;height:env(safe-area-inset-bottom);'
+        : 'top:0;height:env(safe-area-inset-top);');
+    document.body.appendChild(probe);
+    const h = probe.getBoundingClientRect().height;
+    probe.remove();
+    return Math.round(h);
+  } catch {
+    return 0;
+  }
+}
+
 export function trackViewportInsets(): void {
   const vv = window.visualViewport;
   const root = document.documentElement;
@@ -27,8 +48,25 @@ export function trackViewportInsets(): void {
     // 拡大するたびに画面が作り直されるので、拡大中は触らない
     if (vv && vv.scale > 1.01) return;
 
+    // ブラウザのバーとキーボード。この2つは同じ1つの数字になる
     const hidden = vv ? window.innerHeight - vv.height - vv.offsetTop : 0;
-    root.style.setProperty('--app-bottom', Math.max(0, Math.round(hidden)) + 'px');
+    const bottom = Math.max(0, Math.round(hidden));
+    root.style.setProperty('--app-bottom', bottom + 'px');
+
+    /*
+     * 画面のうち、アプリの領域になっていない量。
+     * ホーム画面から起動した iPhone では、ここに Dynamic Island ぶんが入る。
+     * すでに避けられているので、セーフエリアの余白から差し引く。
+     *
+     * 縦向き固定なので screen.height と比べてよい。
+     * 想定外の値（横向き・分割表示）は無視する
+     */
+    const screenH = window.screen?.height ?? 0;
+    const offscreen = screenH > 0 ? screenH - window.innerHeight - bottom : 0;
+    const already = offscreen > 0 && offscreen < 200 ? Math.round(offscreen) : 0;
+
+    const padTop = Math.max(0, measureInset('top') - already);
+    root.style.setProperty('--app-pad-top', padTop + 'px');
   };
 
   set();

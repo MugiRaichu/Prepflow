@@ -37,16 +37,22 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      {/* 外枠の高さを実測に合わせているので、ここは常に画面の一番下に残る。
-          スクロールでもキーボードでも隠れない（D-099） */}
-      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t bg-background">
+      {/*
+        外枠の高さを実測に合わせているので、ここは常に画面の一番下に残る。
+        スクロールでもキーボードでも隠れない（D-099）。
+
+        背景を1段明るくしているのは、**バーがどこまであるのかを見せるため**。
+        真っ黒のままだと、ホームバーぶんの余白（iPhone で34px）が
+        ただの空白に見えて、バーが浮いているように読める。
+      */}
+      <nav className="pf-safe-bottom grid shrink-0 grid-cols-5 border-t bg-card">
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center justify-center gap-0.5 py-2 text-[10px]',
+                'flex flex-col items-center justify-center gap-0.5 pb-1.5 pt-2 text-[10px]',
                 isActive ? 'text-foreground' : 'text-muted-foreground',
               )
             }

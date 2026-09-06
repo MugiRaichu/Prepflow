@@ -188,8 +188,15 @@
    * 両方を足すと二重になる。ブラウザのバーが出ている間は
    * env(safe-area-inset-bottom) が 0 になるので、素直に足してよい。
    */
+  /*
+   * ノッチ・Dynamic Island ぶんの余白。
+   * **アプリの領域がすでにその下から始まっている場合は 0 にする。**
+   * iPhone 17 では画面874・領域812・セーフエリア上62 で、
+   * そのまま足すと使えるはずの62pxを二重に空けていた。
+   * 実測は src/lib/viewport.ts。
+   */
   .pf-safe-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--app-pad-top, env(safe-area-inset-top));
   }
   /*
    * ホームバーぶんの余白。**ブラウザのバーで持ち上げたぶんは差し引く。**
