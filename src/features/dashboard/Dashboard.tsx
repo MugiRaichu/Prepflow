@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Boxes, ChevronRight } from 'lucide-react';
+import { Boxes, ChevronRight } from 'lucide-react';
 import { db } from '@/db/db';
 import { todayIso, formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
 import { sumMacros } from '@/lib/nutrition';
@@ -20,7 +20,7 @@ import type {
 import { DishImage } from '@/features/recipes/DishImage';
 import { useUndoBar } from '@/components/shared/UndoBar';
 import { handleMissedMeal, undoMissedMeal } from '@/db/repositories/meals';
-import { listLeftovers } from '@/db/repositories/leftovers';
+import { listPrepped } from '@/db/repositories/leftovers';
 import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
@@ -75,16 +75,7 @@ export function Dashboard() {
     () => db.containerAssignments.where('intendedDate').equals(today).toArray(),
     [today],
   );
-  const expiring = useLiveQuery(
-    () =>
-      db.containerAssignments
-        .where('useByDate')
-        .belowOrEqual(today)
-        .filter((a) => a.deleted === 0 && !a.consumedAt)
-        .toArray(),
-    [today],
-  );
-
+  // 期限切れは PreppedStrip の中でラベルを反転させて示す。別枠にしない
   const plans = useLiveQuery(
     () => db.weekPlans.where('deleted').equals(0).reverse().sortBy('weekStart'),
     [],
@@ -122,19 +113,7 @@ export function Dashboard() {
 
       {undo.bar}
 
-      <LeftoverLink />
-
-      {expiring && expiring.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-foreground/40 p-3">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          <div className="text-xs leading-relaxed">
-            <div className="font-medium">期限が来ているものが {expiring.length} 件あります</div>
-            <div className="text-muted-foreground">
-              {expiring.map((a) => a.containerLabel + ' ' + a.recipeTitle).join(' / ')}
-            </div>
-          </div>
-        </div>
-      )}
+      <PreppedStrip />
 
       {planned.length > 0 ? (
         <div className="space-y-3">
@@ -197,32 +176,58 @@ export function Dashboard() {
 }
 
 /**
- * 残っている作り置きへの導線。
+ * 作り置きの残り。
  *
- * **「今日の食事」の欄には出さない。**あれは今日の献立を出す場所で、
- * 予定の無い在庫を並べると、今日食べるものが何なのか読み取れなくなる（本人指摘）。
- * ここでは数だけ伝えて、選ぶのは専用のページに任せる。
+ * **料理名を並べない。**今日の画面は「今日食べるもの」を見る場所で、
+ * そこに冷蔵庫の中身まで文章で並ぶと、今日の献立が読み取れなくなる。
+ * 期限の警告と残りの案内を別々の枠で出していたのも、同じものを2回言っていた。
+ *
+ * 代わりに**容器のラベルを並べる**。冷蔵庫の中でラベルを探すのと同じ形なので、
+ * 数と切迫具合が一目で分かる。名前が要るのは押した先（作り置き一覧）でいい。
+ * 期限が来ているものだけ反転して、そこだけ言葉を添える。
  */
-function LeftoverLink() {
-  const rows = useLiveQuery(listLeftovers, []);
+function PreppedStrip() {
+  const rows = useLiveQuery(listPrepped, []);
   if (!rows || rows.length === 0) return null;
+
+  const today = todayIso();
+  const over = rows.filter((x) => x.container.useByDate <= today);
   const soonest = rows[0];
 
   return (
-    <Link
-      to="/freezer"
-      className="flex items-center gap-3 rounded-lg border p-3 active:bg-accent"
-    >
-      <Boxes className="size-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm">作り置きが {rows.length} 食ぶん残っています</span>
-        {soonest && (
-          <span className="block text-[10px] text-muted-foreground">
-            いちばん近い期限は {formatDateJa(soonest.useByDate)}（{soonest.recipeTitle}）
+    <Link to="/freezer" className="block rounded-lg border p-3 active:bg-accent">
+      <div className="flex items-center gap-2">
+        <Boxes className="size-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 text-sm">作り置き {rows.length} 食ぶん</span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1">
+        {rows.slice(0, 14).map(({ container: c }) => (
+          <span
+            key={c.id}
+            className={cn(
+              'rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold',
+              c.useByDate <= today
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border text-muted-foreground',
+            )}
+          >
+            {c.containerLabel}
           </span>
+        ))}
+        {rows.length > 14 && (
+          <span className="px-1 text-[10px] text-muted-foreground">＋{rows.length - 14}</span>
         )}
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+      </div>
+
+      <div className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+        {over.length > 0
+          ? '色のついた ' + over.length + ' 個は期限が来ています。先に食べてください。'
+          : soonest
+            ? 'いちばん近い期限は ' + formatDateJa(soonest.container.useByDate) + '。'
+            : ''}
+      </div>
     </Link>
   );
 }
