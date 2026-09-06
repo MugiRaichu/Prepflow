@@ -133,63 +133,172 @@ interface SubPlan {
 }
 
 /**
- * 探索に載せる候補の上限。
+ * 掃引（sweep）の幅。
  *
- * 組合せの数は候補数 n に対して C(n, k) で増える。レシピを増やしたとき、
- * 主菜47品・k=5 で 150万通りになりメモリが尽きた。
- * ここで絞らないと、レシピを足すほどアプリが動かなくなる。
+ * 組合せの数は候補数 n に対して C(n, k) で増える。主菜47品・k=7 なら
+ * 629億通りで、総当たりは何をしても終わらない。
+ *
+ * かといって**候補を上位20件に切り詰めるのは間違いだった。**残り27品が
+ * 最初から検討されず、「その条件に合う献立はあるのに見つからない」が起きる。
+ *
+ * 代わりに、品数を1品ずつ増やしながら掃いていく。各段で
+ *   - **全候補を試す**（どのレシピも毎回、追加の対象になる）
+ *   - 栄養の升目で間引いて、次の段へ持ち越す数だけを抑える
+ * 持ち越す数は抑えるが、選ばれ得るレシピは1品も落とさない。
  */
-const SHORTLIST = 20;
+const SWEEP_PER_BUCKET = 4;
+const SWEEP_MAX_STATES = 6000;
 
-/** 文字列から決定論的な数を作る（FNV-1a）。並べ替えの種にする */
-function hash32(s: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return h;
-}
+/** 総当たりで済ませる品数の上限。ここまでは間引かずに厳密に見る */
+const EXACT_MAX_PICK = 3;
 
-/** 制約の端を守るために必ず残す件数（速い順・安い順・たんぱく質の多い順 それぞれ） */
-const KEEP_EXTREMES = 5;
+/** 総当たりの打ち切り。候補が極端に多いときの保険（通常は届かない） */
+const EXACT_MAX_NODES = 400_000;
 
 /**
- * 候補を SHORTLIST 件に絞る。
- *
- * 2つの要求がぶつかる。
- *
- *   - **毎週同じ顔ぶれにしない。**「安い順に20件」のような取り方をすると、
- *     レシピを増やしても選ばれる料理は変わらない
- *   - **端を落とさない。**「10分で作れる献立」は、いちばん速いレシピが
- *     候補に残っていないと成立しない。実際、順番だけで絞ったときに
- *     時短の条件が軒並み「解なし」になった
- *
- * そこで、速い順・安い順・たんぱく質の多い順の上位を先に確保してから、
- * 残りの枠を週ごとに変わる順で埋める。
- * 同じ週なら何度押しても同じ結果になり（決定論）、週が変われば顔ぶれが変わる。
+ * 組合せを1品ずつ積んでいくときの中間値。
+ * 総当たりと掃引で同じ足し算を使うために切り出してある。
  */
-function shortlist(usable: Recipe[], input: SolveInput): Recipe[] {
-  if (usable.length <= SHORTLIST) return usable;
+interface Acc {
+  macros: Macros;
+  costYen: number;
+  rawMin: number;
+  handsMin: number;
+  penalty: number;
+  totalServings: number;
+}
 
-  const picked = new Map<string, Recipe>();
-  const takeTop = (rank: (r: Recipe) => number) => {
-    for (const r of [...usable].sort((a, b) => rank(a) - rank(b)).slice(0, KEEP_EXTREMES)) {
-      picked.set(r.id, r);
-    }
-  };
-  takeTop((r) => handsOnMinutes(r));
-  takeTop((r) => r.estimatedCostYen ?? 0);
-  takeTop((r) => -r.nutritionPerServing.proteinG);
+const emptyAcc = (): Acc => ({
+  macros: ZERO,
+  costYen: 0,
+  rawMin: 0,
+  handsMin: 0,
+  penalty: 0,
+  totalServings: 0,
+});
 
-  const seed = input.seed ?? '';
-  const keyOf = (r: Recipe) =>
-    (input.recentRecipeIds.has(r.id) ? 0x100000000 : 0) + hash32(seed + r.id);
-  for (const r of [...usable].sort((a, b) => keyOf(a) - keyOf(b))) {
-    if (picked.size >= SHORTLIST) break;
-    picked.set(r.id, r);
+/** 掃引の途中経過。どこまで進んだか（last）と、積んだ中身 */
+interface State {
+  last: number;
+  items: PlanItem[];
+  acc: Acc;
+}
+
+/**
+ * 1品足す。**足した時点で通らないと分かるものは null を返す。**
+ *
+ * 原価もカロリーもたんぱく質も「足すだけ」の関係なので、途中で上限を
+ * 超えた組合せは、この先に何を足しても通らない。ここで落としても
+ * 見つかる献立は1つも減らない（漏れのない枝刈り）。
+ */
+function extend(acc: Acc, r: Recipe, batches: number, input: SolveInput): Acc | null {
+  const totalServings = batches * r.servings;
+  // 1食に同じ品を3人前は誰も食べない。数字の上で目標に合っても食べきれない
+  if (totalServings / input.meals > 3) return null;
+
+  const costYen = acc.costYen + (input.costOverride?.get(r.id) ?? r.estimatedCostYen ?? 0) * batches;
+  if (costYen > input.budgetYen) return null;
+
+  const macros = addMacros(acc.macros, scaleMacros(r.nutritionPerServing, totalServings));
+  if (macros.kcal / input.meals > input.target.kcal * (1 + input.maxKcalDeviation)) return null;
+  if (macros.proteinG / input.meals > input.target.proteinG * (1 + input.maxProteinDeviation)) {
+    return null;
   }
-  return [...picked.values()];
+
+  // 1食に同じ品を2人前も3人前も詰めるのは現実的でない。
+  // 数字の上では目標に合っても、実際には食べきれず飽きる
+  const perMeal = totalServings / input.meals;
+  let penalty = acc.penalty + dislikePenalty(r, input.dislikedIngredientIds);
+  if (perMeal > 1.5) penalty += (perMeal - 1.5) * 0.5;
+  if (input.recentRecipeIds.has(r.id)) penalty += 0.4;
+
+  return {
+    macros,
+    costYen,
+    rawMin: acc.rawMin + totalMinutes(r) * batches,
+    handsMin: acc.handsMin + handsOnMinutes(r) * batches,
+    penalty,
+    totalServings: acc.totalServings + totalServings,
+  };
+}
+
+/**
+ * 升の中から残すものを選ぶ。
+ *
+ * 「良い順に n 件」では駄目だった。**制約が効くのは端**で、
+ * いちばん速い案・いちばん安い案が升の中で2位以下だと、そのまま消える。
+ * 実際、これを入れる前は「1日10分で作る」が解なしになった
+ * （11分の案は残り、10分の案が総合順位で負けて落ちていた）。
+ *
+ * 先に各軸の最小を確保してから、残り枠を総合順に埋める。
+ */
+function keepFrontier<T extends object>(
+  list: T[],
+  limit: number,
+  rank: (a: T, b: T) => number,
+  axes: ((x: T) => number)[],
+): T[] {
+  if (list.length <= limit) return list;
+  const picked = new Set<T>();
+  for (const axis of axes) {
+    let best = list[0]!;
+    for (const x of list) if (axis(x) < axis(best)) best = x;
+    picked.add(best);
+  }
+  for (const x of [...list].sort(rank)) {
+    if (picked.size >= limit) break;
+    picked.add(x);
+  }
+  return [...picked];
+}
+
+/**
+ * 次の段へ持ち越す途中経過を間引く。
+ *
+ * 栄養の升目（カロリーとたんぱく質）で分けて、升ごとに上位だけ残す。
+ * 升の中で選ぶ基準は「嫌いなものが少ない・安い・速い」。
+ *
+ * 「今週の希望」があるときは、希望のタグを何人前積んでいるかも升の鍵に足す。
+ * これを入れないと、栄養が同じという理由でパスタ入りの途中経過が全部消え、
+ * 最後に「パスタ3食」を満たせなくなる。
+ */
+function thinStates(states: State[], input: SolveInput): State[] {
+  const buckets = new Map<string, State[]>();
+  for (const s of states) {
+    const per = s.acc.macros;
+    let key =
+      Math.round(per.kcal / (BUCKET_KCAL * input.meals)) +
+      ':' +
+      Math.round(per.proteinG / (BUCKET_PROTEIN * input.meals));
+    for (const req of input.requiredTagMeals) {
+      const tagged = s.items
+        .filter((it) => it.recipe.tags.includes(req.tag))
+        .reduce((n, it) => n + it.totalServings, 0);
+      key += ':' + Math.round(tagged);
+    }
+    const list = buckets.get(key);
+    if (list) list.push(s);
+    else buckets.set(key, [s]);
+  }
+
+  const rank = (a: State, b: State) =>
+    a.acc.penalty - b.acc.penalty || a.acc.costYen - b.acc.costYen || a.acc.handsMin - b.acc.handsMin;
+
+  const out: State[] = [];
+  for (const list of buckets.values()) {
+    out.push(
+      ...keepFrontier(list, SWEEP_PER_BUCKET, rank, [
+        (s) => s.acc.handsMin,
+        (s) => s.acc.costYen,
+      ]),
+    );
+  }
+  // 升の数そのものが増えすぎたときの保険。良い順に残す
+  if (out.length > SWEEP_MAX_STATES) {
+    out.sort(rank);
+    out.length = SWEEP_MAX_STATES;
+  }
+  return out;
 }
 
 /** 主菜または副菜の候補を列挙する */
@@ -221,113 +330,139 @@ function buildSubPlans(
     return true;
   });
 
-  const usable = shortlist(filtered, input);
+  const usable = filtered;
 
-  const out: SubPlan[] = [];
   // 品数は飽きの許容範囲から決める。主菜も副菜も同じ扱いにする。
   // 主菜だけ日替わりにしても、副菜が14食とも同じなら皿の見た目は変わらない
-  const maxPick = pickRange(input.meals, input.maxSameDishMeals);
-  for (let k = MIN_PICK; k <= Math.min(maxPick, usable.length); k++) {
-    for (const combo of combinations(usable, k)) {
-      for (const batches of batchPatterns(k, maxBatchesFor(k))) {
-        let macros: Macros = ZERO;
-        let costYen = 0;
-        let rawMin = 0;
-        let handsMin = 0;
-        let penalty = 0;
-        let tooMuch = false;
-        const items: PlanItem[] = [];
+  const maxPick = Math.min(pickRange(input.meals, input.maxSameDishMeals), usable.length);
+  const out: SubPlan[] = [];
 
+  /**
+   * 選び終えた組合せを1つの案にする。
+   * 通らない条件はここで落とす（どれも組合せ全体が揃わないと判定できない）。
+   */
+  const finish = (items: PlanItem[], acc: Acc): SubPlan | null => {
+    let penalty = acc.penalty;
+
+    // 同じ料理が何食に載るかを見て、飽きの許容範囲を超える案を落とす。
+    // 総人前に対する比率から食数を見積もる（実際の割り振りは distribute.ts）
+    if (acc.totalServings > 0) {
+      const worstMeals = Math.max(
+        ...items.map((it) => (it.totalServings * input.meals) / acc.totalServings),
+      );
+      if (worstMeals > input.maxSameDishMeals + 1e-6) {
+        rejections['同じ料理が続きすぎる'] = (rejections['同じ料理が続きすぎる'] ?? 0) + 1;
+        return null;
+      }
+    }
+
+    // 「パスタを3食」のような希望を満たすか。人前の比率で判定する。
+    //
+    // 下限を満たすだけだと、希望を入れる前と同じ献立がそのまま返ることがある
+    // （もともと鶏肉が入っていれば「鶏肉2日」は自動的に満たされる）。
+    // 利用者からは「選んでも反映されない」ようにしか見えないので、
+    // **満たした度合いをスコアでも報いる**。多く入っている案が勝つ
+    if (applyRequests && input.requiredTagMeals.length > 0) {
+      for (const req of input.requiredTagMeals) {
+        const tagged = items
+          .filter((it) => it.recipe.tags.includes(req.tag))
+          .reduce((n, it) => n + it.totalServings, 0);
+        // 週の食数に対する希望の割合ぶんの人前が要る
+        const need = (acc.totalServings * req.meals) / input.meals;
+        if (tagged < need - 1e-6) {
+          rejections['今週の希望に届かない'] = (rejections['今週の希望に届かない'] ?? 0) + 1;
+          return null;
+        }
+        // 希望のぶんを超えて入っているほど軽くする。
+        // 強くしすぎると栄養の乖離に勝ってしまい、希望は叶うが献立が歪む
+        const surplus = need > 0 ? Math.min((tagged - need) / need, 1) : 0;
+        penalty -= surplus * 0.3;
+      }
+    }
+
+    return {
+      items,
+      macrosPerMeal: scaleMacros(acc.macros, 1 / input.meals),
+      costYen: acc.costYen,
+      rawMin: acc.rawMin,
+      handsMin: acc.handsMin,
+      penalty,
+    };
+  };
+
+  /*
+   * 品数の少ないほうは総当たりで見る。
+   * C(n,3) までなら数が知れているので、間引かずに厳密に扱う。
+   * 仕込みを2回に増やせるのもここだけ（maxBatchesFor）。
+   */
+  let nodes = 0;
+  for (let k = MIN_PICK; k <= Math.min(maxPick, EXACT_MAX_PICK); k++) {
+    for (const combo of combinations(usable, k)) {
+      if (nodes > EXACT_MAX_NODES) break;
+      for (const batches of batchPatterns(k, maxBatchesFor(k))) {
+        nodes++;
+        const items: PlanItem[] = [];
+        let acc = emptyAcc();
+        let ok = true;
         for (let i = 0; i < combo.length; i++) {
-          const r = combo[i]!;
-          const b = batches[i]!;
-          const totalServings = b * r.servings;
-          items.push({ recipe: r, batches: b, totalServings });
-          // 1食に同じ品を2人前も3人前も詰めるのは現実的でない。
-          // 数字の上では目標に合っても、実際には食べきれず飽きる
-          const perMeal = totalServings / input.meals;
-          if (perMeal > 1.5) penalty += (perMeal - 1.5) * 0.5;
-          // 1食に同じ品を3人前は誰も食べない。スコアではなく打ち切りにする
-          if (perMeal > 3) {
-            tooMuch = true;
+          const next = extend(acc, combo[i]!, batches[i]!, input);
+          if (!next) {
+            ok = false;
             break;
           }
-          macros = addMacros(macros, scaleMacros(r.nutritionPerServing, totalServings));
-          // 家にある食材を引いた原価が渡されていればそれを使う（今週の余りを使う案が勝つ）
-          costYen += (input.costOverride?.get(r.id) ?? r.estimatedCostYen ?? 0) * b;
-          rawMin += totalMinutes(r) * b;
-          handsMin += handsOnMinutes(r) * b;
-          penalty += dislikePenalty(r, input.dislikedIngredientIds);
-          if (input.recentRecipeIds.has(r.id)) penalty += 0.4;
+          items.push({ recipe: combo[i]!, batches: batches[i]!, totalServings: batches[i]! * combo[i]!.servings });
+          acc = next;
         }
-
-        if (tooMuch) continue;
-
-        // 同じ料理が何食に載るかを見て、飽きの許容範囲を超える案を落とす。
-        // 総人前に対する比率から食数を見積もる（実際の割り振りは distribute.ts）
-        {
-          const total = items.reduce((n, it) => n + it.totalServings, 0);
-          if (total > 0) {
-            const worstMeals = Math.max(
-              ...items.map((it) => (it.totalServings * input.meals) / total),
-            );
-            if (worstMeals > input.maxSameDishMeals + 1e-6) {
-              rejections['同じ料理が続きすぎる'] = (rejections['同じ料理が続きすぎる'] ?? 0) + 1;
-              continue;
-            }
-          }
-        }
-
-        // 「パスタを3食」のような希望を満たすか。人前の比率で判定する。
-        //
-        // 下限を満たすだけだと、希望を入れる前と同じ献立がそのまま返ることがある
-        // （もともと鶏肉が入っていれば「鶏肉2日」は自動的に満たされる）。
-        // 利用者からは「選んでも反映されない」ようにしか見えないので、
-        // **満たした度合いをスコアでも報いる**。多く入っている案が勝つ
-        if (applyRequests && input.requiredTagMeals.length > 0) {
-          const totalServings = items.reduce((n, it) => n + it.totalServings, 0);
-          let ok = true;
-          for (const req of input.requiredTagMeals) {
-            const tagged = items
-              .filter((it) => it.recipe.tags.includes(req.tag))
-              .reduce((n, it) => n + it.totalServings, 0);
-            // 週の食数に対する希望の割合ぶんの人前が要る
-            const need = (totalServings * req.meals) / input.meals;
-            if (tagged < need - 1e-6) {
-              ok = false;
-              break;
-            }
-            // 希望のぶんを超えて入っているほど軽くする。
-            // 強くしすぎると栄養の乖離に勝ってしまい、希望は叶うが献立が歪む
-            const surplus = need > 0 ? Math.min((tagged - need) / need, 1) : 0;
-            penalty -= surplus * 0.3;
-          }
-          if (!ok) {
-            rejections['今週の希望に届かない'] = (rejections['今週の希望に届かない'] ?? 0) + 1;
-            continue;
-          }
-        }
-
-        // ここで刈っておかないと、レシピを増やした瞬間に組合せが爆発する。
-        // 主菜と副菜は「足す」だけの関係なので、片方だけで上限を超えた案は
-        // 何を足しても通らない。落としても解は減らない（漏れのない枝刈り）
-        const macrosPerMeal = scaleMacros(macros, 1 / input.meals);
-        if (costYen > input.budgetYen) continue;
-        if (macrosPerMeal.kcal > input.target.kcal * (1 + input.maxKcalDeviation)) continue;
-        if (macrosPerMeal.proteinG > input.target.proteinG * (1 + input.maxProteinDeviation))
-          continue;
-
-        out.push({
-          items,
-          macrosPerMeal,
-          costYen,
-          rawMin,
-          handsMin,
-          penalty,
-        });
+        if (!ok) continue;
+        const plan = finish(items, acc);
+        if (plan) out.push(plan);
       }
     }
   }
+
+  /*
+   * 品数の多いほうは掃引で見る。
+   *
+   * 1品ずつ増やしながら、**毎回すべての候補を追加の対象にする**。
+   * 段ごとに栄養の升目で間引いて次へ持ち越すので、状態数は一定に収まる。
+   * 落とすのは「栄養がほとんど同じ、中身違いの途中経過」だけで、
+   * レシピそのものは1品も候補から外れない。
+   */
+  if (maxPick > EXACT_MAX_PICK) {
+    // 掃引の段では仕込みは1回（maxBatchesFor が 4品以上で 1 を返すのと同じ扱い）
+    let states: State[] = usable.map((r, i) => ({
+      last: i,
+      items: [{ recipe: r, batches: 1, totalServings: r.servings }],
+      acc: extend(emptyAcc(), r, 1, input),
+    })).filter((s): s is State => s.acc !== null) as State[];
+
+    for (let depth = 2; depth <= maxPick; depth++) {
+      const next: State[] = [];
+      for (const s of states) {
+        for (let i = s.last + 1; i < usable.length; i++) {
+          const r = usable[i]!;
+          const acc = extend(s.acc, r, 1, input);
+          // 原価もカロリーも足すだけなので、ここで超えた案は
+          // 何を足しても通らない。落としても解は減らない（漏れのない枝刈り）
+          if (!acc) continue;
+          next.push({
+            last: i,
+            items: [...s.items, { recipe: r, batches: 1, totalServings: r.servings }],
+            acc,
+          });
+        }
+      }
+      states = thinStates(next, input);
+      if (depth > EXACT_MAX_PICK) {
+        for (const s of states) {
+          const plan = finish(s.items, s.acc);
+          if (plan) out.push(plan);
+        }
+      }
+      if (states.length === 0) break;
+    }
+  }
+
   return out;
 }
 
@@ -363,13 +498,15 @@ function thinOut(plans: SubPlan[]): SubPlan[] {
 
   const out: SubPlan[] = [];
   for (const list of buckets.values()) {
-    if (list.length > PER_BUCKET) {
-      list.sort(
+    out.push(
+      ...keepFrontier(
+        list,
+        PER_BUCKET,
         (a, b) => a.penalty - b.penalty || a.costYen - b.costYen || a.handsMin - b.handsMin,
-      );
-      list.length = PER_BUCKET;
-    }
-    out.push(...list);
+        // 時間と予算はこのあと課される。端を残さないと「解なし」になる
+        [(p) => p.handsMin, (p) => p.rawMin, (p) => p.costYen],
+      ),
+    );
   }
   return out;
 }

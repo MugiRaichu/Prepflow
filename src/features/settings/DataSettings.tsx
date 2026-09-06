@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, Upload, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ViewportInfo } from './ViewportInfo';
 import {
   autoBackupSupported,
   backupInfo,
@@ -46,6 +47,8 @@ export function DataSettings() {
       <PageHeader title="データの保存" backTo="/settings" />
 
       <div className="space-y-6 p-4">
+        <ViewportInfo />
+
         <div className="space-y-2 rounded-lg border p-4">
           <div className="text-sm font-medium">いまの状態</div>
 

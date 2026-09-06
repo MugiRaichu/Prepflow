@@ -51,11 +51,6 @@ export interface SolveInput {
   dislikedIngredientIds: Map<string, number>;
   /** 直近で作ったレシピID。連続を避ける */
   recentRecipeIds: Set<string>;
-  /**
-   * 探索に載せる候補の並べ替えの種。週の開始日を渡す。
-   * 同じ週なら同じ結果（決定論）、週が変われば顔ぶれが変わる。
-   */
-  seed?: string;
   /** 「このタグの主菜を週N食」。今週の希望 */
   requiredTagMeals: { tag: string; meals: number }[];
   /** 今週は避けたいタグ */

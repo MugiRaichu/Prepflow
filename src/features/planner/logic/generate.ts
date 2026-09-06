@@ -315,8 +315,6 @@ export async function proposeWeek(
         bannedAllergens: bannedAllergens,
         dislikedIngredientIds: disliked,
         recentRecipeIds: recent,
-        // 週が変われば探索に載る候補の顔ぶれが変わる。同じ週なら何度でも同じ結果
-        seed: weekStart,
         requiredTagMeals: [],
         avoidTags: [],
         maxKcalDeviation: 0.25,
