@@ -24,7 +24,7 @@ window.addEventListener('online', flush);
  * かといって毎回きっちり待たせると、2回目以降は邪魔なだけ。
  * 「演出が終わるまで」と「読み込みが終わるまで」の遅いほうに合わせる。
  */
-const SPLASH_MIN_MS = 980;
+const SPLASH_MIN_MS = 2000;
 
 function dismissSplash(): void {
   const el = document.getElementById('pf-splash');

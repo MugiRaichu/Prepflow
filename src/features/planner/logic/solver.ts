@@ -132,6 +132,66 @@ interface SubPlan {
   penalty: number;
 }
 
+/**
+ * 探索に載せる候補の上限。
+ *
+ * 組合せの数は候補数 n に対して C(n, k) で増える。レシピを増やしたとき、
+ * 主菜47品・k=5 で 150万通りになりメモリが尽きた。
+ * ここで絞らないと、レシピを足すほどアプリが動かなくなる。
+ */
+const SHORTLIST = 20;
+
+/** 文字列から決定論的な数を作る（FNV-1a）。並べ替えの種にする */
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+/** 制約の端を守るために必ず残す件数（速い順・安い順・たんぱく質の多い順 それぞれ） */
+const KEEP_EXTREMES = 5;
+
+/**
+ * 候補を SHORTLIST 件に絞る。
+ *
+ * 2つの要求がぶつかる。
+ *
+ *   - **毎週同じ顔ぶれにしない。**「安い順に20件」のような取り方をすると、
+ *     レシピを増やしても選ばれる料理は変わらない
+ *   - **端を落とさない。**「10分で作れる献立」は、いちばん速いレシピが
+ *     候補に残っていないと成立しない。実際、順番だけで絞ったときに
+ *     時短の条件が軒並み「解なし」になった
+ *
+ * そこで、速い順・安い順・たんぱく質の多い順の上位を先に確保してから、
+ * 残りの枠を週ごとに変わる順で埋める。
+ * 同じ週なら何度押しても同じ結果になり（決定論）、週が変われば顔ぶれが変わる。
+ */
+function shortlist(usable: Recipe[], input: SolveInput): Recipe[] {
+  if (usable.length <= SHORTLIST) return usable;
+
+  const picked = new Map<string, Recipe>();
+  const takeTop = (rank: (r: Recipe) => number) => {
+    for (const r of [...usable].sort((a, b) => rank(a) - rank(b)).slice(0, KEEP_EXTREMES)) {
+      picked.set(r.id, r);
+    }
+  };
+  takeTop((r) => handsOnMinutes(r));
+  takeTop((r) => r.estimatedCostYen ?? 0);
+  takeTop((r) => -r.nutritionPerServing.proteinG);
+
+  const seed = input.seed ?? '';
+  const keyOf = (r: Recipe) =>
+    (input.recentRecipeIds.has(r.id) ? 0x100000000 : 0) + hash32(seed + r.id);
+  for (const r of [...usable].sort((a, b) => keyOf(a) - keyOf(b))) {
+    if (picked.size >= SHORTLIST) break;
+    picked.set(r.id, r);
+  }
+  return [...picked.values()];
+}
+
 /** 主菜または副菜の候補を列挙する */
 function buildSubPlans(
   pool: Recipe[],
@@ -140,7 +200,7 @@ function buildSubPlans(
   /** 主菜のときだけ「今週の希望」を課す */
   applyRequests: boolean,
 ): SubPlan[] {
-  const usable = pool.filter((r) => {
+  const filtered = pool.filter((r) => {
     if (hasBannedAllergen(r, input.bannedAllergens)) {
       rejections['アレルゲンを含む'] = (rejections['アレルゲンを含む'] ?? 0) + 1;
       return false;
@@ -160,6 +220,8 @@ function buildSubPlans(
     }
     return true;
   });
+
+  const usable = shortlist(filtered, input);
 
   const out: SubPlan[] = [];
   // 品数は飽きの許容範囲から決める。主菜も副菜も同じ扱いにする。

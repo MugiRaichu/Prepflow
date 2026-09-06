@@ -901,6 +901,8 @@ const SIDES3: SeedRecipe[] = [
   },
 ];
 
+import { BUILTIN_RECIPES_MORE } from './recipes-more';
+
 export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...MAINS,
   ...MAINS2,
@@ -912,4 +914,6 @@ export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...FAST_SIDES,
   ...SIDES3,
   ...STAPLES,
+  // 書き起こしの追加分。主菜と副菜が少ないと、14食を2〜3品で埋めることになる
+  ...BUILTIN_RECIPES_MORE,
 ];
