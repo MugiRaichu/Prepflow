@@ -161,6 +161,9 @@ export function Onboarding() {
 
   const daily = sessions >= 5;
   const meals = coverDays * coverSlots.length;
+  const hasRiceCooker = (EQUIPMENT_PRESETS.find((p) => p.id === equipmentPresetId)?.items ?? []).some(
+    (i) => i.kind === 'rice_cooker',
+  );
 
   const finish = async () => {
     setSaving(true);
@@ -281,7 +284,15 @@ export function Onboarding() {
 
       <ChapterBar current={cur.chapter} />
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
+      {/*
+        中身を縦の中心に置く。
+
+        設問が3択だけの回では、内容が上端に貼りついて下に600px近い余白が残り、
+        画面が壊れて見えた。**選ぶものと押すボタンも遠かった**（親指は下にある）。
+        `justify-center` は中身が画面より短いときだけ効き、長い回では
+        いつもどおり上から並んでスクロールする。
+      */}
+      <main className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 py-6">
         {/* key を付けて、画面が変わるたびに入り直させる。進んだ手応えが出る */}
         <div key={cur.key} className="pf-rise">
           <Section title={cur.title} note={cur.note}>
@@ -467,14 +478,22 @@ export function Onboarding() {
                     columns={3}
                   />
                 </Labeled>
-                <Labeled label="ごはんが炊き上がるまで">
-                  <Chips
-                    options={[20, 30, 40, 50, 60, 70].map((m) => ({ value: m, label: m + '分' }))}
-                    value={riceCookMinutes}
-                    onChange={setRiceCookMinutes}
-                    columns={3}
-                  />
-                </Labeled>
+                {/*
+                  炊飯器が無い構成を選んだ人には聞かない。
+                  「レンジ + コンロ1口」を選んだ直後に炊飯時間を聞かれると、
+                  さっき答えたことが効いていないように見える。
+                  （鍋で炊く人はあとから設定 › 調理器具で入れられる）
+                */}
+                {hasRiceCooker && (
+                  <Labeled label="ごはんが炊き上がるまで">
+                    <Chips
+                      options={[20, 30, 40, 50, 60, 70].map((m) => ({ value: m, label: m + '分' }))}
+                      value={riceCookMinutes}
+                      onChange={setRiceCookMinutes}
+                      columns={3}
+                    />
+                  </Labeled>
+                )}
               </>
             )}
 
@@ -496,8 +515,14 @@ export function Onboarding() {
                     <WeekdayPicker value={prepDay} onChange={setPrepDay} />
                   </Labeled>
                 )}
+                {/*
+                  「1食あたり1000円で組みます」と書いていた。**上限を予定額に読み違える。**
+                  実際に出てくる献立は1食 500〜600円で、予算はその上限でしかない。
+                  初回に「1食1000円のアプリ」という印象を作っていた。
+                */}
                 <Note>
-                  1食あたり {Math.round(weeklyBudgetYen / Math.max(meals, 1))} 円で組みます。
+                  1食あたり {Math.round(weeklyBudgetYen / Math.max(meals, 1))}{' '}
+                  円までで組みます。使い切る必要はありません。
                 </Note>
               </>
             )}

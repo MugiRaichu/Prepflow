@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  ChevronRight, User, Flame, Box, ShoppingCart, Bell, Clock, Home, Database, BookOpen, Package, Wrench, Boxes, Activity,
+  ChevronRight, User, Flame, Box, ShoppingCart, Bell, Clock, Home, Database, BookOpen, Package, Wrench, Boxes, Activity, Search, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/db/db';
 import { listAskableStock } from '@/db/repositories/inventory';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { WEEKDAY_LABELS, yen } from '@/lib/labels';
+import { searchSettings } from './catalog';
 
 type Row = { to: string; icon: LucideIcon; label: string; value: string };
 
@@ -19,6 +21,7 @@ type Row = { to: string; icon: LucideIcon; label: string; value: string };
  * 12行を平らに並べると、探すのに全部を読むことになる。
  */
 export function SettingsHome() {
+  const [query, setQuery] = useState('');
   const profiles = useLiveQuery(() => db.profiles.where('deleted').equals(0).toArray(), []);
   const equipment = useLiveQuery(() => db.equipment.where('deleted').equals(0).toArray(), []);
   const containers = useLiveQuery(() => db.containers.where('deleted').equals(0).toArray(), []);
@@ -148,9 +151,67 @@ export function SettingsHome() {
     },
   ];
 
+  const hits = searchSettings(query);
+
   return (
     <div className="pb-6">
       <PageHeader title="設定" />
+
+      {/*
+        名前で引く。**画面名を覚えていなくても辿り着けるようにする。**
+
+        入口は13行だが、触れる項目は30以上あり、画面名の下や
+        `細かい設定` の中に入っている。「賞味期限はどこ？」と思ったとき、
+        「作り方」を開くという発想にはならない（本人指摘）。
+      */}
+      <div className="px-4 pt-3">
+        <div className="flex items-center gap-2 rounded-md border px-3">
+          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="設定を名前で探す（例: 賞味期限）"
+            className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="shrink-0 p-1 text-muted-foreground">
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {query.trim() ? (
+        <div className="p-4 pt-3">
+          {hits.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              見つかりませんでした。下の一覧から探してください。
+            </p>
+          ) : (
+            <div className="divide-y rounded-lg border">
+              {hits.map((h) => (
+                <Link
+                  key={h.label}
+                  to={h.to}
+                  onClick={() => setQuery('')}
+                  className="pf-press flex min-h-14 items-center gap-3 px-3"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{h.label}</span>
+                    {/* 行き先を必ず出す。次からは検索せずに辿り着けるようにする */}
+                    <span className="block text-[10px] text-muted-foreground">
+                      設定 › {h.where}
+                      {h.folded && ' ›「細かい設定」を開く'}
+                    </span>
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {groups.map((g) => (
         <section key={g.title}>
           <h2 className="px-4 pb-1 pt-5 text-[11px] font-medium text-muted-foreground">{g.title}</h2>

@@ -13,7 +13,7 @@ import type { InventoryItem } from './schema';
 import { DEFAULT_SECTION_ORDER, type AppSettings, type Ingredient } from './schema';
 import { BUILTIN_INGREDIENTS } from './data/ingredients';
 import { BUILTIN_RECIPES } from './data/recipes';
-import { buildRecipe } from './data/build';
+import { buildRecipe, HIGH_PROTEIN_G, HIGH_PROTEIN_TAG } from './data/build';
 import { recalcProfileTargets } from '@/lib/nutrition';
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -145,6 +145,34 @@ async function topUpBuiltinRecipes(): Promise<void> {
 }
 
 /**
+ * 「高たんぱく」の印を、保存してある栄養値から付け直す。
+ *
+ * このタグは手書きだった。主菜111品のうち28品が、印が付いているのに
+ * 1人前 25g を下回っていた（最も低いもので 10g）。逆に印の無い品が
+ * 25g を超えている例もあった。**「高たんぱくで」と指定した人に、
+ * たんぱく質の少ない献立を出していた。**
+ *
+ * 付け方は build.ts で直したが、既に入っているレシピには届かない
+ * （レシピの追加は title の突き合わせで、内容までは見ていない）。
+ * 起動時に印だけを付け直す。栄養値そのものには触らない。
+ *
+ * 利用者が自分で作ったレシピには触れない。自分で付けた印を消さない。
+ */
+async function refreshProteinTag(): Promise<void> {
+  const rows = await db.recipes.where('deleted').equals(0).toArray();
+  for (const r of rows) {
+    if (r.source !== 'builtin') continue;
+    const should = r.role !== 'side' && r.nutritionPerServing.proteinG >= HIGH_PROTEIN_G;
+    const has = r.tags.includes(HIGH_PROTEIN_TAG);
+    if (should === has) continue;
+    const tags = should
+      ? [...r.tags, HIGH_PROTEIN_TAG]
+      : r.tags.filter((t) => t !== HIGH_PROTEIN_TAG);
+    await db.recipes.put({ ...r, tags, updatedAt: nowIso() });
+  }
+}
+
+/**
  * 目標PFCを今の式で計算し直す。
  *
  * baseTargets はプロフィールを作った時点の値で固定されている。
@@ -205,6 +233,7 @@ export async function ensureSeeded(): Promise<void> {
       // 食材を先に。レシピの原価と栄養は食材から計算するため
       await topUpBuiltinIngredients();
       await topUpBuiltinRecipes();
+      await refreshProteinTag();
       await refreshTargets();
       await migrateCookCadence();
       return;

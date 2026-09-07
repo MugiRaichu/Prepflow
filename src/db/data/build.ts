@@ -27,6 +27,10 @@ export interface BuildResult {
 /** 1食あたりのグラム数として現実的な範囲。外れたら入力ミスを疑う */
 const PLAUSIBLE_GRAMS = { min: 40, max: 550 };
 
+/** 「高たんぱく」と言える1人前のたんぱく質（g）。主菜の中央値は 22g、上位1/4が 27g */
+export const HIGH_PROTEIN_G = 25;
+export const HIGH_PROTEIN_TAG = '高たんぱく';
+
 export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): BuildResult {
   const missing: string[] = [];
   const ingredients: RecipeIngredient[] = [];
@@ -61,6 +65,24 @@ export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): B
   const total = sumMacros(macroParts);
   const per = (v: number) => Math.round((v / seed.servings) * 10) / 10;
 
+  /*
+   * `高たんぱく` は**手で書かせない。計算した値から付け直す。**
+   *
+   * 手書きのタグを信じていたとき、この印が付いた主菜111品のうち28品が
+   * 25g を下回っていた。最も低いものは 10g（トマトと卵の中華炒め）で、
+   * 印の無い品より低い。逆に印の無い品が 25g を超えている例も5品あった。
+   * つまり「高たんぱくで」と指定した人に、たんぱく質の少ない献立を出していた。
+   *
+   * 栄養値は食材マスタから計算しているのに、その要約だけ手書きだったのが原因。
+   * 分量を1g直しただけでもタグが実態とずれる。ここで付け直せばずれない。
+   *
+   * しきい値は1人前 25g。主菜の中央値が 22g、上位1/4が 27g なので、
+   * 「並より明らかに多い」がこのあたりになる。
+   */
+  const proteinPerServing = total.proteinG / Math.max(seed.servings, 1);
+  const tags = seed.tags.filter((t) => t !== HIGH_PROTEIN_TAG);
+  if (seed.role !== 'side' && proteinPerServing >= HIGH_PROTEIN_G) tags.push(HIGH_PROTEIN_TAG);
+
   const steps: RecipeStep[] = seed.steps.map((s, i) => ({
     index: i,
     text: s.text,
@@ -88,7 +110,7 @@ export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): B
     },
     estimatedCostYen: Math.round(costYen),
     storage: seed.storage,
-    tags: seed.tags,
+    tags,
     allergens: [...allergens],
     source: 'builtin',
     favorite: 0,

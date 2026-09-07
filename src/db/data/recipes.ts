@@ -905,6 +905,7 @@ import { BUILTIN_RECIPES_MORE } from './recipes-more';
 import { BUILTIN_RECIPES_WORLD } from './recipes-world';
 import { BUILTIN_RECIPES_SNACK } from './recipes-snack';
 import { BUILTIN_RECIPES_BEEF } from './recipes-beef';
+import { BUILTIN_RECIPES_NOODLE } from './recipes-noodle';
 
 export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...MAINS,
@@ -925,4 +926,6 @@ export const BUILTIN_RECIPES: SeedRecipe[] = [
   ...BUILTIN_RECIPES_SNACK,
   // 牛肉。鶏・豚に比べて数が足りず、「牛肉を2食」が組めなかった
   ...BUILTIN_RECIPES_BEEF,
+  // 麺。8品のうち高たんぱくが2品しかなく、麺の週はたんぱく質が目標を割っていた
+  ...BUILTIN_RECIPES_NOODLE,
 ];
