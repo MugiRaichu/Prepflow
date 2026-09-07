@@ -98,6 +98,8 @@ export function distributeAcrossMeals(
 
   /** 主食を兼ねる品（パスタ・麺・カレー・丼）。1食に2つ来ると成立しない */
   const isStaple = dishes.map((d) => d.recipe.tags.includes('主食込み'));
+  /** その品の主材料。1食に同じ材料の品が2つ来るのを避けるのに使う */
+  const leadIng = dishes.map((d) => leadIngredientOf(d.recipe));
 
   /*
    * その食にこの品を置いてよいか。
@@ -108,11 +110,16 @@ export function distributeAcrossMeals(
    *    「パスタ + 焼きそば」「カレー + 丼」は誰も食べない。
    *    ごはんを付けない規則（buildDailyMenus）だけでは、主菜どうしの
    *    重なりは防げなかった
+   * 3. **主材料が同じ品を同じ食に入れない。**
+   *    実際に「にんじんのはちみつ煮 + にんじんのきんぴら」が同じ日に出た。
+   *    別のレシピなので 1 は通り抜けるが、食べる側から見れば
+   *    にんじんが2皿並んだだけ。品数は増えても献立にはなっていない。
    */
   const canPlace = (mealIdx: number, dish: number): boolean => {
     const cur = perMeal[mealIdx]!;
     if (cur.includes(dish)) return false;
     if (isStaple[dish] && cur.some((j) => isStaple[j])) return false;
+    if (leadIng[dish] && cur.some((j) => leadIng[j] === leadIng[dish])) return false;
     return true;
   };
 
@@ -197,6 +204,29 @@ export function averageMacros(menus: Portion[][]): Macros {
     fatG: total.fatG / n,
     carbG: total.carbG / n,
   };
+}
+
+/**
+ * その料理の主材料。**最も重い材料を1つ選ぶ。**
+ *
+ * タグや名前からは判定できない（「にんじんのきんぴら」と
+ * 「にんじんのはちみつ煮」を名前で結ぶ規則は書けない）。
+ * 調味料は数gから数十gなので、重さで選べば自然に外れる。
+ *
+ * 完全ではない——同じ肉を使う2品も弾くことになるが、
+ * 主菜と副菜は別々に配っているので、実害が出るのは
+ * 「鶏の副菜が2皿」のような場合だけで、それも避けたい並びではある。
+ */
+export function leadIngredientOf(r: Recipe): string | undefined {
+  let best: string | undefined;
+  let bestGrams = 0;
+  for (const i of r.ingredients) {
+    if (i.quantity > bestGrams) {
+      bestGrams = i.quantity;
+      best = i.ingredientId;
+    }
+  }
+  return best;
 }
 
 /** 1人前あたりのグラム数 */
@@ -300,6 +330,9 @@ function levelKcal(menus: Portion[][], maxMoves = 16): void {
       if (menus[lo]!.some((q) => q.recipe.id === p.recipe.id)) continue;
       // 主食を兼ねる品どうしを同じ食に入れない
       if (isStaple(p) && menus[lo]!.some(isStaple)) continue;
+      // 主材料が同じ品を同じ食に入れない（にんじん2皿にしない）
+      const lead = leadIngredientOf(p.recipe);
+      if (lead && menus[lo]!.some((q) => leadIngredientOf(q.recipe) === lead)) continue;
       const c = kcalOf(p);
       const after = Math.abs(kcal[hi]! - c - (kcal[lo]! + c));
       // 移して差が広がるなら移さない
