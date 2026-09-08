@@ -35,7 +35,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     maxPrepMinutes: 120,
     allowFreezing: true,
     // 主菜1品が週3食まで。5食なら2品、14食なら5品が要る計算になる
-    maxSameDishMeals: 3,
+    // 3 だと5食が主菜2品の交互で埋まり、初回から単調になっていた（本人指摘）。
+    // 2 にすると1週間で主菜3品ほどになる。品数と買い物は少し増える
+    maxSameDishMeals: 2,
     // 週1回＝作り置き。設定で変えれば毎日作る形にもなる
     cookSessionsPerWeek: 1,
     maxFridgeDays: 3,

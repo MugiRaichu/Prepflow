@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils';
  */
 
 type StepKey =
+  | 'eaters'
   | 'goal'
   | 'body'
   | 'activity'
@@ -76,6 +77,19 @@ interface StepDef {
 }
 
 const STEPS: StepDef[] = [
+  /*
+    人数を最初に聞く。**ここを聞いていなかった。**
+
+    1人前提で組んでいたので、2人で使うと量も金額も容器の数も
+    すべて半分だった。あとの質問（予算・容器・時間）はどれも
+    人数の上に乗るので、先に聞かないと答えようがない。
+  */
+  {
+    key: 'eaters',
+    chapter: 'あなたのこと',
+    title: '何人ぶん作りますか',
+    note: '量も食費も容器の数も、ここから決まります。',
+  },
   { key: 'goal', chapter: 'あなたのこと', title: '何を目指しますか', note: 'あとから変えられます。' },
   { key: 'body', chapter: 'あなたのこと', title: '体格', note: 'だいたいで構いません。' },
   {
@@ -127,6 +141,7 @@ export function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [adults, setAdults] = useState(1);
   const [goal, setGoal] = useState<DietGoal>('maintain');
   const [sex, setSex] = useState<Sex>('unspecified');
   const [ageDecade, setAgeDecade] = useState(30);
@@ -169,7 +184,29 @@ export function Onboarding() {
     setSaving(true);
     setError(null);
     try {
-      await createProfile({ sex, birthYear, heightCm, weightKg, goal, activityLevel, allergens });
+      /*
+       * 人数ぶんのプロファイルを作る。献立の計算はもともと複数人に対応していて
+       * （目標を合計し、容器も人数ぶん用意する）、**聞いていなかっただけ**。
+       *
+       * 2回目に通ったときに増やさない。器具や容器と同じで、この画面は
+       * 「あとで設定する」で抜けたあと入り直すことがある
+       */
+      const already = await db.profiles.where('deleted').equals(0).count();
+      if (already === 0) {
+        await createProfile({ sex, birthYear, heightCm, weightKg, goal, activityLevel, allergens });
+        for (let i = 2; i <= adults; i++) {
+          await createProfile({
+            name: i + '人目',
+            sex,
+            birthYear,
+            heightCm,
+            weightKg,
+            goal,
+            activityLevel,
+            allergens,
+          });
+        }
+      }
 
       /*
        * 器具と容器は**すでにあれば作らない**。
@@ -296,6 +333,25 @@ export function Onboarding() {
         {/* key を付けて、画面が変わるたびに入り直させる。進んだ手応えが出る */}
         <div key={cur.key} className="pf-rise">
           <Section title={cur.title} note={cur.note}>
+            {cur.key === 'eaters' && (
+              <>
+                <Stepper value={adults} onChange={setAdults} step={1} min={1} max={6} suffix="人" />
+                {/*
+                  2人目以降の体格は聞かない。ここで6人ぶんの身長体重を
+                  順番に聞くと、その前に閉じられる。同じ体格で見積もって、
+                  違うなら設定で1人ずつ直せることだけ伝える。
+                */}
+                <Note>
+                  {adults === 1
+                    ? '1人ぶんで組みます。'
+                    : adults +
+                      '人ぶんで組みます。量も食費も' +
+                      adults +
+                      '倍になります。2人目からはあなたと同じ体格で見積もるので、違うときは設定 › 食べる人で直せます。'}
+                </Note>
+              </>
+            )}
+
             {cur.key === 'goal' && (
               <Chips options={GOAL_OPTIONS} value={goal} onChange={setGoal} columns={3} />
             )}
@@ -561,7 +617,12 @@ export function Onboarding() {
             {cur.key === 'done' && (
               <Summary
                 lines={[
-                  ['目標', targets.kcal + ' kcal / たんぱく質 ' + targets.proteinG + ' g'],
+                  ['何人ぶん', adults + '人'],
+                  [
+                    '目標',
+                    // 人数ぶんの合計を出す。1人ぶんの数字を出すと、買い出し金額と桁が合わない
+                    targets.kcal * adults + ' kcal / たんぱく質 ' + targets.proteinG * adults + ' g',
+                  ],
                   [
                     '避けるもの',
                     allergens.length

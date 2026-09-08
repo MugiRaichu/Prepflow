@@ -45,7 +45,7 @@ import type {
 export function recipeCountFor(
   maxPrepMinutes: number,
   meals = 0,
-  maxSameDishMeals = 3,
+  maxSameDishMeals = 2,
 ): number {
   const byTime = Math.min(Math.max(Math.round(maxPrepMinutes / 30), 2), 6);
   // 主菜と副菜の両方に飽きの上限がかかるので、必要な品数はおよそ2倍になる
@@ -402,7 +402,7 @@ export async function proposeWeek(
         maxRecipesPerWeek: recipeCountFor(
           settings.cooking.maxPrepMinutes,
           meals,
-          settings.cooking.maxSameDishMeals ?? 3,
+          settings.cooking.maxSameDishMeals ?? 2,
         ),
         // 次に作るまで持てばよい。週3回作るなら2〜3日で足りる。作り直しは1回で残りぶん
         maxFridgeDays: Math.min(
@@ -425,7 +425,7 @@ export async function proposeWeek(
         cookDays: sessions,
         maxProteinDeviation: 0.2,
         minFatRatio: 0.6,
-        maxSameDishMeals: settings.cooking.maxSameDishMeals ?? 3,
+        maxSameDishMeals: settings.cooking.maxSameDishMeals ?? 2,
         ricePolicy: settings.cooking.ricePolicy ?? 'auto',
         // 既定値は設定画面の値。今週の希望で上書きされたときだけ true になる
         timeCapIsExplicit: false,
