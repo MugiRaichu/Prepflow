@@ -137,10 +137,17 @@
       #pf-splash .pf-words > p.pf-name {
         font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
         font-size: 40px;
-        font-weight: 600;
+        /*
+         * **細く、広く。**太くして詰めると「立つ」が、同時に重くなる。
+         * 名前は主張しなくてよく、**きれいに置いてあればいい**（本人「スマートな形に」）。
+         * 太さを 600 → 400 に落とし、字間を詰めから広げに転じる。
+         * 字が細いぶん、間を空けても1語のまとまりは崩れない。
+         */
+        font-weight: 400;
         line-height: 1.15;
-        /* 骨格が太いぶん、字間はわずかに詰める。締まって1語に見える */
-        letter-spacing: -0.015em;
+        letter-spacing: 0.09em;
+        /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
+        text-indent: 0.09em;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
