@@ -54,7 +54,14 @@ export function SettingsHome() {
           label: '食べる人',
           value: (profiles ?? []).map((p) => p.name).join('、') || '未設定',
         },
-        { to: '/household', icon: Home, label: 'いまの暮らし', value: household?.name ?? '未設定' },
+        {
+          to: '/household',
+          icon: Home,
+          // 「未設定」と書かない。ひな形は近道でしかなく、選ばないのが普通。
+          // 欠けているように見せると、当てはまらない人に無理に選ばせることになる
+          label: 'いまの暮らし',
+          value: household?.name ?? 'ひな形は使っていません',
+        },
         {
           to: '/rhythm',
           icon: Clock,
