@@ -9,6 +9,8 @@ import { CookingSettings, ShoppingSettings } from '@/features/settings/ShoppingS
 import { KitchenSettings } from '@/features/settings/EquipmentSettings';
 import { NotifySettings } from '@/features/settings/NotifySettings';
 import { DataSettings } from '@/features/settings/DataSettings';
+import { FamilyScreen } from '@/features/family/FamilyScreen';
+import { JoinFamily } from '@/features/family/JoinFamily';
 import { IngredientSettings } from '@/features/settings/IngredientSettings';
 import { PlanScreen } from '@/features/planner/PlanScreen';
 import { WeekOverview } from '@/features/planner/WeekOverview';
@@ -36,6 +38,12 @@ export default function App() {
   // GitHub Pages のようにサブパスへ置かれても動くよう、配信パスを基準にする
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
+      {/*
+        招待リンクで開かれたら、いちばん先に「入りますか」を出す。
+        設定を済ませる前でも入れる——**先に家族に呼ばれた人**は、
+        自分の設定より前に、みんなの買い出しリストを見たいはず
+      */}
+      <JoinFamily />
       {onboarded ? <MainRoutes /> : <OnboardingRoutes />}
     </BrowserRouter>
   );
@@ -77,6 +85,7 @@ function MainRoutes() {
         <Route path="/settings/notify" element={<NotifySettings />} />
         {/* 「外とつなぐ」に統合した。古いリンクのために残す */}
         <Route path="/settings/health" element={<Navigate to="/settings/notify" replace />} />
+        <Route path="/settings/family" element={<FamilyScreen />} />
         <Route path="/settings/data" element={<DataSettings />} />
         <Route path="/settings/ingredients" element={<IngredientSettings />} />
 

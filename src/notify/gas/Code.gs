@@ -26,6 +26,20 @@
 
 var PROPS = PropertiesService.getScriptProperties();
 
+/*
+ * 合言葉。**共有だけなら、ここに入れておけば設定画面の登録が要らない。**
+ *
+ * スクリプトプロパティに3つ登録する作業は、スマホしか使わない人には重い。
+ * 家族共有だけを使う人のために、アプリが作った合言葉をコードに埋めた形で
+ * コピーできるようにした（下の1行がその置き場）。
+ * プロパティに入っていればそちらを優先する（LINE を使う人は今までどおり）。
+ */
+var TOKEN_IN_CODE = '';
+
+function sharedToken() {
+  return PROPS.getProperty('SHARED_TOKEN') || TOKEN_IN_CODE;
+}
+
 /** 献立を書く先のカレンダー名。読むときはこの名前のものを飛ばす */
 var PREPFLOW_CALENDAR = 'Prepflow';
 
@@ -54,6 +68,8 @@ function pruneHealth() {
 function authorize() {
   CalendarApp.getDefaultCalendar().getName();
   ScriptApp.getProjectTriggers();
+  // 家族の共有はドライブの1ファイルに置く。ここで許可をまとめて取る
+  DriveApp.getRootFolder().getName();
   return 'ok';
 }
 
@@ -63,7 +79,7 @@ function doPost(e) {
     var body = JSON.parse(e.postData.contents);
 
     // 共有トークンが合わないものは捨てる。URLだけ知られても書き込めないようにする
-    if (body.token !== PROPS.getProperty('SHARED_TOKEN')) {
+    if (!sharedToken() || body.token !== sharedToken()) {
       return json({ ok: false, error: 'bad token' });
     }
 
@@ -242,6 +258,54 @@ function doPost(e) {
     }
 
     // healthPull: 貯めてあるぶんをアプリが取りに来る
+    /*
+     * family: 家族で共有する置き場所。
+     *
+     * **置き場所は Google ドライブの1ファイル。**スクリプトプロパティは
+     * 全部で500KBしかなく、買い出しリストと容器を数週ぶん置くと詰まる。
+     *
+     * 送るのは「変わったものだけ」、返すのは「相手が知らないものだけ」。
+     * 同じものを両方で直したときは、**あとに直したほうを採る**（updatedAt）。
+     * 人の体のこと（体格・目標・体重・歩数）は最初から送られてこない。
+     * ここに入るのは買い物と食べ物の在庫だけ（アプリ側で選んでいる）。
+     */
+    if (body.action === 'familyPull' || body.action === 'familyPush') {
+      var lock = LockService.getScriptLock();
+      // 家族が同時に押すことはある。待てないなら諦めて、次の同期に任せる
+      if (!lock.tryLock(20000)) return json({ ok: false, error: 'busy' });
+      try {
+        var doc = readFamily();
+        var incoming = body.records || [];
+        var changed = 0;
+
+        for (var i = 0; i < incoming.length; i++) {
+          var rec = incoming[i];
+          if (!rec || !rec.store || !rec.id) continue;
+          var key = rec.store + '/' + rec.id;
+          var cur = doc.records[key];
+          // あとに直したほうを採る。同じ時刻なら触らない
+          if (cur && String(cur.updatedAt) >= String(rec.updatedAt)) continue;
+          doc.records[key] = rec;
+          changed++;
+        }
+        if (changed > 0) {
+          doc.rev = (doc.rev || 0) + 1;
+          writeFamily(doc);
+        }
+
+        // 相手が持っていないぶんだけ返す
+        var since = String(body.since || '');
+        var out = [];
+        for (var k in doc.records) {
+          var r = doc.records[k];
+          if (!since || String(r.updatedAt) > since) out.push(r);
+        }
+        return json({ ok: true, records: out, saved: changed, now: new Date().toISOString() });
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
     if (body.action === 'healthPull') {
       var out = [];
       var all = PROPS.getProperties();
@@ -381,6 +445,30 @@ function hintFor(code, detail) {
     return ' / 今月の無料の送信数を使い切っています。翌月まで届きません';
   }
   return '';
+}
+
+/** 共有ファイルの名前。ドライブの一番上に置く */
+var FAMILY_FILE = 'Prepflow-family.json';
+
+function familyFile() {
+  var it = DriveApp.getFilesByName(FAMILY_FILE);
+  if (it.hasNext()) return it.next();
+  return DriveApp.createFile(FAMILY_FILE, JSON.stringify({ rev: 0, records: {} }), 'application/json');
+}
+
+function readFamily() {
+  try {
+    var doc = JSON.parse(familyFile().getBlob().getDataAsString());
+    if (!doc.records) doc.records = {};
+    return doc;
+  } catch (err) {
+    // 壊れていたら作り直す。共有は写しなので、各自の端末に本体が残っている
+    return { rev: 0, records: {} };
+  }
+}
+
+function writeFamily(doc) {
+  familyFile().setContent(JSON.stringify(doc));
 }
 
 function json(obj) {

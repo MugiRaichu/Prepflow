@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  ChevronRight, User, Flame, ShoppingCart, Bell, Clock, Database, BookOpen, Package, Wrench, Boxes, Search, X,
+  ChevronRight, User, Flame, ShoppingCart, Bell, Clock, Database, BookOpen, Package, Wrench, Boxes, Search, X, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/db/db';
@@ -128,6 +128,12 @@ export function SettingsHome() {
           icon: Boxes,
           label: '家にあるもの',
           value: stock != null ? stock + ' 品' : '',
+        },
+        {
+          to: '/settings/family',
+          icon: Users,
+          label: '家族と共有',
+          value: settings?.notify.gasEndpointUrl ? '設定ずみ' : 'していません',
         },
         {
           to: '/settings/notify',
