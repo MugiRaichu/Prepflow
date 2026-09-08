@@ -26,7 +26,18 @@
   --card-foreground: #2b2724;
   --popover: #ffffff;
   --popover-foreground: #2b2724;
-  --primary: #a4483b;
+  /*
+   * 差し色。**弁柄（べんがら）**——赤土から作る、いちばん古い顔料の色。
+   *
+   * もとは #a4483b で、彩度47%・明度44%。生成りと墨のあいだで**1色だけ前に出て**、
+   * 落ち着きから浮いていた（本人「色味を無印っぽくして」）。
+   * 彩度40%・明度39%まで落とすと、塗料ではなく**土の色**に見える。
+   *
+   * 生成りの地に載せたときの読みやすさも上がる（コントラスト 4.9 → 6.5）。
+   * 食材の色（--food-*）は動かさない。あちらは装飾ではなく見分けのための色で、
+   * 落としすぎると魚と肉の区別が付かなくなる。
+   */
+  --primary: #8c463c;
   --primary-foreground: #fdfbf8;
   --secondary: #f0eae1;
   --secondary-foreground: #453d37;
@@ -34,11 +45,11 @@
   --muted-foreground: #7a736c;
   --accent: #eee7dc;
   --accent-foreground: #2b2724;
-  --destructive: #a4483b;
+  --destructive: #8c463c;
   --destructive-foreground: #fdfbf8;
   --border: #e3dbd0;
   --input: #e3dbd0;
-  --ring: #a4483b;
+  --ring: #8c463c;
 
   /* イラスト用。食材の種類が一目で分かる程度に、彩度は抑える */
   --food-fish: #4a6c8c;

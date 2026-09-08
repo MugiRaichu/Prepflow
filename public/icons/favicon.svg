@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- タブ用。icon.svg と同じ形で、角を丸め、線を太くしてある -->
-  <rect width="512" height="512" rx="112" fill="#a4483b"/>
+  <rect width="512" height="512" rx="112" fill="#8c463c"/>
   <g fill="none" stroke="#faf7f2" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
     <ellipse cx="256" cy="374" rx="150" ry="36" opacity="0.32"/>
     <path d="M140 288 H372"/>

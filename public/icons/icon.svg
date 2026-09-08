@@ -16,7 +16,7 @@
     太い一筆をやめた理由: あれは印の描き方で、アプリの中の絵と言葉が違っていた。
     ホーム画面と画面の中で、同じ手で描かれたものに見えるほうがいい。
   -->
-  <rect width="512" height="512" fill="#a4483b"/>
+  <rect width="512" height="512" fill="#8c463c"/>
   <g fill="none" stroke="#faf7f2" stroke-width="17" stroke-linecap="round" stroke-linejoin="round">
     <!-- 皿。器の底に敷く。薄くして器を前に出す -->
     <ellipse cx="256" cy="374" rx="160" ry="38" opacity="0.32"/>
