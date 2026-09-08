@@ -362,61 +362,6 @@
           transform: scale(1);
         }
       }
-      /*
-        歩く人。**景色の中に人を1人だけ置く。**
-
-        花や雪だけだと「模様」で終わるが、人が横切ると**そこが場所になる**。
-        暮らしに寄り添うアプリなので、景色の中に人がいるほうがいい。
-
-        作りは4つの動きの重ね合わせ:
-          w-cross … 画面を横切る（奥のものは遅く、小さく）
-          w-bob   … 一歩ごとに体が上下する（歩幅の2倍の速さ）
-          w-leg   … 腰から脚が前後に振れる。左右で位相を半分ずらす
-          w-arm   … 肩から腕が振れる。脚と逆の位相
-        バラバラに動かすのではなく、**位相をそろえて1つの歩行にする**。
-      */
-      #pf-bloom .w-cross {
-        animation: pf-walk-cross var(--dur, 9000ms) linear forwards;
-      }
-      #pf-bloom .w-bob {
-        animation: pf-walk-bob 640ms ease-in-out infinite;
-      }
-      #pf-bloom .w-leg-a,
-      #pf-bloom .w-arm-b {
-        animation: pf-walk-swing 1280ms ease-in-out infinite;
-      }
-      #pf-bloom .w-leg-b,
-      #pf-bloom .w-arm-a {
-        animation: pf-walk-swing 1280ms ease-in-out infinite;
-        animation-delay: -640ms;
-      }
-      @keyframes pf-walk-cross {
-        from {
-          transform: translateX(-90px);
-        }
-        to {
-          transform: translateX(var(--dist, 520px));
-        }
-      }
-      @keyframes pf-walk-bob {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-1.4px);
-        }
-      }
-      @keyframes pf-walk-swing {
-        0%,
-        100% {
-          transform: rotate(22deg);
-        }
-        50% {
-          transform: rotate(-22deg);
-        }
-      }
-
       @keyframes pf-twinkle {
         0%,
         100% {
