@@ -47,7 +47,7 @@
   var NS = 'http://www.w3.org/2000/svg';
   var W = 400, H = 800, CX = 200, CY = 400;
   var C = {
-    akane: '#a4483b', fish: '#4a6c8c', meat: '#9c5a4a', grain: '#b98c4a',
+    akane: '#8c463c', fish: '#4a6c8c', meat: '#9c5a4a', grain: '#b98c4a',
     egg: '#c9a227', veg: '#6e8b5b', soy: '#8a7a5c', cream: '#e8e0d2'
   };
   var R = Math.random;
