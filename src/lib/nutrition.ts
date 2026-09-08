@@ -70,9 +70,24 @@ const KCAL_PER_G = { protein: 4, fat: 9, carb: 4 } as const;
 
 // --- 既定値（オンボーディングをスキップしても動くように） -------------------
 
+/**
+ * 身長・体重の初期値。**性別で変える。**
+ *
+ * 全員に 170cm / 65kg を出していた。女性には**ほぼ確実に外れる数字**で、
+ * その1回のために減らすボタンを何十回も押すことになる（本人指摘）。
+ *
+ * 数字は国民健康・栄養調査の成人平均のあたり。当てにいくのではなく、
+ * **直す回数がいちばん少なくなるところ**に置く。
+ * 答えないを選んだ人には、男女の間に置く。
+ */
+export function bodyDefaultsFor(sex: Sex | undefined): { heightCm: number; weightKg: number } {
+  if (sex === 'male') return { heightCm: 171, weightKg: 68 };
+  if (sex === 'female') return { heightCm: 158, weightKg: 53 };
+  return { heightCm: 165, weightKg: 60 };
+}
+
 export const DEFAULT_BODY = {
-  heightCm: 170,
-  weightKg: 65,
+  ...bodyDefaultsFor('unspecified'),
   birthYear: new Date().getFullYear() - 30,
   sex: 'unspecified' as Sex,
 };
@@ -174,12 +189,14 @@ export function recalcProfileTargets(p: Profile, today = new Date().toISOString(
   // 「いつまでに何kg」が入っていれば、そこから1日あたりの増減を出す
   const pace =
     p.goalWeightKg != null && p.goalDate
-      ? weightPace(p.weightKg ?? DEFAULT_BODY.weightKg, p.goalWeightKg, p.goalDate, today)
+      ? weightPace(p.weightKg ?? bodyDefaultsFor(p.sex).weightKg, p.goalWeightKg, p.goalDate, today)
       : null;
+  // 入っていない値は、その人の性別に合わせた既定で埋める
+  const body = bodyDefaultsFor(p.sex);
   return calcTargets({
     sex: p.sex ?? DEFAULT_BODY.sex,
-    weightKg: p.weightKg ?? DEFAULT_BODY.weightKg,
-    heightCm: p.heightCm ?? DEFAULT_BODY.heightCm,
+    weightKg: p.weightKg ?? body.weightKg,
+    heightCm: p.heightCm ?? body.heightCm,
     ageYears: year - (p.birthYear ?? DEFAULT_BODY.birthYear),
     activityLevel: p.activityLevel,
     goal: p.goal,

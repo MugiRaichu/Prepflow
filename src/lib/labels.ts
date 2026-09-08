@@ -55,7 +55,12 @@ export const CONTAINER_MATERIAL_LABELS: Record<ContainerMaterial, string> = {
 export const STORE_SECTION_LABELS: Record<StoreSection, string> = {
   produce: '野菜・果物',
   meat_fish: '精肉・鮮魚',
-  daily_chilled: '日配品',
+  /*
+   * **「日配品」は店の裏で使う言葉。**毎日入荷する冷蔵品、という卸の区分で、
+   * 売り場の看板には出ない。買う側は一度も見たことがない（本人「日配品とはなんですか？」）。
+   * 中身は豆腐・納豆・卵・牛乳・ヨーグルト・チーズ。棚の名前で呼ぶ。
+   */
+  daily_chilled: '豆腐・卵・乳製品',
   dry_grocery: '乾物・米・麺',
   seasoning: '調味料',
   frozen: '冷凍',

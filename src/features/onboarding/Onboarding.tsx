@@ -7,7 +7,7 @@ import { Segmented } from '@/components/shared/Segmented';
 import { Stepper } from '@/components/shared/Stepper';
 import { WeekdayMultiPicker, WeekdayPicker } from '@/components/shared/WeekdayPicker';
 import { Logo } from '@/components/shared/Logo';
-import { calcTargets } from '@/lib/nutrition';
+import { bodyDefaultsFor, calcTargets } from '@/lib/nutrition';
 import { createProfile, markOnboarded } from '@/db/repositories/profiles';
 import { updateSettings } from '@/db/repositories/settings';
 import { requestPersistence } from '@/db/repositories/backup';
@@ -145,8 +145,24 @@ export function Onboarding() {
   const [goal, setGoal] = useState<DietGoal>('maintain');
   const [sex, setSex] = useState<Sex>('unspecified');
   const [ageDecade, setAgeDecade] = useState(30);
-  const [heightCm, setHeightCm] = useState(170);
-  const [weightKg, setWeightKg] = useState(65);
+  /*
+   * 体格の初期値は**性別に合わせて動く**。全員に 170cm / 65kg を出していたが、
+   * 女性にはほぼ確実に外れる数字で、その1回のために減らすボタンを何十回も押すことになる。
+   *
+   * ただし**自分で動かしたあとは、もう触らない。**性別を選び直しても、
+   * 入れた数字が勝手に書き換わるのは驚きにしかならない。
+   */
+  const [heightCm, setHeightCm] = useState(bodyDefaultsFor('unspecified').heightCm);
+  const [weightKg, setWeightKg] = useState(bodyDefaultsFor('unspecified').weightKg);
+  const [heightTouched, setHeightTouched] = useState(false);
+  const [weightTouched, setWeightTouched] = useState(false);
+
+  const pickSex = (v: Sex) => {
+    setSex(v);
+    const d = bodyDefaultsFor(v);
+    if (!heightTouched) setHeightCm(d.heightCm);
+    if (!weightTouched) setWeightKg(d.weightKg);
+  };
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('sedentary');
   const [allergens, setAllergens] = useState<AllergenTag[]>([]);
   const [showAllAllergens, setShowAllAllergens] = useState(false);
@@ -361,7 +377,7 @@ export function Onboarding() {
             {cur.key === 'body' && (
               <>
                 <Labeled label="性別">
-                  <Segmented options={SEX_OPTIONS} value={sex} onChange={setSex} />
+                  <Segmented options={SEX_OPTIONS} value={sex} onChange={pickSex} />
                 </Labeled>
                 <Labeled label="年代">
                   <Chips
@@ -374,7 +390,10 @@ export function Onboarding() {
                 <Labeled label="身長">
                   <Stepper
                     value={heightCm}
-                    onChange={setHeightCm}
+                    onChange={(v) => {
+                      setHeightTouched(true);
+                      setHeightCm(v);
+                    }}
                     step={1}
                     min={130}
                     max={210}
@@ -384,7 +403,10 @@ export function Onboarding() {
                 <Labeled label="体重">
                   <Stepper
                     value={weightKg}
-                    onChange={setWeightKg}
+                    onChange={(v) => {
+                      setWeightTouched(true);
+                      setWeightKg(v);
+                    }}
                     step={0.5}
                     min={30}
                     max={150}

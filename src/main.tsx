@@ -73,9 +73,12 @@ function lockZoomInStandalone(): void {
 
 lockZoomInStandalone();
 
-// iPhone のショートカットが GAS へ送った歩数・消費カロリーを取り込む。
-// 未設定・圏外なら何もしない
-void import('./health/gasHealth').then((m) => m.pullHealthIfStale());
+/*
+ * GAS に貯まっているもの（カレンダーの予定・ショートカットが送った歩数）を
+ * **1往復でまとめて**取り込む。未設定・圏外なら何もしない。
+ * 期限が来ていないほうは、そもそも読みにいかない
+ */
+void import('./notify/gasSync').then((m) => m.syncFromGasIfConfigured());
 
 // 圏外で溜まった送信を、起動時とオンライン復帰時に流す
 const flush = () => void flushOutbox().catch(() => {});

@@ -73,6 +73,77 @@ function pruneHealth() {
   }
 }
 
+/**
+ * 今日から days 日ぶんの予定を読む。
+ *
+ * **速さは、Google に何回聞くかで決まる。**CalendarApp は
+ * `getTitle()` のような1つ1つの呼び出しが向こうへの問い合わせになるので、
+ * 同じ値を2回聞くとそのぶん待ち時間が増える。
+ *
+ *   前 … 予定1件につき start を3回・end を2回・title を2回聞いていた（8回）
+ *   今 … 1回ずつ受け取って変数に置く（4回）
+ *
+ * 予定が50件あれば、200回の問い合わせが100回になる。
+ * カレンダーの数だけ getEvents も走るので、そこは1つも無駄にしない。
+ */
+function readEvents(days) {
+  var n = Math.min(Math.max(parseInt(days, 10) || 7, 1), 14);
+  var from = new Date();
+  from.setHours(0, 0, 0, 0);
+  var to = new Date(from.getTime() + n * 86400000);
+
+  // 自分のカレンダーだけでなく、共有されているものも読む。
+  // 「仕事」「家族」と分けている人や、別アカウントのカレンダーを
+  // このアカウントに共有している人に要る。同じ予定が複数に入っていれば1つにする
+  var seen = {};
+  var events = [];
+  var cals = CalendarApp.getAllCalendars();
+  for (var i = 0; i < cals.length; i++) {
+    var cal = cals[i];
+    // 自分が書いた献立（Prepflow カレンダー）は「予定」ではない。
+    // 読んでしまうと、献立が食事の時刻を押しのける循環になる
+    if (cal.getName() === PREPFLOW_CALENDAR) continue;
+
+    var list = cal.getEvents(from, to);
+    for (var j = 0; j < list.length; j++) {
+      var ev = list[j];
+      // 1件につき1回ずつだけ聞いて、あとは変数を使い回す
+      var s = ev.getStartTime();
+      var e = ev.getEndTime();
+      var title = ev.getTitle();
+      var key = s.getTime() + '|' + e.getTime() + '|' + title;
+      if (seen[key]) continue;
+      seen[key] = true;
+      events.push({
+        date: Utilities.formatDate(s, 'Asia/Tokyo', 'yyyy-MM-dd'),
+        start: Utilities.formatDate(s, 'Asia/Tokyo', 'HH:mm'),
+        end: Utilities.formatDate(e, 'Asia/Tokyo', 'HH:mm'),
+        title: title,
+        allDay: ev.isAllDayEvent(),
+      });
+    }
+  }
+  return events;
+}
+
+/** 貯めてある歩数を全部返す。プロパティは1回の読み出しでまとめて取る */
+function readHealth() {
+  var out = [];
+  var all = PROPS.getProperties();
+  for (var k in all) {
+    if (k.indexOf('health:') !== 0) continue;
+    try {
+      out.push(JSON.parse(all[k]));
+    } catch (err) {
+      // 壊れている行は捨てる
+    }
+  }
+  out.sort(function (a, b) {
+    return a.date < b.date ? -1 : 1;
+  });
+  return out;
+}
+
 function authorize() {
   CalendarApp.getDefaultCalendar().getName();
   ScriptApp.getProjectTriggers();
@@ -156,33 +227,24 @@ function doPost(e) {
     // Google Cloud のプロジェクトも要らない。初回の許可にカレンダーの読み取りが含まれる。
     // 返すのは件名と時刻だけ。相手先や場所や本文は返さない
     if (body.action === 'events') {
-      var days = Math.min(Math.max(parseInt(body.days, 10) || 7, 1), 14);
-      var from = new Date();
-      from.setHours(0, 0, 0, 0);
-      var to = new Date(from.getTime() + days * 86400000);
-      // 自分のカレンダーだけでなく、共有されているものも読む。
-      // 「仕事」「家族」と分けている人や、別アカウントのカレンダーを
-      // このアカウントに共有している人に要る。同じ予定が複数に入っていれば1つにする
-      var seen = {};
-      var events = [];
-      CalendarApp.getAllCalendars().forEach(function (cal) {
-        // 自分が書いた献立（Prepflow カレンダー）は「予定」ではない。
-        // 読んでしまうと、献立が食事の時刻を押しのける循環になる
-        if (cal.getName() === PREPFLOW_CALENDAR) return;
-        cal.getEvents(from, to).forEach(function (ev) {
-          var key = ev.getStartTime().getTime() + '|' + ev.getEndTime().getTime() + '|' + ev.getTitle();
-          if (seen[key]) return;
-          seen[key] = true;
-          events.push({
-            date: Utilities.formatDate(ev.getStartTime(), 'Asia/Tokyo', 'yyyy-MM-dd'),
-            start: Utilities.formatDate(ev.getStartTime(), 'Asia/Tokyo', 'HH:mm'),
-            end: Utilities.formatDate(ev.getEndTime(), 'Asia/Tokyo', 'HH:mm'),
-            title: ev.getTitle(),
-            allDay: ev.isAllDayEvent(),
-          });
-        });
-      });
-      return json({ ok: true, events: events });
+      return json({ ok: true, events: readEvents(body.days) });
+    }
+
+    /*
+     * sync: カレンダーの予定と歩数を**1回の往復でまとめて**返す。
+     *
+     * 前は events と healthPull を別々に呼んでいた。1往復のうち、
+     * スクリプトの起動（1〜3秒）と 302 の回り道は中身と関係なく毎回かかるので、
+     * **2回に分けるとその待ちを2回ぶん払っていた**（本人「もっと高速化できませんか」）。
+     *
+     * 要らないほうは読みにいかない。events も health も false なら、
+     * 返事だけがすぐ返る。
+     */
+    if (body.action === 'sync') {
+      var out = { ok: true };
+      if (body.events) out.events = readEvents(body.days);
+      if (body.health) out.samples = readHealth();
+      return json(out);
     }
 
     // publish: 献立を「Prepflow」カレンダーに書く。
@@ -315,20 +377,7 @@ function doPost(e) {
     }
 
     if (body.action === 'healthPull') {
-      var out = [];
-      var all = PROPS.getProperties();
-      for (var k in all) {
-        if (k.indexOf('health:') !== 0) continue;
-        try {
-          out.push(JSON.parse(all[k]));
-        } catch (err) {
-          // 壊れている行は捨てる
-        }
-      }
-      out.sort(function (a, b) {
-        return a.date < b.date ? -1 : 1;
-      });
-      return json({ ok: true, samples: out });
+      return json({ ok: true, samples: readHealth() });
     }
 
     return json({ ok: false, error: 'unknown action' });

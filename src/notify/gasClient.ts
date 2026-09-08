@@ -46,12 +46,23 @@ export async function buildPayload(settings: AppSettings): Promise<SchedulePaylo
 
 export type PostResult<T extends object> = { ok: boolean; error?: string } & Partial<T>;
 
+/**
+ * 待つ上限。
+ *
+ * GAS が詰まると `fetch` は**いつまでも返ってこない**。そのあいだ
+ * 「同期中」のまま止まり、次に来た更新も前のが終わるのを待つことになる。
+ * 30秒を過ぎたら諦めて、次の機会に回す（この経路はどれも、遅れて届いて困らない）。
+ */
+const TIMEOUT_MS = 30000;
+
 /** GAS を呼ぶ。カレンダー側（calendar/gasCalendar.ts）も同じ入口を使う */
 export async function post<T extends object = Record<string, never>>(
   url: string,
   body: unknown,
 ): Promise<PostResult<T>> {
   const fail = (error: string) => ({ ok: false, error }) as PostResult<T>;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -60,12 +71,16 @@ export async function post<T extends object = Record<string, never>>(
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(body),
       redirect: 'follow',
+      signal: ac.signal,
     });
     if (!res.ok) return fail('HTTP ' + res.status);
     const json = (await res.json()) as { ok?: boolean; error?: string } & Partial<T>;
     return json.ok ? ({ ...json, ok: true } as PostResult<T>) : fail(json.error ?? '不明なエラー');
   } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') return fail('時間内に返事がありませんでした');
     return fail(e instanceof Error ? e.message : String(e));
+  } finally {
+    clearTimeout(timer);
   }
 }
 

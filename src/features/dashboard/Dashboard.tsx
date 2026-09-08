@@ -86,23 +86,23 @@ export function Dashboard() {
     [date],
   );
   /*
-   * 「今日の食事」の欄に出すのは**献立だけ**。
+   * **消した人の食事は、並べる側だけでなく数える側からも外す。**
    *
-   * 残っていた作り置きを食べた記録も同じテーブルに入るが、それは今日の献立では
-   * ないので混ぜない。摂取の合計（TargetCard）には両方を入れる。
-   */
-  /*
-   * **消した人の食事は出さない。**
+   * 献立は人ごとに作るので、あとで食べる人を減らしても、その人の食事は残り続ける。
+   * 並べる側では除いていたが（同じカードが2枚出ていたため）、
+   * **合計を出す側が同じ除き方をしていなかった。**
+   * 画面には1食1369kcalしか出ていないのに、目標の欄は2738kcalを数えていた（本人指摘）。
    *
-   * 献立は人ごとに作るので、あとで食べる人を減らしても、その人の食事は
-   * 残り続けていた。実機では**まったく同じカードが2枚**並び、
-   * 片方は誰のものでもなかった（プロファイルはもう無い）。
-   * なぜ2回あるのかは、画面からは読み取れない。
+   * 除き方を1か所にまとめる。ここを通っていないものは、並びにも数字にも出ない。
    */
   const knownIds = new Set((profiles ?? []).map((p) => p.id));
-  const planned = (meals ?? []).filter(
-    (m) => m.source !== 'leftover' && (knownIds.size === 0 || knownIds.has(m.profileId)),
-  );
+  const dayMeals = (meals ?? []).filter((m) => knownIds.size === 0 || knownIds.has(m.profileId));
+  /*
+   * 「今日の食事」の欄に出すのは**献立だけ**。
+   * 残っていた作り置きを食べた記録も同じテーブルに入るが、それは今日の献立では
+   * ないので混ぜない。摂取の合計には両方を入れる。
+   */
+  const planned = dayMeals.filter((m) => m.source !== 'leftover');
   const assignments = useLiveQuery(
     () => db.containerAssignments.where('intendedDate').equals(date).toArray(),
     [date],
@@ -142,7 +142,7 @@ export function Dashboard() {
    */
   const dayTotals = new Map<string, { eaten: number; target: number }>();
   for (const p of profiles ?? []) {
-    const eaten = (meals ?? [])
+    const eaten = dayMeals
       .filter((m) => m.profileId === p.id && m.status === 'eaten')
       .reduce((n, m) => n + m.nutrition.kcal, 0);
     dayTotals.set(p.id, { eaten, target: p.baseTargets.kcal });
@@ -251,15 +251,17 @@ export function Dashboard() {
       {/*
         **食べたものだけを数える。**献立に載っているだけの食事まで足していたので、
         食べられなかった日も目標を満たしたことになっていた。
-        食べたら押す、という一手間の意味がここにある
+        食べたら押す、という一手間の意味がここにある。
+
+        **その人ぶんだけを数える。**目標はその人のものなので、
+        家族ぶんや、消した人のぶんを足すと数が合わなくなる（本人指摘）。
       */}
       {isToday && me && (
         <TargetCard
           profile={me}
           eaten={sumMacros(
-            (meals ?? []).filter((m) => m.status === 'eaten').map((m) => m.nutrition),
+            dayMeals.filter((m) => m.profileId === me.id && m.status === 'eaten').map((m) => m.nutrition),
           )}
-          planned={sumMacros((meals ?? []).map((m) => m.nutrition))}
         />
       )}
 
@@ -551,12 +553,17 @@ function EatenGauge({
   return (
     <div className="mt-1.5">
       <div className="relative h-2 overflow-hidden rounded-full bg-secondary">
+        {/*
+          **濃さの意味を、画面のどこでも同じにする。**
+          墨は「食べた」。ここまでに食べたぶんも、いま押したぶんも、どちらも食べている。
+          いま押したぶんだけ茜にするのは、**変わったところ**を指すため（差し色はこれ1色）。
+        */}
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-foreground/25"
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground"
           style={{ width: pctBefore + '%' }}
         />
         <div
-          className={cn('absolute inset-y-0 rounded-full bg-foreground', animate && 'pf-eat-grow')}
+          className={cn('absolute inset-y-0 rounded-full bg-primary', animate && 'pf-eat-grow')}
           style={{ left: pctBefore + '%', width: pctMine + '%' }}
         />
       </div>
@@ -753,34 +760,32 @@ function TimelineCard({
   );
 }
 
-function TargetCard({
-  profile,
-  eaten,
-  planned,
-}: {
-  profile: Profile;
-  eaten: Macros;
-  planned: Macros;
-}) {
+/**
+ * その人の、今日の摂取。
+ *
+ * **食べたぶんだけを描く。**以前は献立に載っているだけのぶんも薄い帯で重ね、
+ * 見出しに「残り○○kcalぶんが献立にあります」と添えていた。やめた理由は2つ。
+ *
+ *   数が合わなかった … 消した人の食事まで足していたので、画面に1食しか
+ *     出ていないのに2食ぶんの数字が出ていた（本人指摘）。数える範囲は上でそろえた。
+ *
+ *   読む意味が無かった … 「献立にあります」の献立がどこを指すのか一通りに読めない。
+ *     しかも**残っている食事は、すぐ上の流れに料理名と時刻つきで並んでいる。**
+ *     同じことを、より曖昧な言い方で2回言っていた。
+ */
+function TargetCard({ profile, eaten }: { profile: Profile; eaten: Macros }) {
   const t = profile.baseTargets;
   const rows = [
-    { label: 'kcal', a: eaten.kcal, p: planned.kcal, t: t.kcal },
-    { label: 'P', a: eaten.proteinG, p: planned.proteinG, t: t.proteinG },
-    { label: 'F', a: eaten.fatG, p: planned.fatG, t: t.fatG },
-    { label: 'C', a: eaten.carbG, p: planned.carbG, t: t.carbG },
+    { label: 'kcal', a: eaten.kcal, t: t.kcal },
+    { label: 'P', a: eaten.proteinG, t: t.proteinG },
+    { label: 'F', a: eaten.fatG, t: t.fatG },
+    { label: 'C', a: eaten.carbG, t: t.carbG },
   ];
 
   return (
     <div className="rounded-lg border p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <span className="text-xs text-muted-foreground">
-          {profile.name} の目標
-          {planned.kcal > eaten.kcal && (
-            <span className="ml-1.5">
-              （残り {Math.round(planned.kcal - eaten.kcal)} kcal ぶんが献立にあります）
-            </span>
-          )}
-        </span>
+        <span className="text-xs text-muted-foreground">{profile.name} が今日 食べたぶん</span>
         <Link to="/settings" className="shrink-0 text-xs underline underline-offset-2">
           変更
         </Link>
@@ -789,12 +794,7 @@ function TargetCard({
         {rows.map((r) => (
           <div key={r.label} className="flex items-center gap-3">
             <span className="w-8 shrink-0 text-xs text-muted-foreground">{r.label}</span>
-            {/* 実線が食べたぶん、薄い帯が献立に残っているぶん */}
             <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-foreground/25"
-                style={{ width: Math.min((r.p / Math.max(r.t, 1)) * 100, 100) + '%' }}
-              />
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-foreground"
                 style={{ width: Math.min((r.a / Math.max(r.t, 1)) * 100, 100) + '%' }}

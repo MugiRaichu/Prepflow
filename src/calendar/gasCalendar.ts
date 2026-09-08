@@ -54,29 +54,20 @@ export const CALENDAR_STALE = {
   /** 開いたまま置いているとき */
   polling: 10 * 60 * 1000,
 };
-const STALE_MS = CALENDAR_STALE.open;
 
 export async function readCache(): Promise<CalendarCache | null> {
   const row = await db.meta.get(META_KEY);
   return (row?.value as CalendarCache | undefined) ?? null;
 }
 
-/** 予定を取りに行って端末に置く。設定画面のボタンと、今日タブの自動更新から呼ぶ */
-export async function syncCalendar(
-  settings: AppSettings,
-): Promise<{ ok: boolean; count?: number; error?: string }> {
-  const url = settings.notify.gasEndpointUrl;
-  const token = await getSecret('gas_shared_token');
-  if (!url || !token) return { ok: false, error: '接続設定が終わっていません' };
-
-  const r = await post<{ events: CalendarEvent[] }>(url, {
-    action: 'events',
-    token,
-    days: settings.calendar.lookaheadDays || 7,
-  });
-  if (!r.ok) return { ok: false, error: r.error ?? '取得できませんでした' };
-
-  const events = (r.events ?? []).map((e) => ({
+/**
+ * 受け取った予定を端末に置く。
+ *
+ * 取りに行く部分と分けてあるのは、**1往復でカレンダーと歩数をまとめて
+ * 受け取る経路**（notify/gasSync.ts）からも、同じ置き方を使うため。
+ */
+export async function applyCalendar(raw: CalendarEvent[]): Promise<number> {
+  const events = raw.map((e) => ({
     date: e.date,
     start: e.start,
     end: e.end,
@@ -94,23 +85,25 @@ export async function syncCalendar(
       updatedAt: nowIso(),
     });
   }
-  return { ok: true, count: events.length };
+  return events.length;
 }
 
-/**
- * 古ければ取り直す。失敗しても黙る（今日タブを開くたびに出るエラーは害）。
- * どこまでを「古い」とするかは呼ぶ側が決める（戻ってきた直後は短く見る）。
- */
-export async function syncCalendarIfStale(
+/** 予定だけを取りに行く。設定画面の「いま取り込む」から呼ぶ */
+export async function syncCalendar(
   settings: AppSettings,
-  maxAgeMs: number = STALE_MS,
-): Promise<void> {
-  if (!settings.calendar.enabled) return;
-  const cache = await readCache();
-  const age = cache ? Date.now() - new Date(cache.syncedAt).getTime() : Infinity;
-  if (age < maxAgeMs) return;
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-  await syncCalendar(settings);
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const url = settings.notify.gasEndpointUrl;
+  const token = await getSecret('gas_shared_token');
+  if (!url || !token) return { ok: false, error: '接続設定が終わっていません' };
+
+  const r = await post<{ events: CalendarEvent[] }>(url, {
+    action: 'events',
+    token,
+    days: settings.calendar.lookaheadDays || 7,
+  });
+  if (!r.ok) return { ok: false, error: r.error ?? '取得できませんでした' };
+
+  return { ok: true, count: await applyCalendar(r.events ?? []) };
 }
 
 /** 今日の流れに載せる形にする。終日の予定は時間を持たないので外す */
