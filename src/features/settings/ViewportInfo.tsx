@@ -77,7 +77,7 @@ export function ViewportInfo() {
   return (
     <div className="space-y-2">
       <div className="text-sm font-medium">表示領域</div>
-      <p className="text-[10px] leading-relaxed text-muted-foreground">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         タブバーの位置がずれるときに、原因を切り分けるための数字です。
       </p>
       <div className="divide-y rounded-lg border text-xs">

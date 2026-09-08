@@ -66,7 +66,7 @@ export function RecipeList() {
         action={
           <Link
             to="/recipes/new"
-            className="flex size-8 items-center justify-center rounded-md active:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md active:bg-accent"
             aria-label="足す"
           >
             <Plus className="size-5" />
@@ -84,7 +84,7 @@ export function RecipeList() {
               自作 {mine > 0 && mine}
             </Tab>
           </div>
-          <span className="text-[10px] tabular-nums text-muted-foreground">
+          <span className="text-xs tabular-nums text-muted-foreground">
             献立に使う {active} 品
           </span>
         </div>
@@ -125,7 +125,7 @@ export function RecipeList() {
                 setLimit(PAGE);
               }}
               className={cn(
-                'min-h-9 flex-1 rounded-md border text-xs',
+                'min-h-11 flex-1 rounded-md border text-xs',
                 role === t.value
                   ? 'border-foreground bg-foreground font-medium text-background'
                   : 'border-border text-muted-foreground',
@@ -175,7 +175,7 @@ function Row({ recipe }: { recipe: Recipe }) {
         <div className={cn('truncate text-sm', !on && 'text-muted-foreground line-through')}>
           {recipe.title}
         </div>
-        <div className="text-[10px] tabular-nums text-muted-foreground">
+        <div className="text-xs tabular-nums text-muted-foreground">
           {RECIPE_ROLE_LABELS[recipe.role]} ・ 1食 {Math.round(n.kcal)} kcal ・ P{' '}
           {Math.round(n.proteinG)}g
           {recipe.source !== 'builtin' && ' ・ 自作'}
@@ -209,7 +209,7 @@ function Tab({
       onClick={onClick}
       aria-pressed={on}
       className={cn(
-        'min-h-9 rounded-md border px-3 text-xs',
+        'min-h-11 rounded-md border px-3 text-xs',
         on ? 'border-foreground bg-foreground font-medium text-background' : 'border-border',
       )}
     >

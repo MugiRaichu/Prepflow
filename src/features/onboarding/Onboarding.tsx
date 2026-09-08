@@ -306,7 +306,7 @@ export function Onboarding() {
           {step > 0 ? (
             <button
               onClick={() => setStep(step - 1)}
-              className="-ml-1 flex size-8 items-center justify-center"
+              className="-ml-1 flex size-11 items-center justify-center"
               aria-label="戻る"
             >
               <ChevronLeft className="size-5" />
@@ -427,7 +427,7 @@ export function Onboarding() {
                 ) : (
                   <button
                     onClick={() => setShowAllAllergens(true)}
-                    className="min-h-10 w-full text-xs text-muted-foreground"
+                    className="min-h-11 w-full text-xs text-muted-foreground"
                   >
                     ほかのものも選ぶ
                   </button>
@@ -655,7 +655,7 @@ export function Onboarding() {
               最後だけ言わないと、確定させる画面に見える
             */}
             {cur.key === 'done' && (
-              <p className="text-center text-[10px] text-muted-foreground">
+              <p className="text-center text-xs text-muted-foreground">
                 あとで設定し直せます。
               </p>
             )}
@@ -665,7 +665,7 @@ export function Onboarding() {
 
       <footer className="pf-safe-bottom shrink-0 space-y-2 border-t px-4 py-3">
         {error && (
-          <div className="rounded-md border border-primary/50 p-2 text-[11px] leading-relaxed">
+          <div className="rounded-md border border-primary/50 p-2 text-xs leading-relaxed">
             保存できませんでした（{error}）。もう一度押すか、設定から入り直してください。
           </div>
         )}
@@ -679,7 +679,7 @@ export function Onboarding() {
         <button
           onClick={finish}
           disabled={saving}
-          className="min-h-9 w-full text-xs text-muted-foreground"
+          className="min-h-11 w-full text-xs text-muted-foreground"
         >
           あとで設定する
         </button>
@@ -757,7 +757,7 @@ function Note({ children }: { children: ReactNode }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-base font-semibold tabular-nums">{value}</div>
     </div>
   );
@@ -791,7 +791,7 @@ function Summary({ lines }: { lines: [string, string][] }) {
         <div key={label} className="flex items-start gap-3 px-4 py-3">
           <Check className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] text-muted-foreground">{label}</div>
+            <div className="text-xs text-muted-foreground">{label}</div>
             <div className="text-sm font-medium">{value}</div>
           </div>
         </div>
@@ -827,9 +827,9 @@ export function TargetPreview({ targets }: { targets: Macros }) {
       <div className="grid grid-cols-4 gap-2">
         {items.map((i) => (
           <div key={i.label}>
-            <div className="text-[10px] text-muted-foreground">{i.label}</div>
+            <div className="text-xs text-muted-foreground">{i.label}</div>
             <div className="text-base font-semibold tabular-nums">{i.value}</div>
-            <div className="text-[10px] text-muted-foreground">{i.unit}</div>
+            <div className="text-xs text-muted-foreground">{i.unit}</div>
           </div>
         ))}
       </div>

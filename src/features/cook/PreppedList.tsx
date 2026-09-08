@@ -59,20 +59,20 @@ function EatenToday({
   if (rows.length === 0) return null;
   return (
     <div className="space-y-2">
-      <div className="text-[10px] text-muted-foreground">
+      <div className="text-xs text-muted-foreground">
         今日食べたもの（{rows.length} 件）
       </div>
       <div className="divide-y rounded-lg border">
         {rows.map((c) => (
           <div key={c.id} className="flex items-center gap-3 px-3 py-2.5">
-            <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+            <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
               {c.containerLabel}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-muted-foreground line-through">
                 {c.recipeTitle}
               </span>
-              <span className="block text-[10px] tabular-nums text-muted-foreground">
+              <span className="block text-xs tabular-nums text-muted-foreground">
                 {Math.round(c.grams)}g・{Math.round(c.nutrition.kcal)} kcal
               </span>
             </span>
@@ -84,7 +84,7 @@ function EatenToday({
                   await eatLeftover(c);
                 });
               }}
-              className="min-h-9 shrink-0 rounded-md border px-2.5 text-[11px] text-muted-foreground active:bg-accent"
+              className="min-h-11 shrink-0 rounded-md border px-2.5 text-xs text-muted-foreground active:bg-accent"
             >
               戻す
             </button>
@@ -117,7 +117,7 @@ export function PreppedList() {
   const Group = ({ title, items }: { title: string; items: PreppedItem[] }) =>
     items.length === 0 ? null : (
       <div className="space-y-2">
-        <div className="text-[10px] text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {title}（{items.length} 個）
         </div>
         <div className="divide-y rounded-lg border">
@@ -130,7 +130,7 @@ export function PreppedList() {
                 onClick={() => void eat(c)}
                 className="flex w-full items-center gap-3 px-3 py-3 text-left active:bg-accent"
               >
-                <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold">
+                <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs font-semibold">
                   {c.containerLabel}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -142,7 +142,7 @@ export function PreppedList() {
                     いるのは「今日食べるのはどれか」なので、それを先に出す。
                     期限とグラムは、その下に小さく添える。
                   */}
-                  <span className="mt-0.5 block text-[13px] font-medium tabular-nums">
+                  <span className="mt-0.5 block text-sm font-medium tabular-nums">
                     {c.portion === 'batch'
                       ? '取り分け用' + (c.servingsCount ? '（' + c.servingsCount + '食ぶん）' : '')
                       : plannedDate
@@ -153,7 +153,7 @@ export function PreppedList() {
                   </span>
                   <span
                     className={cn(
-                      'block text-[10px] tabular-nums',
+                      'block text-xs tabular-nums',
                       over || soon ? 'font-medium text-foreground' : 'text-muted-foreground',
                     )}
                   >
@@ -197,7 +197,7 @@ export function PreppedList() {
             action={
               <Link
                 to="/cook"
-                className="mt-1 inline-flex min-h-10 items-center rounded-md border px-4 text-sm"
+                className="mt-1 inline-flex min-h-11 items-center rounded-md border px-4 text-sm"
               >
                 作り置きへ
               </Link>
@@ -226,7 +226,7 @@ export function PreppedList() {
           <Group title="冷凍庫" items={freezer} />
           <Group title="冷蔵庫" items={fridge} />
 
-          <p className="text-[10px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             冷凍したものは、食べる前日に冷蔵へ移してください。
           </p>
 

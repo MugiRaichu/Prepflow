@@ -36,7 +36,7 @@ function CookTabs({
       key={v}
       onClick={() => onChange(v)}
       className={cn(
-        'min-h-9 flex-1 rounded-md text-xs',
+        'min-h-11 flex-1 rounded-md text-xs',
         tab === v ? 'bg-foreground font-medium text-background' : 'text-muted-foreground',
       )}
     >
@@ -243,7 +243,7 @@ export function CookScreen() {
             action={
               <Link
                 to="/plan"
-                className="mt-1 inline-flex min-h-10 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
+                className="mt-1 inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
               >
                 献立を作る
               </Link>
@@ -338,7 +338,7 @@ export function CookScreen() {
         )}
 
         {wake.active && (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Eye className="size-3" />
             画面が消えないようにしています
           </div>
@@ -390,17 +390,17 @@ export function CookScreen() {
           <div>
             <button
               onClick={() => setSwapping(!swapping)}
-              className="min-h-10 w-full text-[11px] text-muted-foreground"
+              className="min-h-11 w-full text-xs text-muted-foreground"
             >
               開けたら傷んでいた・量が足りない
             </button>
             {swapping && (
               <div className="pf-rise mt-2 space-y-3 rounded-lg border p-3">
-                <p className="text-[11px] leading-relaxed">
+                <p className="text-xs leading-relaxed">
                   使えなくなった材料を選んでください。
                   <b>その材料を使わない献立に、今日のぶんから作り直します。</b>
                 </p>
-                <ul className="space-y-0.5 text-[10px] leading-relaxed text-muted-foreground">
+                <ul className="space-y-0.5 text-xs leading-relaxed text-muted-foreground">
                   <li>・すでに作って詰めたぶんは、そのまま残ります</li>
                   <li>・家に余っている食材から先に使います</li>
                   <li>・押しても案が出るだけです。気に入らなければ戻れます</li>
@@ -418,7 +418,7 @@ export function CookScreen() {
                           },
                         })
                       }
-                      className="min-h-10 rounded-md border px-3 text-xs active:bg-accent"
+                      className="min-h-11 rounded-md border px-3 text-xs active:bg-accent"
                     >
                       {ing.name}
                     </button>
@@ -426,7 +426,7 @@ export function CookScreen() {
                 </div>
                 <button
                   onClick={() => setSwapping(false)}
-                  className="min-h-9 w-full text-[10px] text-muted-foreground"
+                  className="min-h-11 w-full text-xs text-muted-foreground"
                 >
                   やめる
                 </button>
@@ -440,12 +440,12 @@ export function CookScreen() {
             <div className="text-xs text-muted-foreground">このあと</div>
             {upcoming.map((t) => (
               <div key={t.id} className="flex gap-3 rounded-md border px-3 py-2">
-                <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-muted-foreground">
+                <span className="w-10 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
                   {fmtClock(t.startSec)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs">{t.label}</div>
-                  <div className="text-[10px] text-muted-foreground">{t.recipeTitle}</div>
+                  <div className="text-xs text-muted-foreground">{t.recipeTitle}</div>
                 </div>
               </div>
             ))}
@@ -455,7 +455,7 @@ export function CookScreen() {
         <div>
           <button
             onClick={() => setShowAll(!showAll)}
-            className="flex min-h-10 w-full items-center justify-center gap-1 rounded-md border text-xs active:bg-accent"
+            className="flex min-h-11 w-full items-center justify-center gap-1 rounded-md border text-xs active:bg-accent"
           >
             全体の段取りを見る
             <ChevronDown className={cn('size-3.5 transition-transform', showAll && 'rotate-180')} />
@@ -474,7 +474,7 @@ export function CookScreen() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-sm font-semibold tabular-nums">{value}</div>
     </div>
   );
@@ -506,7 +506,7 @@ function NextCard({
       <div className="flex items-baseline justify-between">
         <span className="text-xs text-muted-foreground">{task.recipeTitle}</span>
         {task.equipmentName && (
-          <span className="rounded border px-1.5 py-0.5 text-[10px]">{task.equipmentName}</span>
+          <span className="rounded border px-1.5 py-0.5 text-xs">{task.equipmentName}</span>
         )}
       </div>
 
@@ -588,7 +588,7 @@ function RunningPanel({
 
   return (
     <div className="sticky top-12 z-10 space-y-2 border-b bg-background px-4 py-2">
-      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <TimerIcon className="size-3" />
         {ringing > 0 ? (
           <span className="font-medium text-foreground">できあがりました</span>
@@ -618,7 +618,7 @@ function RunningPanel({
 
       {/* 断りを入れるのは、実際に使えないときだけ。使えている人には何も出さない */}
       {blocked && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           通知が止められているので、鳴っても知らせられません。この画面を開いたままにしてください。
         </p>
       )}

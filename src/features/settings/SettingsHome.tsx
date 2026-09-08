@@ -196,7 +196,7 @@ export function SettingsHome() {
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm">{h.label}</span>
                     {/* 行き先を必ず出す。次からは検索せずに辿り着けるようにする */}
-                    <span className="block text-[10px] text-muted-foreground">
+                    <span className="block text-xs text-muted-foreground">
                       設定 › {h.where}
                       {h.folded && ' ›「細かい設定」を開く'}
                     </span>
@@ -211,7 +211,7 @@ export function SettingsHome() {
 
       {groups.map((g) => (
         <section key={g.title}>
-          <h2 className="px-4 pb-1 pt-5 text-[11px] font-medium text-muted-foreground">{g.title}</h2>
+          <h2 className="px-4 pb-1 pt-5 text-xs font-medium text-muted-foreground">{g.title}</h2>
           <div className="divide-y border-y">
             {g.rows.map((r) => (
               <Link key={r.to} to={r.to} className="pf-press flex min-h-14 items-center gap-3 px-4">

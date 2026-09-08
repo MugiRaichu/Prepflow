@@ -73,7 +73,7 @@ export function DataSettings() {
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 空き容量が減ったときに、ブラウザに消される可能性があります。
               </p>
               <button
@@ -86,7 +86,7 @@ export function DataSettings() {
                   );
                   reload();
                 }}
-                className="min-h-10 w-full rounded-md border text-xs active:bg-accent"
+                className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
               >
                 データを保護する
               </button>
@@ -96,7 +96,7 @@ export function DataSettings() {
 
         <div className="space-y-2 rounded-lg border p-4">
           <div className="text-sm font-medium">消えてしまう操作</div>
-          <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+          <ul className="space-y-1.5 text-xs leading-relaxed text-muted-foreground">
             <li>
               ・Chrome の
               <span className="text-foreground">「Cookie と他のサイトデータを削除」</span>
@@ -109,11 +109,11 @@ export function DataSettings() {
               ・<span className="text-foreground">ホーム画面のアイコンを削除</span>する
             </li>
           </ul>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             <span className="text-foreground">「閲覧履歴」だけの削除では消えません。</span>
             履歴とサイトデータは別の区分です。
           </p>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             上の操作は保護していても効きません。備えはファイルへの書き出しだけです。
           </p>
         </div>
@@ -145,7 +145,7 @@ export function DataSettings() {
               <div className="text-xs font-medium">自動で書き出す</div>
               {bk?.hasTarget ? (
                 <>
-                  <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {bk.fileName} に自動で上書きしています。
                     {bk.daysSince != null && bk.daysSince > 0 && ' 前回は' + bk.daysSince + '日前です。'}
                   </p>
@@ -155,14 +155,14 @@ export function DataSettings() {
                       setMsg(ok ? '書き出しました' : '書き込みを許可してください');
                       reload();
                     }}
-                    className="min-h-9 w-full rounded-md border text-[11px] active:bg-accent"
+                    className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
                   >
                     いま書き出す / 許可を取り直す
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     一度選んでおくと、献立を決めたときと買い物を終えたときに自動で上書きします。
                   </p>
                   <button
@@ -171,7 +171,7 @@ export function DataSettings() {
                       setMsg(ok ? '書き出し先を設定しました' : '設定しませんでした');
                       reload();
                     }}
-                    className="min-h-9 w-full rounded-md border text-[11px] active:bg-accent"
+                    className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
                   >
                     書き出し先を選ぶ
                   </button>
@@ -181,7 +181,7 @@ export function DataSettings() {
           )}
 
           {!autoBackupSupported() && bk?.daysSince != null && bk.daysSince >= 14 && (
-            <div className="rounded-md border border-foreground/40 p-3 text-[11px] leading-relaxed">
+            <div className="rounded-md border border-foreground/40 p-3 text-xs leading-relaxed">
               前回の書き出しから {bk.daysSince} 日たっています。
             </div>
           )}
@@ -214,7 +214,7 @@ export function DataSettings() {
             ファイルから戻す
           </button>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             戻すと、いまのデータはすべて置き換わります。
           </p>
         </div>
@@ -230,7 +230,7 @@ export function DataSettings() {
         */}
         <div className="space-y-2 border-t pt-6">
           <div className="text-sm font-medium">最初から始める</div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             端末に貯めたものを全部消して、初期設定からやり直します。
             献立・自作レシピ・撮った写真・買い出しの実績は戻りません。
             {!bk?.lastAt && ' 先に上の「ファイルに書き出す」をしておくと、あとで戻せます。'}
@@ -245,7 +245,7 @@ export function DataSettings() {
               </button>
               <button
                 onClick={() => setConfirmReset(false)}
-                className="min-h-9 w-full text-xs text-muted-foreground"
+                className="min-h-11 w-full text-xs text-muted-foreground"
               >
                 やめる
               </button>

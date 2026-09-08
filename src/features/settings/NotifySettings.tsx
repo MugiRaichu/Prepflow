@@ -121,11 +121,11 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
         <button
           onClick={() => run(() => syncCalendar(settings), (n) => n + ' 件の予定を取り込みました')}
           disabled={busy}
-          className="min-h-10 w-full rounded-md border text-xs active:bg-accent disabled:opacity-40"
+          className="min-h-11 w-full rounded-md border text-xs active:bg-accent disabled:opacity-40"
         >
           予定をいま取り込む
         </button>
-        <div className="text-[10px] text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {lastIn
             ? '最終取り込み ' + new Date(lastIn).toLocaleString('ja-JP')
             : 'まだ取り込んでいません。下の接続設定を済ませてから押してください'}
@@ -154,7 +154,7 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
               <button
                 onClick={() => run(() => publishMenus(settings), (n) => n + ' 件を書きました')}
                 disabled={busy}
-                className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+                className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
               >
                 献立をいま書く
               </button>
@@ -170,12 +170,12 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
                   )
                 }
                 disabled={busy}
-                className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+                className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
               >
                 カレンダーから消す
               </button>
             </div>
-            <div className="text-[10px] leading-relaxed text-muted-foreground">
+            <div className="text-xs leading-relaxed text-muted-foreground">
               {lastOut
                 ? '最終書き出し ' + new Date(lastOut).toLocaleString('ja-JP') + '。'
                 : ''}
@@ -186,7 +186,7 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
         )}
       </div>
 
-      {msg && <div className="text-[11px] text-muted-foreground">{msg}</div>}
+      {msg && <div className="text-xs text-muted-foreground">{msg}</div>}
     </div>
   );
 }
@@ -292,7 +292,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
             )
           }
           disabled={busy || !url || !token}
-          className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+          className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
         >
           疎通を確認
         </button>
@@ -303,7 +303,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
                 run(() => sendTest(url.trim(), token.trim()), () => 'LINE に1通送りました')
               }
               disabled={busy || !url || !token}
-              className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
             >
               テスト送信
             </button>
@@ -323,7 +323,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
                 )
               }
               disabled={busy || !url || !token}
-              className="min-h-10 rounded-md bg-foreground text-xs font-medium text-background disabled:opacity-40"
+              className="min-h-11 rounded-md bg-foreground text-xs font-medium text-background disabled:opacity-40"
             >
               今週を送る
             </button>
@@ -334,7 +334,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
                 )
               }
               disabled={busy || !url || !token}
-              className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
             >
               今日のぶんをいますぐ送る
             </button>
@@ -356,7 +356,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
                   .finally(() => setBusy(false));
               }}
               disabled={busy || !url || !token}
-              className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              className="min-h-11 rounded-md border text-xs active:bg-accent disabled:opacity-40"
             >
               いまの状態を見る
             </button>
@@ -364,10 +364,10 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
         )}
       </div>
 
-      {msg && <div className="text-[11px] text-muted-foreground">{msg}</div>}
+      {msg && <div className="text-xs text-muted-foreground">{msg}</div>}
 
       {status && (
-        <div className="space-y-1 rounded-md border p-3 text-[11px] leading-relaxed">
+        <div className="space-y-1 rounded-md border p-3 text-xs leading-relaxed">
           {/* 分かったことではなく、**次にすること**を先に書く */}
           {status.count === 0 ? (
             <p className="font-medium">献立を預けていません。「今週を送る」を押してください。</p>
@@ -396,7 +396,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
         </div>
       )}
       {settings.notify.lastSyncedAt && (
-        <div className="text-[10px] text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           最終送信 {new Date(settings.notify.lastSyncedAt).toLocaleString('ja-JP')}
         </div>
       )}

@@ -135,7 +135,7 @@ export function WishBar({
         {active && (
           <button
             onClick={() => onChange({ wants: [], avoidTags: [] })}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground"
+            className="flex items-center gap-1 text-xs text-muted-foreground"
           >
             <X className="size-3" />
             クリア
@@ -154,7 +154,7 @@ export function WishBar({
           <span className="w-20 shrink-0 text-xs">{w.tag}</span>
           <button
             onClick={() => setMeals(w.tag, Math.max(w.meals - 1, 1))}
-            className="flex size-9 items-center justify-center rounded-md border active:scale-95"
+            className="flex size-11 items-center justify-center rounded-md border active:scale-95"
             aria-label="減らす"
           >
             <Minus className="size-3.5" />
@@ -162,7 +162,7 @@ export function WishBar({
           <span className="w-12 text-center text-sm font-semibold tabular-nums">{w.meals} 日</span>
           <button
             onClick={() => setMeals(w.tag, Math.min(w.meals + 1, 7))}
-            className="flex size-9 items-center justify-center rounded-md border active:scale-95"
+            className="flex size-11 items-center justify-center rounded-md border active:scale-95"
             aria-label="増やす"
           >
             <Plus className="size-3.5" />
@@ -180,7 +180,7 @@ export function WishBar({
       {extra}
 
       <div className="space-y-1.5">
-        <div className="text-[10px] text-muted-foreground">{timeUnitLabel(mode)}</div>
+        <div className="text-xs text-muted-foreground">{timeUnitLabel(mode)}</div>
         <div className="flex flex-wrap gap-2">
           <Chip on={cap == null} onClick={() => setCap(undefined)}>
             指定なし
@@ -207,7 +207,7 @@ function TagRow({
 }) {
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="flex flex-wrap gap-2">
         {FOOD_TAGS.map((t) => (
           <Chip key={label + t} on={isOn(t)} onClick={() => onTap(t)}>
@@ -233,7 +233,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={on}
       className={cn(
-        'min-h-10 rounded-md border px-3 text-sm active:scale-[0.98]',
+        'min-h-11 rounded-md border px-3 text-sm active:scale-[0.98]',
         on ? 'border-foreground bg-foreground font-medium text-background' : 'border-border',
       )}
     >

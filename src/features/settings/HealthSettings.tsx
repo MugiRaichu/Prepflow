@@ -66,7 +66,7 @@ export function HealthSection() {
           反映していなかった。効くようにするか、やめるかを決めるまで、
           画面には本当のことを書いておく（D-084: 効果の無い入力を置かない）。
         */}
-        <div className="rounded-lg border border-foreground/40 p-3 text-[11px] leading-relaxed">
+        <div className="rounded-lg border border-foreground/40 p-3 text-xs leading-relaxed">
           いまは<b>記録するだけ</b>で、献立や目標カロリーには反映していません。
           歩いたぶんを目標に足す仕組みは、これから作ります。
         </div>
@@ -178,20 +178,20 @@ export function HealthSection() {
                 </div>
               )}
               {pulledAt && (
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   最後に取り込んだのは {new Date(pulledAt).toLocaleString('ja-JP')}
                 </div>
               )}
             </div>
 
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               通るのは日付・歩数・消費カロリーだけです。名前も位置も通しません。
               経由するのは麦さん自身の Apps Script なので、第三者には渡りません。
               オートメーションは端末の状態によって数時間ずれることがありますが、
               翌日にまとめて取り込まれます。
             </p>
             {bodyJson && (
-              <details className="text-[10px] text-muted-foreground">
+              <details className="text-xs text-muted-foreground">
                 <summary className="cursor-pointer">送られる中身（確認用）</summary>
                 <code className="mt-1 block break-all">{bodyJson}</code>
               </details>
@@ -206,12 +206,12 @@ export function HealthSection() {
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">
         {n}
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium">{title}</div>
-        <div className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{children}</div>
+        <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{children}</div>
       </div>
     </div>
   );
@@ -232,9 +232,9 @@ function CopyRow({
   return (
     <button
       onClick={() => onCopy(value)}
-      className="mt-1.5 flex min-h-10 w-full items-center gap-2 rounded-md border px-2.5 text-left active:bg-accent"
+      className="mt-1.5 flex min-h-11 w-full items-center gap-2 rounded-md border px-2.5 text-left active:bg-accent"
     >
-      <span className="min-w-0 flex-1 truncate font-mono text-[10px]">{label ?? value}</span>
+      <span className="min-w-0 flex-1 truncate font-mono text-xs">{label ?? value}</span>
       {copied ? (
         <Check className="size-3.5 shrink-0" />
       ) : (

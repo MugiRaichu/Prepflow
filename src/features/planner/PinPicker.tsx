@@ -60,7 +60,7 @@ export function PinPicker({
         className="flex min-h-11 w-full items-center justify-between rounded-md border px-3 text-left active:bg-accent"
       >
         <span className="text-sm">食べたい料理を指名する</span>
-        <span className="text-[10px] text-muted-foreground">押して探す</span>
+        <span className="text-xs text-muted-foreground">押して探す</span>
       </button>
     );
   }
@@ -75,7 +75,7 @@ export function PinPicker({
             <button
               key={r.id}
               onClick={() => onChange(pinned.filter((id) => id !== r.id))}
-              className="flex min-h-9 items-center gap-1.5 rounded-md border border-primary bg-primary px-2.5 text-xs font-medium text-primary-foreground"
+              className="flex min-h-11 items-center gap-1.5 rounded-md border border-primary bg-primary px-2.5 text-xs font-medium text-primary-foreground"
             >
               {r.title}
               <X className="size-3" />
@@ -112,10 +112,10 @@ export function PinPicker({
                   }}
                   className="flex w-full items-center gap-2.5 px-2.5 py-2 text-left active:bg-accent"
                 >
-                  <DishImage recipe={r} className="size-9" />
+                  <DishImage recipe={r} className="size-11" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs">{r.title}</span>
-                    <span className="block text-[10px] tabular-nums text-muted-foreground">
+                    <span className="block text-xs tabular-nums text-muted-foreground">
                       {RECIPE_ROLE_LABELS[r.role]}・1食 {Math.round(r.nutritionPerServing.kcal)} kcal
                     </span>
                   </span>
@@ -125,7 +125,7 @@ export function PinPicker({
           )}
 
           {q && hits.length === 0 && (
-            <p className="text-[10px] text-muted-foreground">見つかりませんでした。</p>
+            <p className="text-xs text-muted-foreground">見つかりませんでした。</p>
           )}
 
           <button
@@ -133,7 +133,7 @@ export function PinPicker({
               setOpen(false);
               setQuery('');
             }}
-            className={cn('min-h-9 w-full text-[10px] text-muted-foreground')}
+            className={cn('min-h-11 w-full text-xs text-muted-foreground')}
           >
             閉じる
           </button>
@@ -141,14 +141,14 @@ export function PinPicker({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+          className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
         >
           ほかにも指名する
         </button>
       )}
 
       {chosen.length > 0 && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           残りは予算と栄養に合わせて組みます。
           指名が多すぎて組めないときは、指名を外したことを画面に出します。
         </p>

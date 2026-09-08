@@ -107,12 +107,12 @@ export function ReceiptScan({
           記録を取らされているようにしか見えない（D-084）。
           撮ると何が良くなるのかを、具体で書く
         */}
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           撮ると、<b>次の買い出しから見込み金額があなたの店の値段に寄ります</b>。
           品目ごとの実売価格を覚えるので、予算の中で組める献立の幅が広がります。
           日用品が混ざっていても、食材の行だけを拾って合計します。
         </p>
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           撮らなくても献立は作れます（全国の平均的な値段で見積もります）。
           初回だけ読み取りエンジンの準備に少し時間がかかります。
         </p>
@@ -150,7 +150,7 @@ export function ReceiptScan({
         </div>
       )}
 
-      {error && <div className="text-[11px] text-foreground">読み取れませんでした: {error}</div>}
+      {error && <div className="text-xs text-foreground">読み取れませんでした: {error}</div>}
 
       {lines && (
         <ScanResult
@@ -229,9 +229,9 @@ function ScanResult({
         同じ会計で洗剤やティッシュを買っても、食費の実績には入れない
       */}
       <div className="rounded-md border p-3">
-        <div className="text-[10px] text-muted-foreground">今回の食材だけの合計</div>
+        <div className="text-xs text-muted-foreground">今回の食材だけの合計</div>
         <div className="text-lg font-semibold tabular-nums">{yen(foodYen)}</div>
-        <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+        <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
           {total != null && <>レシート全体は {yen(total)}。</>}
           {otherYen > 0 && <> 食材と判断できなかった {yen(otherYen)} は数えていません。</>}
           {foodYen === 0 && '1件も読み取れませんでした。下の欄に手で入れてください。'}
@@ -271,7 +271,7 @@ function ScanResult({
       */}
       {missing.length > 0 && unmatched.length > 0 && (
         <div className="space-y-2 rounded-md border p-3">
-          <div className="text-[10px] leading-relaxed text-muted-foreground">
+          <div className="text-xs leading-relaxed text-muted-foreground">
             {missing.map((i) => i.name).join('・')} が見つかりませんでした。
             この中にあれば押してください。無ければそのままで構いません
             （日用品は数えません）。
@@ -279,15 +279,15 @@ function ScanResult({
           {unmatched.map(({ l, i }) => (
             <div key={i} className="space-y-1 border-t pt-2 first:border-t-0 first:pt-0">
               <div className="flex items-baseline gap-2">
-                <span className="min-w-0 flex-1 truncate text-[11px]">{l.raw}</span>
-                <span className="shrink-0 text-[11px] tabular-nums">{yen(l.priceYen ?? 0)}</span>
+                <span className="min-w-0 flex-1 truncate text-xs">{l.raw}</span>
+                <span className="shrink-0 text-xs tabular-nums">{yen(l.priceYen ?? 0)}</span>
               </div>
               <div className="flex flex-wrap gap-1">
                 {missing.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => onAssign(i, m.ingredientId)}
-                    className="min-h-8 rounded border px-2 text-[11px] active:bg-accent"
+                    className="min-h-11 rounded border px-2 text-xs active:bg-accent"
                   >
                     {m.name}
                   </button>
@@ -298,7 +298,7 @@ function ScanResult({
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">違っていたら撮り直してください。</p>
+      <p className="text-xs text-muted-foreground">違っていたら撮り直してください。</p>
     </div>
   );
 }

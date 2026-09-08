@@ -25,7 +25,12 @@
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前だけに使う筆記体。
+      名前だけに使う書体（Fraunces）。
+
+      **筆記体はやめた。**細くて流れる字は、遠目にも小さい表示にも弱く、
+      名前として立たなかった。Fraunces は明朝寄りの骨格に少しふくらみが
+      あり、線が太いので小さくしても残る。生成りの地と茜の印に、
+      硬すぎず整った字が合う。
 
       **本文には使わない。**読むための文字は system-ui のままにする
       （筆記体の日本語は無いし、英数字も読みにくくなる）。
@@ -40,7 +45,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Parisienne&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&display=swap"
     />
     <title>Prepflow</title>
 
@@ -137,11 +142,12 @@
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
       #pf-splash .pf-words > p.pf-name {
-        /* 筆記体は同じ級数だと小さく見える。字面が細いので少し大きく取る */
-        font-family: 'Parisienne', 'Snell Roundhand', 'Segoe Script', cursive;
-        font-size: 42px;
-        font-weight: 400;
-        line-height: 1.2;
+        font-family: 'Fraunces', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+        font-size: 40px;
+        font-weight: 600;
+        line-height: 1.15;
+        /* 骨格が太いぶん、字間はわずかに詰める。締まって1語に見える */
+        letter-spacing: -0.015em;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -166,10 +172,7 @@
           transform: translateY(-9px);
         }
       }
-      /*
-        筆記体は字が繋がるので、字間を空けると崩れる。
-        詰まりながら定まる動きはやめて、下から静かに出るだけにする。
-      */
+      /* 下から静かに出る。字間をいじる動きは、この書体では崩れて見える */
       @keyframes pf-swap-in {
         from {
           opacity: 0;
@@ -218,7 +221,7 @@
         届かなくても何も起きない。端末の筆記体か cursive に落ちる。
       */
       if (document.fonts && document.fonts.load) {
-        document.fonts.load('400 42px Parisienne').catch(function () {});
+        document.fonts.load('600 40px Fraunces').catch(function () {});
       }
     </script>
     <div id="pf-splash" aria-hidden="true">

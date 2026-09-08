@@ -110,7 +110,7 @@ export function StapleCheck({ list }: { list: ShoppingList }) {
             <div key={p.ingredient.id} className="rounded-lg border p-3">
               <div className="mb-2 flex items-baseline justify-between gap-2">
                 <span className="text-base font-medium">{p.ingredient.name}</span>
-                <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                   {p.daysLeft != null
                     ? p.daysLeft <= 14
                       ? 'あと' + p.daysLeft + '日ぶんの見込み'
@@ -152,7 +152,7 @@ export function StapleCheck({ list }: { list: ShoppingList }) {
             <span className="text-xs font-medium">切らしたものを選んでください</span>
             <button
               onClick={() => setShowAll(false)}
-              className="flex items-center gap-1 text-[10px] text-muted-foreground"
+              className="flex items-center gap-1 text-xs text-muted-foreground"
             >
               <X className="size-3" />
               閉じる
@@ -166,7 +166,7 @@ export function StapleCheck({ list }: { list: ShoppingList }) {
                   await markDepleted(i.id);
                   await addToList(i);
                 }}
-                className="min-h-10 rounded-md border px-3 text-xs active:scale-[0.98]"
+                className="min-h-11 rounded-md border px-3 text-xs active:scale-[0.98]"
               >
                 {i.name}
                 <span className="ml-1 text-[9px] text-muted-foreground">

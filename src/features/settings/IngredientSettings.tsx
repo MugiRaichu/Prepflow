@@ -47,7 +47,7 @@ export function IngredientSettings() {
         action={
           <button
             onClick={() => setAdding(!adding)}
-            className="flex size-8 items-center justify-center rounded-md active:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md active:bg-accent"
             aria-label="足す"
           >
             <Plus className="size-5" />
@@ -111,7 +111,7 @@ function IngredientRow({ ing }: { ing: Ingredient }) {
     <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm">{ing.name}</div>
-        <div className="text-[10px] tabular-nums text-muted-foreground">
+        <div className="text-xs tabular-nums text-muted-foreground">
           100g {Math.round(n.kcal)} kcal ・ P {n.proteinG}g ・ F {n.fatG}g ・ C {n.carbG}g
         </div>
       </div>
@@ -266,7 +266,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
             className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-base outline-none"
           />
 
-          <div className="text-[11px] tabular-nums text-muted-foreground">
+          <div className="text-xs tabular-nums text-muted-foreground">
             100gあたり {kcal} kcal ・ P {protein}g ・ F {fat}g ・ C {carb}g
           </div>
 
@@ -274,7 +274,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
           {!detail ? (
             <button
               onClick={() => setDetail(true)}
-              className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+              className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
             >
               パッケージの表示と違う → 詳しく直す
             </button>
@@ -295,7 +295,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
                   <Stepper value={carb} onChange={setCarb} step={1} min={0} max={100} suffix="g" />
                 </Row>
                 {off > 0.15 && (
-                  <div className="rounded-md border border-foreground/40 p-2.5 text-[11px] leading-relaxed">
+                  <div className="rounded-md border border-foreground/40 p-2.5 text-xs leading-relaxed">
                     P・F・C から計算すると {Math.round(computed)} kcal です。書いてある値と離れているので、写し間違いがあるかもしれません。
                   </div>
                 )}
@@ -352,7 +352,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
       )}
 
       {!preset && (
-        <button onClick={onDone} className="min-h-10 w-full rounded-md border text-xs active:bg-accent">
+        <button onClick={onDone} className="min-h-11 w-full rounded-md border text-xs active:bg-accent">
           やめる
         </button>
       )}

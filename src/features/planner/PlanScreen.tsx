@@ -201,7 +201,7 @@ export function PlanScreen() {
           cands && cands.length > 1 ? (
             <button
               onClick={() => setIdx((idx + 1) % cands.length)}
-              className="flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-xs active:bg-accent"
+              className="flex min-h-11 items-center gap-1.5 rounded-md border px-3 text-xs active:bg-accent"
             >
               <RefreshCw className="size-3.5" />
               別の案
@@ -253,7 +253,7 @@ export function PlanScreen() {
                     <div className="font-medium">指定はすべて叶っています</div>
                   )}
                   {others > 0 && (
-                    <div className="mt-1 text-[10px] text-muted-foreground">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       ほかに {others} 件、品数や栄養の幅をこちらで調整しました。
                       アレルギーと保存日数は緩めていません。
                     </div>
@@ -285,7 +285,7 @@ export function PlanScreen() {
           在庫が効いた結果と、直す導線は、案が出たあとに置いてある。
         */}
         {!cands && dropped.length > 0 && (
-          <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
+          <div className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground">
             日持ちが過ぎた <b className="text-foreground">{dropped.join('・')}</b> は、
             もう無いものとして扱いました。
             <Link to="/stock" className="ml-1 underline underline-offset-2">
@@ -310,7 +310,7 @@ export function PlanScreen() {
                   key={o.date}
                   onClick={() => setStartDate(o.date)}
                   className={cn(
-                    'min-h-10 shrink-0 rounded-md border px-2.5 text-[11px] tabular-nums',
+                    'min-h-11 shrink-0 rounded-md border px-2.5 text-xs tabular-nums',
                     o.date === startDate
                       ? 'border-foreground bg-foreground font-medium text-background'
                       : 'text-muted-foreground',
@@ -323,14 +323,14 @@ export function PlanScreen() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground">何日ぶん</span>
+              <span className="text-xs text-muted-foreground">何日ぶん</span>
               <div className="flex flex-1 gap-1">
                 {Array.from({ length: MAX_PLAN_DAYS }, (_, i) => i + 1).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDays(d)}
                     className={cn(
-                      'min-h-9 flex-1 rounded-md border text-[11px] tabular-nums',
+                      'min-h-11 flex-1 rounded-md border text-xs tabular-nums',
                       d === days
                         ? 'border-foreground bg-foreground font-medium text-background'
                         : 'text-muted-foreground',
@@ -341,7 +341,7 @@ export function PlanScreen() {
                 ))}
               </div>
             </div>
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               作り置きは7日を超えて持たないので、ここが上限です。
               「・」は作り置きの曜日です。
             </p>
@@ -395,7 +395,7 @@ export function PlanScreen() {
                       void generate(next);
                     }}
                     disabled={busy}
-                    className="min-h-10 w-full rounded-md bg-foreground text-xs font-medium text-background disabled:opacity-50"
+                    className="min-h-11 w-full rounded-md bg-foreground text-xs font-medium text-background disabled:opacity-50"
                   >
                     {Math.ceil(minFeasible)}分で作る
                   </button>
@@ -529,7 +529,7 @@ function SavedPlanCard({
           {/* 1案ずつ深く見る画面と、全体を一度に見る画面は役割が違う */}
           <Link
             to="/week"
-            className="flex min-h-10 items-center justify-center gap-1.5 rounded-md border text-xs active:bg-accent"
+            className="flex min-h-11 items-center justify-center gap-1.5 rounded-md border text-xs active:bg-accent"
           >
             <CalendarRange className="size-3.5" />
             1週間ぶんを並べて見る
@@ -543,7 +543,7 @@ function SavedPlanCard({
                 <div className="text-sm leading-snug">
                   {m.items.map((i) => i.recipeTitle).join(' + ')}
                 </div>
-                <div className="text-[10px] tabular-nums text-muted-foreground">
+                <div className="text-xs tabular-nums text-muted-foreground">
                   {Math.round(m.nutrition.kcal)} kcal ・ P {Math.round(m.nutrition.proteinG)}g
                 </div>
               </div>
@@ -573,7 +573,7 @@ function SavedPlanCard({
             <RefreshCw className="size-3.5" />
             {daily ? '今日からの献立を変える' : '残り' + remainingDays + '日ぶんを作り直す'}
           </button>
-          <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
             {daily
               ? '作って食べたぶんはそのままです。'
               : '作って詰めたぶんはそのまま残します。' +
@@ -627,7 +627,7 @@ function CandidateView({
         <div className="text-xs text-muted-foreground">
           {formatDateJa(ctx.weekStart)} から {ctx.meals} 食分{ctx.replan ? 'を作り直し' : ''}
         </div>
-        <div className="text-[10px] tabular-nums text-muted-foreground">
+        <div className="text-xs tabular-nums text-muted-foreground">
           案 {index + 1} / {total}
         </div>
       </div>
@@ -764,7 +764,7 @@ function CandidateView({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-sm font-semibold tabular-nums">{value}</div>
     </div>
   );
@@ -793,7 +793,7 @@ function DishList({
               </span>
             </div>
             {it.recipe.summary && (
-              <div className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
+              <div className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                 {it.recipe.summary}
               </div>
             )}
@@ -835,7 +835,7 @@ function DailyMenu({
                 <div className="text-sm leading-snug">
                   {portions.map((p) => p.recipe.title).join(' + ')}
                 </div>
-                <div className="text-[10px] tabular-nums text-muted-foreground">
+                <div className="text-xs tabular-nums text-muted-foreground">
                   {Math.round(n.kcal)} kcal ・ P {Math.round(n.proteinG)}g
                 </div>
               </div>

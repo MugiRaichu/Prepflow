@@ -1,10 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Prepflow icon: 黒地に白線。3段の「作り置き」と右へ流れる「flow」 -->
-  <rect width="512" height="512" fill="#000000"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M112 152 H400"/>
-    <path d="M112 256 H304"/>
-    <path d="M112 360 H208"/>
-    <path d="M336 312 L384 360 L336 408"/>
+  <!--
+    Prepflow のアイコン。
+
+    白黒だった頃のまま、黒地に白線だった。いまの色（生成り・墨・茜）と
+    合っていないうえ、ホーム画面に並ぶと沈む。
+
+    地を茜（差し色）、線を生成りにする。**線より地で目立たせる。**
+    細い線のアイコンは 40px まで縮むと消えるが、面なら残る。
+
+    形は変えない。3本の線は「作り置き」（作った品が並ぶ）、
+    右の矢は「flow」（それが平日へ流れていく）。名前そのものの意味なので、
+    見た目のために別の絵に替えない。
+
+    直したのは目の収まりだけ:
+      ・線の長さを 3:2:1 に整える（前は 288:192:96 でほぼ同じ比だが端が揃わず）
+      ・矢を線の右端にそろえ、真ん中の線と同じ高さに置く
+      ・線を太くして、小さくしたときに残るようにする
+    マスク（丸く切られる形）を考えて、中身は中央 68% に収める。
+  -->
+  <rect width="512" height="512" fill="#a4483b"/>
+  <g fill="none" stroke="#faf7f2" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M132 168 H380"/>
+    <path d="M132 256 H296"/>
+    <path d="M132 344 H212"/>
+    <path d="M312 212 L356 256 L312 300"/>
   </g>
 </svg>
