@@ -39,9 +39,23 @@ export default function App() {
    * 使う側からは「押したら真っ白になった」としか見えない。
    */
   const [slow, setSlow] = useState(false);
+  /*
+   * 待っている理由が分かっているなら、そう書く。
+   * 「別のタブが古い版を開いたままで、入れ替えを待っている」は main.tsx が印を付ける
+   */
+  const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setSlow(true), 4000);
-    return () => window.clearTimeout(t);
+    const b = window.setInterval(() => {
+      if (document.documentElement.dataset['pfBlocked'] === '1') {
+        setBlocked(true);
+        setSlow(true);
+      }
+    }, 500);
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(b);
+    };
   }, []);
 
   if (settings === undefined) {
@@ -54,10 +68,13 @@ export default function App() {
     return (
       <div className="pf-shell overflow-y-auto bg-background text-foreground">
         <div className="mx-auto max-w-md space-y-4 p-6">
-          <h1 className="text-xl font-semibold">開くのに時間がかかっています</h1>
+          <h1 className="text-xl font-semibold">
+            {blocked ? 'ほかの画面で開いたままです' : '開くのに時間がかかっています'}
+          </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            ほかの画面で Prepflow を開いたままだと、ここで待つことがあります。
-            そちらを閉じてから、開き直してください。
+            {blocked
+              ? '別のタブかウィンドウで Prepflow が開いています。そちらを閉じると、こちらが動き出します。'
+              : 'ほかの画面で Prepflow を開いたままだと、ここで待つことがあります。そちらを閉じてから、開き直してください。'}
           </p>
           <button
             onClick={() => location.reload()}

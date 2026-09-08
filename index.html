@@ -647,14 +647,46 @@
           true
         );
 
+        /*
+          **まず黙って直してみる。**
+
+          止まる原因のほとんどは、入れ替えに失敗した Service Worker が
+          古い組み合わせを返していること。捨てて取り直せば直る。
+          そこまで自動でやれば、多くの人はそもそも何も見ずに済む。
+
+          ただし**1回だけ**。sessionStorage に印を付け、
+          もう一度止まったときは自動で繰り返さず、画面に出して人に渡す
+          （繰り返すと、開き直しの無限ループになる）。
+        */
+        var HEALED = 'pf-healed';
+
+        function healedAlready() {
+          try {
+            return sessionStorage.getItem(HEALED) === '1';
+          } catch (e) {
+            return true; // 印を残せない環境では自動で直さない
+          }
+        }
+
+        function markHealed() {
+          try {
+            sessionStorage.setItem(HEALED, '1');
+          } catch (e) {}
+        }
+
         window.setTimeout(function () {
           var root = document.getElementById('root');
-          if (root && root.childElementCount === 0) {
-            panel(
-              'アプリを開けませんでした',
-              '読み込みの途中で止まりました。記録したものは残っています。'
-            );
+          if (!root || root.childElementCount > 0) return;
+
+          if (!healedAlready()) {
+            markHealed();
+            reinstall();
+            return;
           }
+          panel(
+            'アプリを開けませんでした',
+            '読み込みの途中で止まりました。記録したものは残っています。'
+          );
         }, WAIT_MS);
       })();
     </script>
