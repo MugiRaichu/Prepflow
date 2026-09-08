@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { db } from '@/db/db';
+import { ContainerGauge } from './ContainerGauge';
 
 /**
  * 容器が足りるかを、買い出しのときに知らせる。
@@ -48,12 +49,13 @@ export function ContainerCheck() {
 
   return (
     <div className="space-y-2 rounded-lg border p-4">
-      <div className="text-sm font-medium">
-        容器が {short} 個足りません
-        <span className="ml-1.5 text-[10px] font-normal tabular-nums text-muted-foreground">
-          要 {need.length} / 登録 {have}
-        </span>
-      </div>
+      {/*
+        **数だけ言わない。**「容器が7個足りません」と出していたが、
+        7を「今週の食事のうち7食ぶん」に翻訳し、そこから「皿を7枚出す」まで
+        持っていく作業を人にやらせていた（本人指摘）。
+        升が順に埋まり、足りない側に皿が出てくる絵にする。
+      */}
+      <ContainerGauge need={need.length} have={have} />
 
       <p className="text-[11px] leading-relaxed text-muted-foreground">
         買い足さなくても回せます。上から順に試してください。

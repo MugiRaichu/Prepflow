@@ -227,6 +227,69 @@
    * ブラウザのタブでは逆に `vh` がアドレスバーを畳んだ高さになり、
    * タブバーが画面外へ出る。だから standalone のときだけ切り替える。
    */
+
+  /*
+   * 容器の過不足の絵（ContainerGauge）。
+   *
+   * 順に埋まることに意味がある。一度に全部出すと「多い」しか残らないが、
+   * 順に埋まると「ここまでは容器、ここからは皿」という切れ目が見える。
+   * だから delay をずらして、左から1つずつ入る。
+   */
+  .pf-fill-drop {
+    transform-origin: 50% 100%;
+    animation: pf-fill-drop 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes pf-fill-drop {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scaleY(0.2);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .pf-gauge-split {
+    animation: pf-fade-in 260ms ease both;
+  }
+
+  /* 容器が尽きたあと、そこに皿が出てくる。逃げ道を絵の中で見せる */
+  .pf-plate-in {
+    transform-origin: 50% 70%;
+    animation: pf-plate-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes pf-plate-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes pf-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 動きが苦手な人には、最後の状態だけを静かに置く */
+  @media (prefers-reduced-motion: reduce) {
+    .pf-fill-drop,
+    .pf-gauge-split,
+    .pf-plate-in {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   @media (display-mode: standalone), (display-mode: fullscreen) {
     .pf-shell {
       height: 100vh;
