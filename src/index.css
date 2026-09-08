@@ -305,11 +305,52 @@
     }
   }
 
+  /*
+   * 「食べた」を押したとき。**食べたものが、そのままカロリーの帯になる。**
+   *
+   * 押しても小さく「食べた」と出るだけでは、何が起きたのか分からない
+   * （初めて見た人には、そもそも押せる場所だと分からなかった）。
+   * 料理の絵が縮んで沈み、その下から帯が左へ伸びる。
+   * 押したものが数字のどこへ行ったのかが、そのまま目で追える。
+   */
+  .pf-eat-settle {
+    animation: pf-eat-settle 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  @keyframes pf-eat-settle {
+    0% {
+      transform: none;
+    }
+    45% {
+      transform: translateY(3px) scale(0.94);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  /* 帯は左から伸びる。幅ではなく scaleX なので、途中で折り返さない */
+  .pf-eat-grow {
+    transform-origin: left center;
+    animation: pf-eat-grow 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 160ms both;
+  }
+
+  @keyframes pf-eat-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
   /* 動きが苦手な人には、最後の状態だけを静かに置く */
   @media (prefers-reduced-motion: reduce) {
     .pf-fill-drop,
     .pf-gauge-split,
-    .pf-plate-in {
+    .pf-plate-in,
+    .pf-eat-settle,
+    .pf-eat-grow {
       animation: none;
       opacity: 1;
       transform: none;
