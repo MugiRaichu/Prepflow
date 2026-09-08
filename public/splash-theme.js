@@ -208,6 +208,90 @@
         fill: col
       });
     },
+    // --- 幾何のかたち -----------------------------------------------------
+    /*
+      **円・弧・三角・四角だけで作る。**
+
+      有機的な絵（花・葉・雪）は、小さく薄くすると何なのか分からなくなり、
+      密に並べると集合体に見えた。幾何の形は縮んでも形が保たれ、
+      数を減らしても画面がもつ。
+
+      温かみは**色と重なり**で出す。地は生成り、形は食材の色。
+      重なったところが濃くなるように（multiply）してあるので、
+      版画を刷り重ねたような濁りが出る。**均一な塗りは冷たい。**
+      角はすべて丸め、大きさと角度をわずかにばらす。
+    */
+    /** 弧。太い線で、円の一部だけ */
+    arc: function (x, y, r, col) {
+      var a0 = rnd(0, 6.28), sweep = rnd(1.2, 3.6);
+      return svg('path', {
+        d: 'M' + n1(x + Math.cos(a0) * r) + ' ' + n1(y + Math.sin(a0) * r) +
+           ' A ' + n1(r) + ' ' + n1(r) + ' 0 ' + (sweep > 3.14 ? 1 : 0) + ' 1 ' +
+           n1(x + Math.cos(a0 + sweep) * r) + ' ' + n1(y + Math.sin(a0 + sweep) * r),
+        stroke: col, 'stroke-width': n1(r * 0.34), fill: 'none', 'stroke-linecap': 'round'
+      });
+    },
+    /** 半円。まっすぐな辺を下に */
+    halfDisc: function (x, y, r, col) {
+      return svg('path', {
+        d: 'M' + n1(x - r) + ' ' + n1(y) + ' A ' + n1(r) + ' ' + n1(r) + ' 0 0 1 ' +
+           n1(x + r) + ' ' + n1(y) + ' Z',
+        fill: col, transform: 'rotate(' + n0(pick([0, 90, 180, 270])) + ' ' + n0(x) + ' ' + n0(y) + ')'
+      });
+    },
+    /** 三角。角を丸めて、とがらせない */
+    tri: function (x, y, r, col) {
+      return svg('path', {
+        d: 'M' + n1(x) + ' ' + n1(y - r) + ' L ' + n1(x + r * 0.9) + ' ' + n1(y + r * 0.62) +
+           ' L ' + n1(x - r * 0.9) + ' ' + n1(y + r * 0.62) + ' Z',
+        fill: col, 'stroke-linejoin': 'round', stroke: col, 'stroke-width': n1(r * 0.3),
+        transform: 'rotate(' + n0(rnd(-14, 14)) + ' ' + n0(x) + ' ' + n0(y) + ')'
+      });
+    },
+    /** 四角。角を丸める */
+    square: function (x, y, r, col) {
+      return svg('rect', {
+        x: n1(x - r), y: n1(y - r), width: n1(r * 2), height: n1(r * 2),
+        rx: n1(r * 0.34), fill: col,
+        transform: 'rotate(' + n0(rnd(-10, 10)) + ' ' + n0(x) + ' ' + n0(y) + ')'
+      });
+    },
+    /** 太い輪。中が抜けた円 */
+    band: function (x, y, r, col) {
+      return svg('circle', {
+        cx: n1(x), cy: n1(y), r: n1(r), fill: 'none', stroke: col, 'stroke-width': n1(r * 0.42)
+      });
+    },
+    /** 棒。横にも縦にも寝かせる */
+    bar: function (x, y, r, col) {
+      var long = r * rnd(2.2, 4.2);
+      return svg('rect', {
+        x: n1(x - long / 2), y: n1(y - r * 0.34), width: n1(long), height: n1(r * 0.68),
+        rx: n1(r * 0.34), fill: col,
+        transform: 'rotate(' + n0(pick([0, 0, 90, 45, -45])) + ' ' + n0(x) + ' ' + n0(y) + ')'
+      });
+    },
+    /** 扇。円の一片 */
+    sector: function (x, y, r, col) {
+      var a0 = rnd(0, 6.28), sw = rnd(0.7, 1.6);
+      return svg('path', {
+        d: 'M' + n1(x) + ' ' + n1(y) + ' L ' + n1(x + Math.cos(a0) * r) + ' ' + n1(y + Math.sin(a0) * r) +
+           ' A ' + n1(r) + ' ' + n1(r) + ' 0 0 1 ' +
+           n1(x + Math.cos(a0 + sw) * r) + ' ' + n1(y + Math.sin(a0 + sw) * r) + ' Z',
+        fill: col, 'stroke-linejoin': 'round'
+      });
+    },
+    /** への字。2本の線が折れる */
+    chevron: function (x, y, r, col) {
+      return svg('path', {
+        d: 'M' + n1(x - r) + ' ' + n1(y + r * 0.5) + ' L ' + n1(x) + ' ' + n1(y - r * 0.5) +
+           ' L ' + n1(x + r) + ' ' + n1(y + r * 0.5),
+        stroke: col, 'stroke-width': n1(r * 0.34), fill: 'none',
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+        transform: 'rotate(' + n0(pick([0, 90, 180, 270])) + ' ' + n0(x) + ' ' + n0(y) + ')'
+      });
+    },
+
     /** 四芒星。またたきに使う */
     star: function (x, y, r, col) {
       return svg('path', {
@@ -390,9 +474,57 @@
     ]
   };
 
+  /*
+    いま使うのは幾何のほう。**季節のぶんはしまってある**（SEASON、本人判断）。
+    消していないのは、いつでも戻せるようにするため——データなので、
+    使う側の1行を差し替えれば入れ替わる。
+
+    幾何にした理由は、有機的な絵が小さく薄いと何なのか分からず、
+    密に並べると集合体に見えたこと。円・弧・三角・四角は縮んでも形が保たれる。
+    温かみは**色と重なり**で出す（下の GEO と、CSS の mix-blend-mode）。
+  */
+  var GEO = [
+    // 1. 円がふくらむ。大きさをばらして、重なりで濃淡を作る
+    ['まる', [{ shape: 'band', motion: 'pop', cols: 4, rows: 8, r: [16, 46],
+                col: [C.akane, C.grain, C.fish, C.veg], o: 0.42, step: 40, avoidText: 1 }]],
+    // 2. 弧が方々に描かれる。線だけなので軽い
+    ['弧', [{ shape: 'arc', motion: 'grow', cols: 4, rows: 9, r: [22, 60],
+              col: [C.akane, C.soy, C.fish], o: 0.5, step: 45 }]],
+    // 3. 市松。四角が拍を刻んで現れる
+    ['市松', [{ shape: 'square', motion: 'pop', cols: 5, rows: 10, r: [14, 26],
+                col: [C.grain, C.soy, C.meat], o: 0.38, step: 34, skip: 0.4, avoidText: 1 }]],
+    // 4. 半円のならび。うろこ・アーチのような繰り返し
+    ['半円', [{ shape: 'halfDisc', motion: 'pop', cols: 5, rows: 11, r: [16, 30],
+                col: [C.akane, C.egg, C.veg], o: 0.4, step: 30, skip: 0.3, avoidText: 1 }]],
+    // 5. 三角のやま。下から立ち上がる
+    ['やま', [{ shape: 'tri', motion: 'rise', n: 26, r: [16, 34],
+                col: [C.veg, C.soy, C.grain], o: 0.42, step: 55 }]],
+    // 6. 棒が散る。長さと角度がばらけて、編み目に見える
+    ['棒', [{ shape: 'bar', motion: 'burst', cols: 5, rows: 11, r: [7, 14],
+              col: [C.akane, C.fish, C.grain, C.veg], o: 0.45, step: 26, avoidText: 1 }]],
+    // 7. 扇。中央から放射する一片
+    ['扇', [{ shape: 'sector', motion: 'burst', cols: 4, rows: 9, r: [20, 44],
+              col: [C.akane, C.grain, C.meat], o: 0.4, step: 34, avoidText: 1 }]],
+    // 8. への字。折れ線が並ぶと、編み地の模様になる
+    ['への字', [{ shape: 'chevron', motion: 'grow', cols: 5, rows: 11, r: [14, 26],
+                  col: [C.soy, C.fish, C.akane], o: 0.5, step: 28 }]],
+    // 9. 落ちる四角。まっすぐ落ちず、揺れて回る
+    ['こもん', [{ shape: 'square', motion: 'fall', n: 26, r: [10, 20],
+                  col: [C.akane, C.grain, C.veg, C.fish], o: 0.45, step: 30 }]],
+    // 10. 風に流れる弧
+    ['なびき', [{ shape: 'arc', motion: 'wind', n: 24, r: [20, 48],
+                  col: [C.soy, C.akane, C.grain], o: 0.45, step: 30 }]],
+    // 11. 大きな円と小さな棒。粗密の差で奥行きを出す
+    ['まると棒', [{ at: STAGE1, shape: 'band', motion: 'pop', n: 10, r: [34, 70],
+                    col: [C.grain, C.cream], o: 0.3, step: 70 },
+                  { shape: 'bar', motion: 'pop', cols: 5, rows: 10, r: [7, 13],
+                    col: [C.akane, C.fish], o: 0.45, step: 26, avoidText: 1 }]]
+  ];
+
   var m = new Date().getMonth() + 1;
   var key = m <= 2 || m === 12 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn';
-  var list = SEASON[key];
+  // いま出すのは幾何のほう。季節（SEASON）はしまってある
+  var list = GEO;
   var t = list[(R() * list.length) | 0];
 
   /*
@@ -403,6 +535,9 @@
   try {
     var want = new URLSearchParams(location.search).get('bloom');
     if (want) {
+      for (var gi = 0; gi < GEO.length; gi++) {
+        if (GEO[gi][0] === want) t = GEO[gi];
+      }
       for (var sk in SEASON) {
         for (var si = 0; si < SEASON[sk].length; si++) {
           if (SEASON[sk][si][0] === want) { t = SEASON[sk][si]; key = sk; }
