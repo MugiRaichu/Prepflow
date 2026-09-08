@@ -1,5 +1,5 @@
 /**
- * Prepflow — IndexedDB スキーマ（型定義）
+ * オヒツ — IndexedDB スキーマ（型定義）
  *
  * 設計方針
  * 1. ユーザー固有値は一切ハードコードしない。すべてこのスキーマ上のレコードとして保持する。
@@ -1067,7 +1067,7 @@ export interface CalendarSettings {
   lastSyncedAt?: ISODateTime;
   /**
    * 献立を Google カレンダーに書き出すか。
-   * 書く先は「Prepflow」という専用カレンダーだけ。他のカレンダーには触れない。
+   * 書く先は「オヒツ」という専用カレンダーだけ。他のカレンダーには触れない。
    * 書くのは日付・時刻・料理名（と kcal・P）。買い物の中身や体重は書かない。
    */
   publishEnabled?: boolean;

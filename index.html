@@ -22,22 +22,22 @@
       env(safe-area-inset-top) から取る（src/index.css の .pf-shell / .pf-safe-top）。
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Prepflow" />
+    <meta name="apple-mobile-web-app-title" content="オヒツ" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
 
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前に使う書体（Quicksand）。
+      名前に使う書体（Klee One）。
 
-      **温かみとレトロ**（本人指定。「インスタグラムのような」）。
-      角を丸めた幾何学的な骨格で、70年代の丸ゴシックの気配がありながら、
-      字面は整っていて小さくしても崩れない。
-      筆記体（流れて読めない）とも、明朝寄り（硬い）とも違う方向。
+      **手書き風**（本人指定）。ペンで書いた骨格の書体で、
+      崩し字ではないので小さくしても読める——**手書き風と筆記体は別もの**。
+      仮名も欧文も同じ手で書かれているので、「オヒツ」と "Ohitsu" が
+      並んでも字が揃う。
 
       **本文には使わない。**読むための文字は端末のゴシックのまま
       （日本語を持たない書体なので、混ぜると和文だけ別の字になる）。
-      使うのは「Prepflow」の8文字だけ。
+      使うのは名前（Ohitsu）だけ。
 
       取れなくても止まらない。`display=swap` で、届くまでは端末のゴシックが出る。
       一度取れたぶんは Service Worker が持つので、次からは通信なしで出る。
@@ -46,9 +46,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap"
     />
-    <title>Prepflow</title>
+    <title>オヒツ</title>
 
     <!--
       起動画面。
@@ -142,7 +142,7 @@
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
       #pf-splash .pf-words > p.pf-name {
-        font-family: 'Quicksand', system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+        font-family: 'Klee One', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         font-size: 40px;
         /*
          * **細く、広く。**太くして詰めると「立つ」が、同時に重くなる。
@@ -150,12 +150,12 @@
          * 太さを 600 → 400 に落とし、字間を詰めから広げに転じる。
          * 字が細いぶん、間を空けても1語のまとまりは崩れない。
          */
-        /* 丸い骨格は細いと痩せて見える。600 で置くと、太らずに温かさだけ残る */
+        /* ペンの線は細い。600 で置くと、手書きの気配を残したまま字が立つ */
         font-weight: 600;
         line-height: 1.15;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.02em;
         /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-        text-indent: 0.06em;
+        text-indent: 0.02em;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -248,7 +248,7 @@
         伸びる・散る・降る・昇る・またたく・弾む、で分けてある。
 
         どれも**地の生成りに薄く重ねる**（0.5前後）。名前と印の上を
-        通るので、濃く乗せると Prepflow が読めなくなる。
+        通るので、濃く乗せると名前が読めなくなる。
       */
       /*
         動きは6つ。**形ではなく動きで分ける**——形だけ変えても、同じ向きに
@@ -483,7 +483,7 @@
         届かなくても何も起きない。端末のゴシックのまま出る。
       */
       if (document.fonts && document.fonts.load) {
-        document.fonts.load('600 40px Quicksand').catch(function () {});
+        document.fonts.load('600 40px \'Klee One\'').catch(function () {});
       }
     </script>
     <div id="pf-splash" aria-hidden="true">
@@ -510,7 +510,7 @@
       </svg>
       <div class="pf-words">
         <p class="pf-tagline">食と暮らしに寄り添う。</p>
-        <p class="pf-name">Prepflow</p>
+        <p class="pf-name">Ohitsu</p>
       </div>
     </div>
     <!--

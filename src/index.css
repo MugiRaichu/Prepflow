@@ -246,12 +246,12 @@
    * 名前は読ませるものなので、整えるのは字間と太さだけにする。
    */
   .pf-wordmark {
-    font-family: 'Quicksand', system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
-    /* 丸い骨格は細いと痩せて見える。600 で置くと、太らずに温かさだけ残る */
+    font-family: 'Klee One', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    /* ペンの線は細い。600 で置くと、手書きの気配を残したまま字が立つ */
     font-weight: 600;
-    letter-spacing: 0.06em;
-    /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-    text-indent: 0.06em;
+    /* 手書きは字ごとに幅が違う。空けすぎると崩れるので、ほんの少しだけ */
+    letter-spacing: 0.02em;
+    text-indent: 0.02em;
   }
 
   .pf-shell {

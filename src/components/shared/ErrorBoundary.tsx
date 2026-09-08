@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     // 開発中はコンソールに出す。本番では出しても読む人がいない
-    if (import.meta.env.DEV) console.error('[Prepflow]', error, info.componentStack);
+    if (import.meta.env.DEV) console.error('[Ohitsu]', error, info.componentStack);
   }
 
   override render(): ReactNode {

@@ -78,7 +78,7 @@ export function FamilyScreen() {
     // 端末の共有シートが出る。LINE でもメールでも、その人が使うもので送れる
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Prepflow の共有', text: 'これを開くと同じ献立が見られます', url: invite });
+        await navigator.share({ title: 'オヒツ の共有', text: 'これを開くと同じ献立が見られます', url: invite });
         return;
       } catch {
         // 送るのをやめただけ。コピーに落とす

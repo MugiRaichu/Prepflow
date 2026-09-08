@@ -12,7 +12,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
  * Service Worker。
  *
  * 自前で書いているのは**共有シートから受け取るため**だけ。
- * 「レシピを見ているアプリの共有メニューから Prepflow に投げる」を成立させるには、
+ * 「レシピを見ているアプリの共有メニューから オヒツ に投げる」を成立させるには、
  * 共有された画像を POST で受け取る口が要る。POST を受けられるのは SW だけなので、
  * 生成まかせ（generateSW）ではここが作れない。
  *
