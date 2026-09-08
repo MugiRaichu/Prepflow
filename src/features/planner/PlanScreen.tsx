@@ -573,11 +573,14 @@ function SavedPlanCard({
             <RefreshCw className="size-3.5" />
             {daily ? '今日からの献立を変える' : '残り' + remainingDays + '日ぶんを作り直す'}
           </button>
-          <p className="text-center text-xs leading-relaxed text-muted-foreground">
-            {daily
-              ? '作って食べたぶんはそのままです。'
-              : '作って詰めたぶんはそのまま残します。' +
-                'もう一度台所に立つことになります（家に余っている食材から先に使います）。'}
+          {/*
+            **押す前に読む文は1行まで。**ここは62字あり、押すかどうかを
+            決めるのに全部読ませていた。要るのは「押すと何が起きるか」で、
+            仕組みの説明ではない（家の食材を先に使うのは、押したあとの
+            画面に「家にある食材（約520円ぶん）を優先」と出る）。
+          */}
+          <p className="text-center text-xs text-muted-foreground">
+            {daily ? '食べたぶんは残ります' : '詰めたぶんは残ります。もう一度作ります'}
           </p>
         </div>
       )}

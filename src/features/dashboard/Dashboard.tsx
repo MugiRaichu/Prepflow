@@ -90,7 +90,18 @@ export function Dashboard() {
    * 残っていた作り置きを食べた記録も同じテーブルに入るが、それは今日の献立では
    * ないので混ぜない。摂取の合計（TargetCard）には両方を入れる。
    */
-  const planned = (meals ?? []).filter((m) => m.source !== 'leftover');
+  /*
+   * **消した人の食事は出さない。**
+   *
+   * 献立は人ごとに作るので、あとで食べる人を減らしても、その人の食事は
+   * 残り続けていた。実機では**まったく同じカードが2枚**並び、
+   * 片方は誰のものでもなかった（プロファイルはもう無い）。
+   * なぜ2回あるのかは、画面からは読み取れない。
+   */
+  const knownIds = new Set((profiles ?? []).map((p) => p.id));
+  const planned = (meals ?? []).filter(
+    (m) => m.source !== 'leftover' && (knownIds.size === 0 || knownIds.has(m.profileId)),
+  );
   const assignments = useLiveQuery(
     () => db.containerAssignments.where('intendedDate').equals(date).toArray(),
     [date],
@@ -125,6 +136,7 @@ export function Dashboard() {
     return hands > 0 ? Math.round(perDayMinutes(hands, 1)) : 0;
   })();
   const me = profiles?.find((p) => p.isActive === 1);
+  const manyPeople = (profiles?.length ?? 0) > 1;
   const streak = weekStreak(plans ?? [], today);
 
   return (
@@ -174,6 +186,12 @@ export function Dashboard() {
 
       <PreppedStrip />
 
+      {/*
+        2人以上いると、**同じ献立のカードが人数ぶん並ぶ。**
+        誰のぶんか書いていなかったので、まったく同じカードが2枚出て、
+        なぜ2回あるのかが読み取れなかった（実機で確認）。
+        1人のときは名前を出さない——書く意味がないうえ、行が1つ増える。
+      */}
       {planned.length > 0 ? (
         <div className="space-y-3">
           {planned.map((m) => (
@@ -183,6 +201,9 @@ export function Dashboard() {
               assignments={assignments ?? []}
               recipes={byRecipeId}
               onUndo={undo.offer}
+              {...(manyPeople
+                ? { who: profiles?.find((p) => p.id === m.profileId)?.name ?? '' }
+                : {})}
             />
           ))}
         </div>
@@ -308,11 +329,14 @@ const MISSED: { value: MissedAction; label: string; note: string }[] = [
 ];
 
 function MealCard({
+  who,
   meal,
   assignments,
   recipes,
   onUndo,
 }: {
+  /** 誰のぶんか。1人のときは渡さない（書く意味がない） */
+  who?: string;
   meal: PlannedMeal;
   assignments: ContainerAssignment[];
   recipes: Map<string, Recipe>;
@@ -340,6 +364,7 @@ function MealCard({
       <button onClick={toggle} className="w-full text-left active:scale-[0.99]">
       <div className="mb-2 flex items-center gap-2">
         <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium">
+          {who ? who + '・' : ''}
           {MEAL_SLOT_LABELS[meal.slot]}
         </span>
         {eaten && <span className="text-xs text-muted-foreground">食べた</span>}
