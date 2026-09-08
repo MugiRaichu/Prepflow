@@ -209,12 +209,12 @@ export function CookingSettings() {
               label="同じ料理が続いてよい回数"
               hint={
                 '少なくするほど品数が増えます。いまは ' +
-                Math.ceil(meals / Math.max(s.cooking.maxSameDishMeals ?? 3, 1)) * 2 +
+                Math.ceil(meals / Math.max(s.cooking.maxSameDishMeals ?? 2, 1)) * 2 +
                 '品ほど'
               }
             >
               <Stepper
-                value={s.cooking.maxSameDishMeals ?? 3}
+                value={s.cooking.maxSameDishMeals ?? 2}
                 onChange={(v) => updateCooking(() => ({ maxSameDishMeals: v }))}
                 step={1}
                 min={1}
