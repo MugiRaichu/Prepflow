@@ -22,7 +22,9 @@ registerSW({ immediate: true });
  *
  * iOS は viewport の `user-scalable=no` を無視することがあるので、
  * Safari 独自の gesture イベントも併せて止める。
- * `touchmove` の2本指も塞ぐが、`passive: false` が要る（既定では止められない）。
+ *
+ * **指のイベント（touchmove / touchend）には触らない。**
+ * そこを塞ぐとスクロールごと止まる（下の但し書き）。
  */
 function lockZoomInStandalone(): void {
   const standalone =
@@ -45,30 +47,28 @@ function lockZoomInStandalone(): void {
     document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
   }
 
-  // 2本指のドラッグ。1本指のスクロールには触らない
-  document.addEventListener(
-    'touchmove',
-    (e) => {
-      if (e.touches.length > 1) e.preventDefault();
-    },
-    { passive: false },
-  );
-
   /*
-   * ダブルタップの拡大。`touch-action: manipulation` はボタンとリンクにしか
-   * 掛けていないので、余白を素早く2回叩くと拡大していた。
-   * 300ms 以内の2回目のタップを潰す
+   * **指のイベントには触らない。**
+   *
+   * ここには以前2つ置いていて、どちらもスクロールを殺していた。
+   *
+   *   touchend の preventDefault … 300ms以内の2回目のタップをダブルタップと
+   *     見なして潰していた。ところが**指ではじいて送るスクロールも、
+   *     1回ごとに touchend で終わる。**続けて2回はじくと2回目が潰され、
+   *     iOS は慣性スクロールを取り消す。画面が固まって動かなくなる（本人報告）。
+   *
+   *   touchmove の passive:false … 2本指のときだけ止める書き方だが、
+   *     document に非パッシブの listener を置いた時点で、iOS は
+   *     スクロールを合成側で先に動かせなくなる。
+   *
+   * どちらも要らない。**拡大は CSS で止まっている**——
+   * standalone では `html, body { touch-action: pan-x pan-y }` が効いていて、
+   * WebKit は touch-action が auto 以外なら、ピンチもダブルタップ拡大も
+   * どちらも受け付けない（index.css）。JS より先に、合成側で決まる。
+   *
+   * 残す保険は Safari 独自の gesture イベントだけ。
+   * これはピンチそのものの通知で、スクロールには一切関わらない。
    */
-  let lastTap = 0;
-  document.addEventListener(
-    'touchend',
-    (e) => {
-      const now = Date.now();
-      if (now - lastTap < 300) e.preventDefault();
-      lastTap = now;
-    },
-    { passive: false },
-  );
 }
 
 lockZoomInStandalone();
