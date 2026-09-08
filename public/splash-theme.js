@@ -210,28 +210,30 @@
     },
     // --- 幾何のかたち -----------------------------------------------------
     /*
-      **円・弧・三角・四角だけで作る。**
+      **まるいものだけ。**
 
-      有機的な絵（花・葉・雪）は、小さく薄くすると何なのか分からなくなり、
-      密に並べると集合体に見えた。幾何の形は縮んでも形が保たれ、
-      数を減らしても画面がもつ。
+      弧・扇・への字・三角・棒も作ってみたが、向きがばらけると
+      さすまたのような妙な形に見えた（本人指摘）。とがった端と
+      折れた線は、小さく薄くすると意図が読めない。
 
-      温かみは**色と重なり**で出す。地は生成り、形は食材の色。
-      重なったところが濃くなるように（multiply）してあるので、
-      版画を刷り重ねたような濁りが出る。**均一な塗りは冷たい。**
-      角はすべて丸め、大きさと角度をわずかにばらす。
+      残したのは、丸・輪・半円・角の丸い四角の4つ。どれも輪郭に
+      向きが無いので、どう並べても落ち着く。
+
+      温かみは**ぼかしと重なり**で出す。輪郭をぼかすと版画のように
+      にじみ、重なったところが濃くなる（mix-blend-mode: multiply）。
+      **くっきりした均一な塗りが、いちばん冷たい。**
     */
-    /** 弧。太い線で、円の一部だけ */
-    arc: function (x, y, r, col) {
-      var a0 = rnd(0, 6.28), sweep = rnd(1.2, 3.6);
-      return svg('path', {
-        d: 'M' + n1(x + Math.cos(a0) * r) + ' ' + n1(y + Math.sin(a0) * r) +
-           ' A ' + n1(r) + ' ' + n1(r) + ' 0 ' + (sweep > 3.14 ? 1 : 0) + ' 1 ' +
-           n1(x + Math.cos(a0 + sweep) * r) + ' ' + n1(y + Math.sin(a0 + sweep) * r),
-        stroke: col, 'stroke-width': n1(r * 0.34), fill: 'none', 'stroke-linecap': 'round'
+    /** 丸。いちばん基本の形 */
+    disc: function (x, y, r, col) {
+      return svg('circle', { cx: n1(x), cy: n1(y), r: n1(r), fill: col });
+    },
+    /** 輪。中が抜けた丸 */
+    band: function (x, y, r, col) {
+      return svg('circle', {
+        cx: n1(x), cy: n1(y), r: n1(r), fill: 'none', stroke: col, 'stroke-width': n1(r * 0.34)
       });
     },
-    /** 半円。まっすぐな辺を下に */
+    /** 半円。向きは4方向のどれか */
     halfDisc: function (x, y, r, col) {
       return svg('path', {
         d: 'M' + n1(x - r) + ' ' + n1(y) + ' A ' + n1(r) + ' ' + n1(r) + ' 0 0 1 ' +
@@ -239,56 +241,12 @@
         fill: col, transform: 'rotate(' + n0(pick([0, 90, 180, 270])) + ' ' + n0(x) + ' ' + n0(y) + ')'
       });
     },
-    /** 三角。角を丸めて、とがらせない */
-    tri: function (x, y, r, col) {
-      return svg('path', {
-        d: 'M' + n1(x) + ' ' + n1(y - r) + ' L ' + n1(x + r * 0.9) + ' ' + n1(y + r * 0.62) +
-           ' L ' + n1(x - r * 0.9) + ' ' + n1(y + r * 0.62) + ' Z',
-        fill: col, 'stroke-linejoin': 'round', stroke: col, 'stroke-width': n1(r * 0.3),
-        transform: 'rotate(' + n0(rnd(-14, 14)) + ' ' + n0(x) + ' ' + n0(y) + ')'
-      });
-    },
-    /** 四角。角を丸める */
-    square: function (x, y, r, col) {
+    /** 角の丸い四角。ほとんど丸だが、少しだけ角がある */
+    squircle: function (x, y, r, col) {
       return svg('rect', {
         x: n1(x - r), y: n1(y - r), width: n1(r * 2), height: n1(r * 2),
-        rx: n1(r * 0.34), fill: col,
-        transform: 'rotate(' + n0(rnd(-10, 10)) + ' ' + n0(x) + ' ' + n0(y) + ')'
-      });
-    },
-    /** 太い輪。中が抜けた円 */
-    band: function (x, y, r, col) {
-      return svg('circle', {
-        cx: n1(x), cy: n1(y), r: n1(r), fill: 'none', stroke: col, 'stroke-width': n1(r * 0.42)
-      });
-    },
-    /** 棒。横にも縦にも寝かせる */
-    bar: function (x, y, r, col) {
-      var long = r * rnd(2.2, 4.2);
-      return svg('rect', {
-        x: n1(x - long / 2), y: n1(y - r * 0.34), width: n1(long), height: n1(r * 0.68),
-        rx: n1(r * 0.34), fill: col,
-        transform: 'rotate(' + n0(pick([0, 0, 90, 45, -45])) + ' ' + n0(x) + ' ' + n0(y) + ')'
-      });
-    },
-    /** 扇。円の一片 */
-    sector: function (x, y, r, col) {
-      var a0 = rnd(0, 6.28), sw = rnd(0.7, 1.6);
-      return svg('path', {
-        d: 'M' + n1(x) + ' ' + n1(y) + ' L ' + n1(x + Math.cos(a0) * r) + ' ' + n1(y + Math.sin(a0) * r) +
-           ' A ' + n1(r) + ' ' + n1(r) + ' 0 0 1 ' +
-           n1(x + Math.cos(a0 + sw) * r) + ' ' + n1(y + Math.sin(a0 + sw) * r) + ' Z',
-        fill: col, 'stroke-linejoin': 'round'
-      });
-    },
-    /** への字。2本の線が折れる */
-    chevron: function (x, y, r, col) {
-      return svg('path', {
-        d: 'M' + n1(x - r) + ' ' + n1(y + r * 0.5) + ' L ' + n1(x) + ' ' + n1(y - r * 0.5) +
-           ' L ' + n1(x + r) + ' ' + n1(y + r * 0.5),
-        stroke: col, 'stroke-width': n1(r * 0.34), fill: 'none',
-        'stroke-linecap': 'round', 'stroke-linejoin': 'round',
-        transform: 'rotate(' + n0(pick([0, 90, 180, 270])) + ' ' + n0(x) + ' ' + n0(y) + ')'
+        rx: n1(r * 0.62), fill: col,
+        transform: 'rotate(' + n0(rnd(-8, 8)) + ' ' + n0(x) + ' ' + n0(y) + ')'
       });
     },
 
@@ -404,6 +362,13 @@
     var r = rnd(sp.r[0], sp.r[1]) * d.s;
     var node = SHAPE[sp.shape](x, y, r, pick(sp.col));
     var st = style(sp.motion, x, y, ((sp.o || 0.5) * d.o).toFixed(2));
+    /*
+      輪郭のぼかし。**ここが温かみの半分。**
+      くっきりした丸は図形にしか見えないが、にじませると光や絵の具に見える。
+      奥のものほど強くぼかす（近いものは形が残る）。
+      style に混ぜるのは、put が style ごと書き換えるため。
+    */
+    if (sp.blur) st += ';filter:blur(' + (sp.blur * (2 - d.s)).toFixed(1) + 'px)';
     var fn = RHYTHM[sp.beat || BY_MOTION[sp.motion] || 'beat'] || RHYTHM.beat;
     var delay = (sp.at || STAGE2) + fn(k, sp.step || 30);
     put(node, sp.motion, st, delay);
@@ -484,41 +449,38 @@
     温かみは**色と重なり**で出す（下の GEO と、CSS の mix-blend-mode）。
   */
   var GEO = [
-    // 1. 円がふくらむ。大きさをばらして、重なりで濃淡を作る
-    ['まる', [{ shape: 'band', motion: 'pop', cols: 4, rows: 8, r: [16, 46],
-                col: [C.akane, C.grain, C.fish, C.veg], o: 0.42, step: 40, avoidText: 1 }]],
-    // 2. 弧が方々に描かれる。線だけなので軽い
-    ['弧', [{ shape: 'arc', motion: 'grow', cols: 4, rows: 9, r: [22, 60],
-              col: [C.akane, C.soy, C.fish], o: 0.5, step: 45 }]],
-    // 3. 市松。四角が拍を刻んで現れる
-    ['市松', [{ shape: 'square', motion: 'pop', cols: 5, rows: 10, r: [14, 26],
-                col: [C.grain, C.soy, C.meat], o: 0.38, step: 34, skip: 0.4, avoidText: 1 }]],
-    // 4. 半円のならび。うろこ・アーチのような繰り返し
-    ['半円', [{ shape: 'halfDisc', motion: 'pop', cols: 5, rows: 11, r: [16, 30],
-                col: [C.akane, C.egg, C.veg], o: 0.4, step: 30, skip: 0.3, avoidText: 1 }]],
-    // 5. 三角のやま。下から立ち上がる
-    ['やま', [{ shape: 'tri', motion: 'rise', n: 26, r: [16, 34],
-                col: [C.veg, C.soy, C.grain], o: 0.42, step: 55 }]],
-    // 6. 棒が散る。長さと角度がばらけて、編み目に見える
-    ['棒', [{ shape: 'bar', motion: 'burst', cols: 5, rows: 11, r: [7, 14],
-              col: [C.akane, C.fish, C.grain, C.veg], o: 0.45, step: 26, avoidText: 1 }]],
-    // 7. 扇。中央から放射する一片
-    ['扇', [{ shape: 'sector', motion: 'burst', cols: 4, rows: 9, r: [20, 44],
-              col: [C.akane, C.grain, C.meat], o: 0.4, step: 34, avoidText: 1 }]],
-    // 8. への字。折れ線が並ぶと、編み地の模様になる
-    ['への字', [{ shape: 'chevron', motion: 'grow', cols: 5, rows: 11, r: [14, 26],
-                  col: [C.soy, C.fish, C.akane], o: 0.5, step: 28 }]],
-    // 9. 落ちる四角。まっすぐ落ちず、揺れて回る
-    ['こもん', [{ shape: 'square', motion: 'fall', n: 26, r: [10, 20],
-                  col: [C.akane, C.grain, C.veg, C.fish], o: 0.45, step: 30 }]],
-    // 10. 風に流れる弧
-    ['なびき', [{ shape: 'arc', motion: 'wind', n: 24, r: [20, 48],
-                  col: [C.soy, C.akane, C.grain], o: 0.45, step: 30 }]],
-    // 11. 大きな円と小さな棒。粗密の差で奥行きを出す
-    ['まると棒', [{ at: STAGE1, shape: 'band', motion: 'pop', n: 10, r: [34, 70],
-                    col: [C.grain, C.cream], o: 0.3, step: 70 },
-                  { shape: 'bar', motion: 'pop', cols: 5, rows: 10, r: [7, 13],
-                    col: [C.akane, C.fish], o: 0.45, step: 26, avoidText: 1 }]]
+    // 1. 月あかり。大きな丸をぼかして、ゆっくりふくらませる
+    ['月あかり', [{ shape: 'disc', motion: 'pop', n: 14, r: [40, 84], blur: 5,
+                    col: [C.egg, C.grain, C.cream], o: 0.26, step: 60 }]],
+    // 2. かさなり。半透明の丸が重なって、濃いところができる
+    ['かさなり', [{ shape: 'disc', motion: 'pop', n: 18, r: [30, 66], blur: 2,
+                    col: [C.akane, C.grain, C.fish, C.veg], o: 0.24, step: 50 }]],
+    // 3. こもれび。大小の丸。小さいほうを少しだけ濃く
+    ['こもれび', [{ at: STAGE1, shape: 'disc', motion: 'pop', n: 10, r: [46, 90], blur: 7,
+                    col: [C.egg, C.cream], o: 0.22, step: 70 },
+                  { shape: 'disc', motion: 'pop', cols: 4, rows: 8, r: [12, 24], blur: 1,
+                    col: [C.grain, C.egg], o: 0.34, step: 34, avoidText: 1 }]],
+    // 4. あわ。輪がゆっくり昇る
+    ['あわ', [{ shape: 'band', motion: 'rise', n: 20, r: [18, 44], blur: 1,
+                col: [C.fish, C.soy], o: 0.4, step: 65 }]],
+    // 5. みずたま。同じ大きさの丸が、拍を刻んで並ぶ
+    ['みずたま', [{ shape: 'disc', motion: 'pop', cols: 4, rows: 9, r: [16, 22], blur: 1,
+                    col: [C.akane, C.veg, C.grain, C.fish], o: 0.34, step: 40, avoidText: 1 }]],
+    // 6. 半円。うろこのように、まるい面が並ぶ
+    ['半円', [{ shape: 'halfDisc', motion: 'pop', cols: 4, rows: 9, r: [20, 34], blur: 2,
+                col: [C.akane, C.egg, C.veg], o: 0.32, step: 34, skip: 0.32, avoidText: 1 }]],
+    // 7. まるかく。角の丸い四角。丸ばかりの中に少しだけ直線
+    ['まるかく', [{ shape: 'squircle', motion: 'pop', cols: 4, rows: 9, r: [16, 28], blur: 2,
+                    col: [C.grain, C.soy, C.meat], o: 0.3, step: 36, skip: 0.34, avoidText: 1 }]],
+    // 8. ゆらぎ。丸が中央から散って、居場所へ収まる
+    ['ゆらぎ', [{ shape: 'disc', motion: 'burst', cols: 4, rows: 9, r: [14, 30], blur: 2,
+                  col: [C.akane, C.fish, C.grain, C.veg], o: 0.32, step: 26, avoidText: 1 }]],
+    // 9. しずけさ。大きな丸をひとつずつ、間をあけて
+    ['しずけさ', [{ shape: 'disc', motion: 'pop', n: 8, r: [56, 100], blur: 9,
+                    col: [C.cream, C.grain, C.soy], o: 0.2, step: 130 }]],
+    // 10. ともしび。小さめの丸がまたたく
+    ['ともしび', [{ shape: 'disc', motion: 'twinkle', n: 20, r: [10, 22], blur: 2,
+                    col: [C.egg, C.grain, C.akane], o: 0.42, step: 70 }]]
   ];
 
   var m = new Date().getMonth() + 1;
