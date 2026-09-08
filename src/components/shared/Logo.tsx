@@ -30,7 +30,7 @@ export function Logo({ className, withText = true }: { className?: string; withT
         </g>
       </svg>
       {withText && (
-        <span className="pf-wordmark text-lg font-semibold tracking-tight">Prepflow</span>
+        <span className="pf-wordmark text-lg">Prepflow</span>
       )}
     </span>
   );
