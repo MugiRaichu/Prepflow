@@ -33,7 +33,8 @@ export function AppShell() {
   const nav = NAV;
 
   return (
-    <div className="pf-shell relative flex flex-col bg-background text-foreground">
+    /* 地色は body が持つ。**ここで塗ると背景の透かしを覆ってしまう** */
+    <div className="pf-shell relative flex flex-col text-foreground">
       {/* タブバーが本文の上に浮くので、最後の行が隠れないぶんだけ下を空ける */}
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24">
         <Outlet />
