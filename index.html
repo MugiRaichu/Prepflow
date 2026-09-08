@@ -28,28 +28,19 @@
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前だけに使う書体（Fraunces）。
+      名前に使う書体は、**本文と同じもの**（端末に入っているゴシック）。
 
-      **筆記体はやめた。**細くて流れる字は、遠目にも小さい表示にも弱く、
-      名前として立たなかった。Fraunces は明朝寄りの骨格に少しふくらみが
-      あり、線が太いので小さくしても残る。生成りの地と茜の印に、
-      硬すぎず整った字が合う。
+      筆記体 → Fraunces と試して、どちらも戻ってきた（本人「やっぱりもっと
+      シンプルにしてください」）。**名前は読ませるもので、飾るものではない。**
+      8文字のために書体を取りに行くのをやめる。
 
-      **本文には使わない。**読むための文字は system-ui のままにする
-      （筆記体の日本語は無いし、英数字も読みにくくなる）。
-      使うのは起動画面の「Prepflow」の8文字だけ。
+      やめて減ったもの
+        ・外への通信が1つも無くなった（**圏外でも見た目が変わらない**）
+        ・届くまで名前が出ない、という待ちが消えた
+        ・Service Worker のフォント置き場（2種類）が要らなくなった
 
-      オフラインで開いたときのために、端末に入っている筆記体を後ろに置く。
-      Apple の Snell Roundhand、Windows の Segoe Script。
-      どちらも無ければ cursive で、最後は system-ui に落ちる。
-      font-display: swap なので、届かなくても起動は止まらない。
+      整えるのは字間と太さだけ。詰めると8文字が1語のかたまりに見える。
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&display=swap"
-    />
     <title>Prepflow</title>
 
     <!--
@@ -144,7 +135,7 @@
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
       #pf-splash .pf-words > p.pf-name {
-        font-family: 'Fraunces', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+        font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
         font-size: 40px;
         font-weight: 600;
         line-height: 1.15;
@@ -470,15 +461,9 @@
       /*
         名前の筆記体を、いますぐ取りに行かせる。
 
-        フォントは「使われた瞬間」に読み込まれる。起動画面で名前が出るのは
-        2.1秒後なので、そこまで待ってから取りに行くと間に合わず、
-        毎回ゴシックのまま終わっていた（実測）。ここで先に走らせる。
-
-        届かなくても何も起きない。端末の筆記体か cursive に落ちる。
+        書体は端末に入っているものだけを使う。取りに行くものが無いので、
+        ここで先に読ませる仕掛けも要らなくなった。
       */
-      if (document.fonts && document.fonts.load) {
-        document.fonts.load('600 40px Fraunces').catch(function () {});
-      }
     </script>
     <div id="pf-splash" aria-hidden="true">
       <!--
