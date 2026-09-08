@@ -92,7 +92,7 @@ export function StockScreen() {
 
           {sections.map((sec) => (
             <div key={sec} className="space-y-2">
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {STORE_SECTION_LABELS[sec as StoreSection]}
               </div>
               <div className="divide-y rounded-lg border">
@@ -105,7 +105,7 @@ export function StockScreen() {
                       <div key={r.id} className="flex items-center gap-2 px-3 py-2.5">
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm">{r.ingredientName}</div>
-                          <div className="text-[10px] tabular-nums text-muted-foreground">
+                          <div className="text-xs tabular-nums text-muted-foreground">
                             見込み {Math.round(r.quantity)}g
                           </div>
                         </div>
@@ -134,7 +134,7 @@ export function StockScreen() {
                                   );
                                 }}
                                 className={cn(
-                                  'min-h-10 w-14 rounded-md border text-xs',
+                                  'min-h-11 w-14 rounded-md border text-xs',
                                   cur === l
                                     ? 'border-primary bg-primary font-medium text-primary-foreground'
                                     : 'border-border',
@@ -148,7 +148,7 @@ export function StockScreen() {
                           <button
                             onClick={() => setEditing(r.id)}
                             className={cn(
-                              'min-h-10 w-24 shrink-0 rounded-md border text-xs',
+                              'min-h-11 w-24 shrink-0 rounded-md border text-xs',
                               cur === 'plenty'
                                 ? 'border-border text-muted-foreground'
                                 : 'border-primary font-medium text-primary',

@@ -45,7 +45,7 @@ export function WeekOverview() {
             action={
               <Link
                 to="/plan"
-                className="mt-1 inline-flex min-h-10 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
+                className="mt-1 inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
               >
                 献立を作る
               </Link>
@@ -96,7 +96,7 @@ export function WeekOverview() {
                   {formatDateJa(d)}
                   {isToday && ' ・今日'}
                 </span>
-                <span className="text-[10px] tabular-nums text-muted-foreground">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {Math.round(day.reduce((n, m) => n + m.nutrition.kcal, 0))} kcal
                 </span>
               </div>
@@ -104,7 +104,7 @@ export function WeekOverview() {
               <div className="divide-y">
                 {day.map((m) => (
                   <div key={m.id} className="flex items-center gap-2 px-3 py-2">
-                    <span className="w-6 shrink-0 text-[10px] text-muted-foreground">
+                    <span className="w-6 shrink-0 text-xs text-muted-foreground">
                       {MEAL_SLOT_LABELS[m.slot]}
                     </span>
                     <div className="flex shrink-0 -space-x-1">
@@ -133,7 +133,7 @@ export function WeekOverview() {
                   </div>
                 ))}
                 {day.length === 0 && (
-                  <div className="px-3 py-2 text-[10px] text-muted-foreground">
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
                     {past ? '記録がありません' : '予定がありません'}
                   </div>
                 )}
@@ -145,7 +145,7 @@ export function WeekOverview() {
         {/* 俯瞰でいちばん知りたいのは「同じものが何回出るか」。並べないと分からない */}
         {repeated.length > 0 && (
           <div className="space-y-1.5 rounded-lg border p-3">
-            <div className="text-[10px] text-muted-foreground">週に2回以上出る料理</div>
+            <div className="text-xs text-muted-foreground">週に2回以上出る料理</div>
             {repeated.map(([title, n]) => (
               <div key={title} className="flex items-baseline gap-2 text-xs">
                 <span className="min-w-0 flex-1 truncate">{title}</span>
@@ -155,7 +155,7 @@ export function WeekOverview() {
           </div>
         )}
 
-        <div className="text-[10px] text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {formatDateJa(plan.weekStart)} から {dates.length} 日ぶん・
           {formatDateJa(addDaysIso(plan.weekStart, dates.length - 1))} まで
         </div>
@@ -167,7 +167,7 @@ export function WeekOverview() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-sm font-semibold tabular-nums">{value}</div>
     </div>
   );

@@ -57,11 +57,11 @@ export function ContainerCheck() {
       */}
       <ContainerGauge need={need.length} have={have} />
 
-      <p className="text-[11px] leading-relaxed text-muted-foreground">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         買い足さなくても回せます。上から順に試してください。
       </p>
 
-      <ol className="space-y-1.5 text-[11px] leading-relaxed">
+      <ol className="space-y-1.5 text-xs leading-relaxed">
         <li className="flex gap-2">
           <span className="shrink-0 text-muted-foreground">1.</span>
           <span>
@@ -88,14 +88,14 @@ export function ContainerCheck() {
         </li>
       </ol>
 
-      <p className="text-[10px] leading-relaxed text-muted-foreground">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         それでも足りず、買い足すなら {maxGrams >= 400 ? '700ml' : '500ml'}{' '}
         以上が使いやすいです（いちばん多い1食が {Math.round(maxGrams)}g）。
       </p>
 
       <Link
         to="/settings/containers"
-        className="flex min-h-10 w-full items-center justify-center rounded-md border text-xs active:bg-accent"
+        className="flex min-h-11 w-full items-center justify-center rounded-md border text-xs active:bg-accent"
       >
         持っている数を直す
       </Link>

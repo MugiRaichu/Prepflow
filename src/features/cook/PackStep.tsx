@@ -139,7 +139,7 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
         </div>
 
         {next.storage === 'freezer' && (
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs leading-relaxed text-muted-foreground">
             冷凍します。食べる前日に冷蔵へ移してください。
           </p>
         )}
@@ -166,13 +166,13 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
           {todo.slice(1, 12).map((a) => (
             <span
               key={a.id}
-              className="rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+              className="rounded border px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
             >
               {a.containerLabel}
             </span>
           ))}
           {todo.length > 12 && (
-            <span className="px-1 text-[10px] text-muted-foreground">ほか{todo.length - 12}</span>
+            <span className="px-1 text-xs text-muted-foreground">ほか{todo.length - 12}</span>
           )}
         </div>
       )}

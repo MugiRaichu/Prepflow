@@ -136,7 +136,7 @@ export function Dashboard() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setDate(addDaysIso(date, -1))}
-          className="flex size-9 shrink-0 items-center justify-center rounded-md border active:bg-accent"
+          className="flex size-11 shrink-0 items-center justify-center rounded-md border active:bg-accent"
           aria-label="前の日"
         >
           <ChevronLeft className="size-4" />
@@ -154,7 +154,7 @@ export function Dashboard() {
 
         <button
           onClick={() => setDate(addDaysIso(date, 1))}
-          className="flex size-9 shrink-0 items-center justify-center rounded-md border active:bg-accent"
+          className="flex size-11 shrink-0 items-center justify-center rounded-md border active:bg-accent"
           aria-label="次の日"
         >
           <ChevronRight className="size-4" />
@@ -164,7 +164,7 @@ export function Dashboard() {
       {!isToday && (
         <button
           onClick={() => setDate(today)}
-          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+          className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
         >
           今日へ戻る
         </button>
@@ -193,7 +193,7 @@ export function Dashboard() {
           action={
             <Link
               to="/plan"
-              className="mt-1 inline-flex min-h-10 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
+              className="mt-1 inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
             >
               週のプランを作る
             </Link>
@@ -267,7 +267,7 @@ function PreppedStrip() {
           <span
             key={c.id}
             className={cn(
-              'rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold',
+              'rounded border px-1.5 py-0.5 font-mono text-xs font-semibold',
               c.useByDate <= today
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border text-muted-foreground',
@@ -277,11 +277,11 @@ function PreppedStrip() {
           </span>
         ))}
         {rows.length > 14 && (
-          <span className="px-1 text-[10px] text-muted-foreground">＋{rows.length - 14}</span>
+          <span className="px-1 text-xs text-muted-foreground">＋{rows.length - 14}</span>
         )}
       </div>
 
-      <div className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+      <div className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
         {over.length > 0
           ? '色のついた ' + over.length + ' 個は期限が来ています。先に食べてください。'
           : soonest
@@ -339,11 +339,11 @@ function MealCard({
     <div className="rounded-lg border p-4">
       <button onClick={toggle} className="w-full text-left active:scale-[0.99]">
       <div className="mb-2 flex items-center gap-2">
-        <span className="rounded bg-secondary px-2 py-0.5 text-[10px] font-medium">
+        <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium">
           {MEAL_SLOT_LABELS[meal.slot]}
         </span>
-        {eaten && <span className="text-[10px] text-muted-foreground">食べた</span>}
-        {skipped && <span className="text-[10px] text-muted-foreground">食べていません</span>}
+        {eaten && <span className="text-xs text-muted-foreground">食べた</span>}
+        {skipped && <span className="text-xs text-muted-foreground">食べていません</span>}
       </div>
 
       {meal.items.map((it, idx) => {
@@ -386,12 +386,12 @@ function MealCard({
                   className="flex min-h-11 w-full items-center gap-3 rounded-md border px-3 text-left active:bg-accent"
                 >
                   <span className="shrink-0 text-xs font-medium">{m.label}</span>
-                  <span className="min-w-0 flex-1 text-[10px] text-muted-foreground">{m.note}</span>
+                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">{m.note}</span>
                 </button>
               ))}
               <button
                 onClick={() => setAsking(false)}
-                className="min-h-8 w-full text-[10px] text-muted-foreground"
+                className="min-h-11 w-full text-xs text-muted-foreground"
               >
                 やめる
               </button>
@@ -399,7 +399,7 @@ function MealCard({
           ) : (
             <button
               onClick={() => setAsking(true)}
-              className="min-h-8 w-full text-left text-[10px] text-muted-foreground"
+              className="min-h-11 w-full text-left text-xs text-muted-foreground"
             >
               食べられなかった
             </button>
@@ -471,7 +471,7 @@ function TimelineCard({
                   {e.endTime ? <span className="ml-1 text-xs opacity-70">〜{e.endTime}</span> : null}
                 </div>
                 {isNext && e.note ? (
-                  <div className="text-[11px] leading-relaxed opacity-80">{e.note}</div>
+                  <div className="text-xs leading-relaxed opacity-80">{e.note}</div>
                 ) : null}
               </div>
             </div>

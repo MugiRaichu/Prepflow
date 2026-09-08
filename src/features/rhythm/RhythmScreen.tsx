@@ -59,7 +59,7 @@ export function RhythmScreen() {
                 exerciseId: 'weights_moderate',
               })
             }
-            className="flex size-8 items-center justify-center rounded-md active:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md active:bg-accent"
             aria-label="予定を追加"
           >
             <Plus className="size-5" />
@@ -129,7 +129,7 @@ export function RhythmScreen() {
         </div>
 
         {/* 組み上がった流れは今日タブに出す。ここは設定だけ */}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           ここで決めた時刻から、今日タブに食事とたんぱく質の時刻が並びます。
         </p>
       </div>
@@ -147,7 +147,7 @@ function HabitCard({ habit, weightKg }: { habit: Habit; weightKg: number }) {
         <span className="text-sm font-medium">{habit.name}</span>
         <button
           onClick={() => habitsRepo.remove(habit.id)}
-          className="flex size-8 items-center justify-center rounded-md text-muted-foreground active:bg-accent"
+          className="flex size-11 items-center justify-center rounded-md text-muted-foreground active:bg-accent"
           aria-label="削除"
         >
           <Trash2 className="size-4" />
@@ -207,7 +207,7 @@ function HabitCard({ habit, weightKg }: { habit: Habit; weightKg: number }) {
               消費カロリーの概算{' '}
               <span className="font-semibold tabular-nums">約 {est.kcal} kcal</span>
             </div>
-            <div className="text-[11px] tabular-nums text-muted-foreground">
+            <div className="text-xs tabular-nums text-muted-foreground">
               現実的な幅 {est.low}〜{est.high} kcal
             </div>
             <WhySheet knowledgeId="exercise_calories" />

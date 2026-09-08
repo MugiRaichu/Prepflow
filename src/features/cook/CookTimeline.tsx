@@ -67,11 +67,11 @@ export function CookTimeline({ result }: { result: ScheduleResult }) {
               />
             ))}
         </div>
-        <div className="mt-1 flex justify-between text-[10px] tabular-nums text-muted-foreground">
+        <div className="mt-1 flex justify-between text-xs tabular-nums text-muted-foreground">
           <span>開始</span>
           <span>{fmt(total)}後に完了</span>
         </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           埋まっているところが手を動かす時間です。
         </p>
       </div>
@@ -86,12 +86,12 @@ export function CookTimeline({ result }: { result: ScheduleResult }) {
       <div className="overflow-hidden rounded-md border">
         {result.tasks.map((t, i) => (
           <div key={t.id} className={cn('flex gap-3 px-3 py-2', i > 0 && 'border-t')}>
-            <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-muted-foreground">
+            <span className="w-10 shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground">
               {Math.round(t.startSec / 60)}分
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-xs leading-snug">{t.label}</div>
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 {t.recipeTitle}
                 {t.equipmentName ? ' ・ ' + t.equipmentName : ''}
                 {t.handsOnSec === 0 ? ' ・ 放置' : ''}
@@ -102,7 +102,7 @@ export function CookTimeline({ result }: { result: ScheduleResult }) {
       </div>
 
       {result.bottlenecks.length > 0 && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           {result.bottlenecks[0]!.equipmentName}の空き待ちが{' '}
           {fmt(result.bottlenecks[0]!.waitedSec)} あります。増やせばその分だけ縮みます。
         </p>

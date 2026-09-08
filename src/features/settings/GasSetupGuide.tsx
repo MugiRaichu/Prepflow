@@ -39,7 +39,7 @@ export function GasSetupGuide({
     <details className="rounded-lg border p-3">
       <summary className="cursor-pointer text-xs font-medium">設定のしかた</summary>
 
-      <div className="space-y-5 pt-4 text-[11px] leading-relaxed">
+      <div className="space-y-5 pt-4 text-xs leading-relaxed">
         {needLine && (
           <>
             <Step n={n()} title="LINE の窓口を作る">
@@ -125,7 +125,7 @@ export function GasSetupGuide({
           )}
           <button
             onClick={copy}
-            className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-md border text-[11px] active:bg-accent"
+            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-xs active:bg-accent"
           >
             {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             {copied ? 'コピーしました' : 'コードをコピー'}
@@ -146,7 +146,7 @@ export function GasSetupGuide({
           左の歯車（プロジェクトの設定）→ 一番下の
           <span className="font-medium">「スクリプト プロパティ」</span>
           →「スクリプト プロパティを追加」。左の「プロパティ」に名前、右の「値」に中身を入れます。
-          <div className="mt-1.5 overflow-hidden rounded border text-[10px]">
+          <div className="mt-1.5 overflow-hidden rounded border text-xs">
             <div className="grid grid-cols-[1fr_1.6fr] border-b bg-secondary/50 px-2 py-1 text-muted-foreground">
               <span>プロパティ</span>
               <span>値</span>
@@ -234,7 +234,7 @@ export function GasSetupGuide({
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-2.5">
-      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
         {n}
       </span>
       <div className="min-w-0 flex-1">

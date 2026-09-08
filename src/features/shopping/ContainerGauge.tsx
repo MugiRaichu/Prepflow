@@ -51,7 +51,7 @@ export function ContainerGauge({ need, have }: { need: number; have: number }) {
           </>
         )}
         {hidden > 0 && (
-          <span className="ml-0.5 shrink-0 text-[10px] tabular-nums text-muted-foreground">
+          <span className="ml-0.5 shrink-0 text-xs tabular-nums text-muted-foreground">
             ほか {hidden}
           </span>
         )}
@@ -62,7 +62,7 @@ export function ContainerGauge({ need, have }: { need: number; have: number }) {
         **「食ぶん」と言わない。**主菜は1食ずつ、副菜はまとめて詰めるので、
         容器の数と食数は一致しない（以前は全品を1容器に混ぜて数えていた）
       */}
-      <p className="text-[11px] leading-relaxed">
+      <p className="text-xs leading-relaxed">
         今週使う容器は <b>{need} 個</b>。持っているのは <b>{have} 個</b>なので、
         <b>残り {short} 個は皿に盛ってラップ</b>で足ります。
       </p>

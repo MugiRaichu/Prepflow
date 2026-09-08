@@ -47,7 +47,7 @@ export function ProfileSettings() {
               const p = await createProfile({ name: '' });
               setOpenId(p.id);
             }}
-            className="flex size-8 items-center justify-center rounded-md active:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md active:bg-accent"
             aria-label="追加"
           >
             <Plus className="size-5" />
@@ -172,14 +172,14 @@ function ProfileRow({
 
           <TargetPreview targets={t} />
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             体重を更新すると目標も変わります。
           </p>
 
           {canDelete && (
             <button
               onClick={() => removeProfile(profile.id)}
-              className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border text-xs active:bg-accent"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-xs active:bg-accent"
             >
               <Trash2 className="size-3.5" />
               この人を削除
@@ -228,14 +228,14 @@ function AllergenPicker({ profile }: { profile: Profile }) {
       ) : (
         <button
           onClick={() => setShowAll(true)}
-          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+          className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
         >
           ほかの食材も指定する
         </button>
       )}
 
       {selected.length > 0 && (
-        <p className="text-[10px] leading-relaxed text-muted-foreground">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           選んだものを含む料理は献立に出しません。ほかの条件が満たせなくても外しません。
         </p>
       )}
@@ -312,7 +312,7 @@ function WeightGoal({
       </Labeled>
 
       {pace ? (
-        <div className="space-y-1 rounded-md border p-3 text-[11px] leading-relaxed">
+        <div className="space-y-1 rounded-md border p-3 text-xs leading-relaxed">
           <div>
             1週間で <span className="font-medium">{pace.kgPerWeek.toFixed(2)} kg</span>、
             1日あたり{' '}
@@ -333,7 +333,7 @@ function WeightGoal({
           )}
         </div>
       ) : (
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           期限を選ぶと、1日あたりの増減が決まります。選ばなければ目的の既定値で組みます。
         </p>
       )}
@@ -341,7 +341,7 @@ function WeightGoal({
       {profile.goalDate && (
         <button
           onClick={() => onPatch({ goalWeightKg: undefined, goalDate: undefined })}
-          className="min-h-9 w-full text-[10px] text-muted-foreground"
+          className="min-h-11 w-full text-xs text-muted-foreground"
         >
           目標をやめる
         </button>

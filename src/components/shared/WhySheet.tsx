@@ -29,7 +29,7 @@ export function WhySheet({
     <div className={cn('mt-1', className)}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-[10px] text-muted-foreground"
+        className="flex items-center gap-1 text-xs text-muted-foreground"
       >
         <HelpCircle className="size-3" />
         なぜ？
@@ -39,25 +39,25 @@ export function WhySheet({
       {open && (
         <div className="pf-rise mt-2 space-y-2 rounded-md border p-3">
           <div className="text-xs font-medium">{k.title}</div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">{k.body}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">{k.body}</p>
 
           {k.myth && (
             <div className="rounded border border-foreground/30 p-2">
-              <div className="text-[10px] font-medium">よくある誤解</div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">{k.myth}</p>
+              <div className="text-xs font-medium">よくある誤解</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">{k.myth}</p>
             </div>
           )}
 
           <details>
-            <summary className="cursor-pointer text-[10px] text-muted-foreground">出典</summary>
+            <summary className="cursor-pointer text-xs text-muted-foreground">出典</summary>
             <ul className="mt-1 space-y-0.5">
               {k.sources.map((src) => (
-                <li key={src} className="text-[10px] leading-relaxed text-muted-foreground">
+                <li key={src} className="text-xs leading-relaxed text-muted-foreground">
                   ・{src}
                 </li>
               ))}
             </ul>
-            <p className="mt-1 text-[10px] text-muted-foreground">
+            <p className="mt-1 text-xs text-muted-foreground">
               確度: {k.confidence === 'high' ? '高い' : k.confidence === 'medium' ? '中くらい' : '低い'}
               ／ 一般的な目安であって、個別の医学的助言ではありません。
             </p>
@@ -66,7 +66,7 @@ export function WhySheet({
           {onAskAi && (
             <button
               onClick={() => onAskAi(k)}
-              className="min-h-9 w-full rounded-md border text-[11px] active:bg-accent"
+              className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
             >
               自分の場合はどうか、端末内AIに聞く
             </button>

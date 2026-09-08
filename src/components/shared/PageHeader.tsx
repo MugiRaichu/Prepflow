@@ -14,7 +14,7 @@ export function PageHeader({
   return (
     <div className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background px-3">
       {backTo && (
-        <Link to={backTo} className="-ml-1 flex size-8 items-center justify-center" aria-label="戻る">
+        <Link to={backTo} className="-ml-1 flex size-11 items-center justify-center" aria-label="戻る">
           <ChevronLeft className="size-5" />
         </Link>
       )}

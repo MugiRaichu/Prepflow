@@ -175,8 +175,8 @@ export function RecipeImport() {
         {!rows && sharedLink && (
           <div className="pf-rise space-y-2 rounded-lg border p-3">
             <div className="text-xs font-medium">ページを受け取りました</div>
-            <div className="truncate text-[10px] text-muted-foreground">{sharedLink}</div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <div className="truncate text-xs text-muted-foreground">{sharedLink}</div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
               中身は自動では読みません。材料の部分を長押しで選んでもう一度共有するか、
               その画面を撮って共有すると、そのまま取り込めます。
             </p>
@@ -215,7 +215,7 @@ export function RecipeImport() {
                     style={{ width: Math.round(busy.ratio * 100) + '%' }}
                   />
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   初回だけ読み取りエンジンを取得します（約5MB）。次からは通信なしで動きます。
                 </div>
               </div>
@@ -235,7 +235,7 @@ export function RecipeImport() {
                     // 許可が無い環境では欄に貼ってもらう
                   }
                 }}
-                className="flex min-h-10 w-full items-center justify-center gap-1.5 text-xs text-muted-foreground"
+                className="flex min-h-11 w-full items-center justify-center gap-1.5 text-xs text-muted-foreground"
               >
                 <ClipboardPaste className="size-3.5" />
                 文をコピーしてある場合はこちら
@@ -281,7 +281,7 @@ export function RecipeImport() {
             <div className="space-y-2">
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-medium">材料</span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {resolved} / {rows.length} 件が決まっています
                 </span>
               </div>
@@ -329,12 +329,12 @@ export function RecipeImport() {
               })}
               <button
                 onClick={() => setSteps((cur) => [...cur, ''])}
-                className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+                className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
               >
                 手順を足す
               </button>
               {/* 手順ごとの分数は出さない。直せるものではなく、合計だけ分かればよい */}
-              <div className="text-[10px] tabular-nums text-muted-foreground">
+              <div className="text-xs tabular-nums text-muted-foreground">
                 手を動かす時間の見込み {steps.reduce((n, s) => n + guessStep(s).hands, 0)} 分
               </div>
             </div>
@@ -356,7 +356,7 @@ export function RecipeImport() {
                   setSteps([]);
                   setPasting(false);
                 }}
-                className="min-h-10 w-full rounded-md border text-xs active:bg-accent"
+                className="min-h-11 w-full rounded-md border text-xs active:bg-accent"
               >
                 読み取り直す
               </button>
@@ -409,9 +409,9 @@ function ItemRow({
             className="block max-w-full truncate text-left text-sm font-medium"
           >
             {ingredient?.name ?? row.name}
-            {!ingredient && <span className="ml-1 text-[10px] text-muted-foreground">（未選択）</span>}
+            {!ingredient && <span className="ml-1 text-xs text-muted-foreground">（未選択）</span>}
           </button>
-          <div className="truncate text-[10px] text-muted-foreground">{row.raw}</div>
+          <div className="truncate text-xs text-muted-foreground">{row.raw}</div>
         </div>
         <Stepper
           value={row.grams}
@@ -449,13 +449,13 @@ function ItemRow({
                   });
                   setPicking(false);
                 }}
-                className="min-h-9 rounded-md border px-2.5 text-[11px] active:bg-accent"
+                className="min-h-11 rounded-md border px-2.5 text-xs active:bg-accent"
               >
                 {i.name}
               </button>
             ))}
             {hits.length === 0 && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 見つかりません。設定 → 食材を足す から登録してください
               </span>
             )}

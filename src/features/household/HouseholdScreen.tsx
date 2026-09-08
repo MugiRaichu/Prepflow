@@ -121,7 +121,7 @@ export function LifeStagePresets() {
                   <div className="text-sm font-medium">{p.label}</div>
                   <div
                     className={cn(
-                      'text-[11px] leading-relaxed',
+                      'text-xs leading-relaxed',
                       active ? 'text-background/70' : 'text-muted-foreground',
                     )}
                   >
@@ -138,7 +138,7 @@ export function LifeStagePresets() {
           ひな形を選んでいなくても、いまの設定は出す。
           「未設定」とだけ書くと、何かが欠けているように見える。実際は動いている
         */}
-        <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
+        <div className="rounded-lg border p-3 text-xs leading-relaxed text-muted-foreground">
           いまの設定: {MODE_LABEL[currentPreset?.cooking.mode ?? 'batch']} ／{' '}
           {settings.cooking.coverDays}日分 ／ 1回 {settings.cooking.maxPrepMinutes}分まで
           <button
@@ -196,10 +196,10 @@ function ConfirmSheet({
         )}
 
         {preset.temporary ? (
-          <p className="text-[11px] text-muted-foreground">3ヶ月後に見直しの案内を出します。</p>
+          <p className="text-xs text-muted-foreground">3ヶ月後に見直しの案内を出します。</p>
         ) : null}
 
-        <p className="text-[11px] text-muted-foreground">次に作る献立から変わります。</p>
+        <p className="text-xs text-muted-foreground">次に作る献立から変わります。</p>
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={onCancel} className="min-h-12 rounded-lg border text-sm active:bg-accent">

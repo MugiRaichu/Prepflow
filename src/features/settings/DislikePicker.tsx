@@ -53,7 +53,7 @@ export function DislikePicker({ profile }: { profile: Profile }) {
         className="flex min-h-11 w-full items-center justify-between rounded-md border px-3 text-left active:bg-accent"
       >
         <span className="text-sm font-medium">好き嫌い</span>
-        <span className="text-[10px] text-muted-foreground">指定なし・押して選ぶ</span>
+        <span className="text-xs text-muted-foreground">指定なし・押して選ぶ</span>
       </button>
     );
   }
@@ -70,14 +70,14 @@ export function DislikePicker({ profile }: { profile: Profile }) {
   return (
     <div className="space-y-2">
       <div className="text-sm font-medium">好き嫌い</div>
-      <p className="text-[10px] leading-relaxed text-muted-foreground">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         押すたびに変わります。1回で「苦手」、もう1回で「入れない」、もう1回で解除。
       </p>
 
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="min-h-9 w-full rounded-md border text-[11px] text-muted-foreground active:bg-accent"
+          className="min-h-11 w-full rounded-md border text-xs text-muted-foreground active:bg-accent"
         >
           ほかの食材も指定する
         </button>
@@ -86,7 +86,7 @@ export function DislikePicker({ profile }: { profile: Profile }) {
       {open &&
         sections.map((sec) => (
         <div key={sec} className="space-y-1.5 pt-1">
-          <div className="text-[10px] text-muted-foreground">{STORE_SECTION_LABELS[sec]}</div>
+          <div className="text-xs text-muted-foreground">{STORE_SECTION_LABELS[sec]}</div>
           <div className="flex flex-wrap gap-1.5">
             {items
               .filter((i) => i.section === sec)
@@ -97,7 +97,7 @@ export function DislikePicker({ profile }: { profile: Profile }) {
                     key={ing.id}
                     onClick={() => cycle(ing)}
                     className={cn(
-                      'min-h-10 rounded-md border px-2.5 text-xs',
+                      'min-h-11 rounded-md border px-2.5 text-xs',
                       state === 'exclude'
                         ? 'pf-pop border-foreground bg-foreground font-medium text-background line-through'
                         : state === 'dislike'
@@ -115,7 +115,7 @@ export function DislikePicker({ profile }: { profile: Profile }) {
 
       {/* 何を選んだのかを、状態ごとに言葉で返す。見た目の差だけでは伝わらない（D-084） */}
       {chosen.length > 0 && (
-        <div className="space-y-1 rounded-lg border p-3 text-[11px] leading-relaxed">
+        <div className="space-y-1 rounded-lg border p-3 text-xs leading-relaxed">
           {(['dislike', 'exclude'] as const).map((kind) => {
             const list = chosen.filter((i) => foodPreferenceOf(profile, i.id) === kind);
             if (list.length === 0) return null;

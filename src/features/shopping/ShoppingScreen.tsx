@@ -61,7 +61,7 @@ export function ShoppingScreen() {
             action={
               <Link
                 to="/plan"
-                className="mt-1 inline-flex min-h-10 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
+                className="mt-1 inline-flex min-h-11 items-center rounded-md bg-foreground px-4 text-sm font-medium text-background"
               >
                 週のプランを作る
               </Link>
@@ -105,7 +105,7 @@ export function ShoppingScreen() {
               ))}
             </div>
           </details>
-          <p className="text-[11px] text-muted-foreground">次の献立を作ると、新しいリストになります。</p>
+          <p className="text-xs text-muted-foreground">次の献立を作ると、新しいリストになります。</p>
         </div>
       </div>
     );
@@ -152,7 +152,7 @@ export function ShoppingScreen() {
           />
         </div>
         {wake.active && (
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
             <Eye className="size-3" />
             画面が消えないようにしています
           </div>
@@ -181,7 +181,7 @@ export function ShoppingScreen() {
 
           <div className="space-y-2 rounded-lg border p-4">
             <div className="text-sm font-medium">食材だけの合計</div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               見込みは {yen(current.estimatedTotalYen)} でした。
               {store
                 ? reliabilityOf(store) === 'unknown'
@@ -219,7 +219,7 @@ export function ShoppingScreen() {
               return (
                 <div
                   className={cn(
-                    'text-[11px] tabular-nums',
+                    'text-xs tabular-nums',
                     wild ? 'font-medium text-foreground' : 'text-muted-foreground',
                   )}
                 >
@@ -231,7 +231,7 @@ export function ShoppingScreen() {
               );
             })()}
 
-            <p className="text-[10px] leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               レシート全体の額ではなく、食材だけの額です。
               日用品を一緒に買った週は、その分を引いた額を入れてください。
             </p>
@@ -266,7 +266,7 @@ export function ShoppingScreen() {
 
       {groups.map((g) => (
         <div key={g.section}>
-          <div className="bg-secondary/50 px-4 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">
+          <div className="bg-secondary/50 px-4 py-1.5 text-xs font-medium tracking-wide text-muted-foreground">
             {g.section}
           </div>
           <div className="divide-y">
@@ -298,11 +298,11 @@ export function ShoppingScreen() {
           </button>
           {missing && (
             <div className="pf-rise mt-2 space-y-3 rounded-lg border p-3">
-              <p className="text-[11px] leading-relaxed">
+              <p className="text-xs leading-relaxed">
                 買えなかったものを選んでください。
                 <b>それを使わない献立に作り直します。</b>
               </p>
-              <ul className="space-y-0.5 text-[10px] leading-relaxed text-muted-foreground">
+              <ul className="space-y-0.5 text-xs leading-relaxed text-muted-foreground">
                 <li>・かごに入れたものは、そのまま使います</li>
                 <li>・家に余っている食材から先に使います</li>
                 <li>・押しても案が出るだけです。気に入らなければ戻れます</li>
@@ -320,7 +320,7 @@ export function ShoppingScreen() {
                         },
                       })
                     }
-                    className="min-h-10 rounded-md border px-3 text-xs active:bg-accent"
+                    className="min-h-11 rounded-md border px-3 text-xs active:bg-accent"
                   >
                     {r.name}
                   </button>
@@ -328,7 +328,7 @@ export function ShoppingScreen() {
               </div>
               <button
                 onClick={() => setMissing(false)}
-                className="min-h-9 w-full text-[10px] text-muted-foreground"
+                className="min-h-11 w-full text-xs text-muted-foreground"
               >
                 やめる
               </button>
@@ -341,7 +341,7 @@ export function ShoppingScreen() {
 
       {done.length > 0 && (
         <div className="mt-6">
-          <div className="px-4 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">
+          <div className="px-4 py-1.5 text-xs font-medium tracking-wide text-muted-foreground">
             かごに入れた（{done.length}）
           </div>
           <div className="divide-y opacity-40">
@@ -394,11 +394,11 @@ function ItemRow({ item, onToggle }: { item: ShoppingListItem; onToggle: () => v
 
       {checked && (
         <div className="flex items-center gap-2 px-4 pb-2 pl-14">
-          <span className="text-[10px] text-muted-foreground">買った数</span>
+          <span className="text-xs text-muted-foreground">買った数</span>
           <button
             onClick={() => void setPurchaseUnits(item, item.purchaseUnits - 1)}
             disabled={item.purchaseUnits <= 1}
-            className="flex size-8 items-center justify-center rounded-md border text-sm active:bg-accent disabled:opacity-30"
+            className="flex size-11 items-center justify-center rounded-md border text-sm active:bg-accent disabled:opacity-30"
             aria-label="減らす"
           >
             <Minus className="size-3.5" />
@@ -406,13 +406,13 @@ function ItemRow({ item, onToggle }: { item: ShoppingListItem; onToggle: () => v
           <span className="min-w-6 text-center text-sm tabular-nums">{item.purchaseUnits}</span>
           <button
             onClick={() => void setPurchaseUnits(item, item.purchaseUnits + 1)}
-            className="flex size-8 items-center justify-center rounded-md border text-sm active:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md border text-sm active:bg-accent"
             aria-label="増やす"
           >
             <Plus className="size-3.5" />
           </button>
           {/* 増やした先で何が起きるかを言う。言わないと、ただの数字になる（D-084） */}
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             余ったぶんは来週の献立で先に使います
           </span>
         </div>

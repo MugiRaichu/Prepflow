@@ -19,7 +19,7 @@ function chipClass(active: boolean) {
 
 function hintClass(active: boolean) {
   return cn(
-    'block text-[10px] leading-tight',
+    'block text-xs leading-tight',
     active ? 'text-background/70' : 'text-muted-foreground',
   );
 }

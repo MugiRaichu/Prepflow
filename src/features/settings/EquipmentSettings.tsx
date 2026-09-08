@@ -91,7 +91,7 @@ export function EquipmentSettings() {
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-medium">{EQUIPMENT_KIND_LABELS[kind]}</div>
-                    {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+                    {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
                   </div>
                 </div>
 
@@ -108,7 +108,7 @@ export function EquipmentSettings() {
                     持っていない人には、鍋で炊く段取りに変わることをここで言う */}
                 {kind === 'rice_cooker' && (
                   <div className="mt-3">
-                    <div className="mb-1 text-[10px] text-muted-foreground">
+                    <div className="mb-1 text-xs text-muted-foreground">
                       {count > 0
                         ? '炊き上がりまで'
                         : '炊き上がりまで（鍋で炊く手順になります）'}
@@ -124,7 +124,7 @@ export function EquipmentSettings() {
 
                 {kind === 'microwave' && count > 0 && e && (
                   <div className="mt-3">
-                    <div className="mb-1 text-[10px] text-muted-foreground">出力</div>
+                    <div className="mb-1 text-xs text-muted-foreground">出力</div>
                     <Chips
                       options={WATTAGE_OPTIONS}
                       value={e.wattage ?? 600}
