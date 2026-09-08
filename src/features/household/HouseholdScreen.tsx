@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Check } from 'lucide-react';
 import { db, newEntity, nowIso } from '@/db/db';
@@ -16,12 +17,22 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 /**
- * ライフステージ。生活が変わると作り方そのものを変える。
+ * 暮らしのひな形。**分類ではなく、まとめて設定を入れるための近道。**
+ *
+ * ここに並ぶ6つで暮らしを網羅することはできない。夜勤・シフト、単身赴任、
+ * 学生、在宅ワーク、介護、二拠点——数えはじめると終わらないし、
+ * 増やすほど「自分はどれなのか」を考える時間が増える（＝認知負荷）。
+ *
+ * 逆に、**この画面を触らなくてもアプリは仕立てられる。**
+ * 献立を決めているのは名前ではなく制約のほうで、それは最初の設定で
+ * すべて聞いている（何人・週に何回・何日分・どの食事・何分・予算・日持ち）。
+ * だからここは「近いものがあれば押すと下が埋まる」という位置づけに留める。
  *
  * 選ぶと何が変わるかを先に出してから適用する。設定を黙って書き換えない。
  * 育休のような一時的な状態には期限を持たせ、戻し忘れを防ぐ。
  */
 export function HouseholdScreen() {
+  const nav = useNavigate();
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   const current = useLiveQuery(
     async () => (await db.households.where('isCurrent').equals(1).toArray())[0],
@@ -78,6 +89,17 @@ export function HouseholdScreen() {
       <PageHeader title="いまの暮らし" backTo="/settings" />
 
       <div className="space-y-4 p-4">
+        {/*
+          **選ばなくてよいことを先に言う。**
+          一覧を出すと「どれかに当てはまらないといけない」と読まれる。
+          6つで暮らしは網羅できないので、当てはまらない人のほうが多い。
+        */}
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          近いものがあれば押すと、作り方の設定がまとめて入ります。
+          <b className="text-foreground">当てはまるものが無くても構いません。</b>
+          献立は名前ではなく、人数・回数・時間・予算から組んでいます。
+        </p>
+
         {current?.activeUntil && (
           <div className="rounded-lg border border-foreground/40 p-3 text-xs leading-relaxed">
             <span className="font-medium">{current.name}</span> は一時的な設定です。
@@ -114,12 +136,20 @@ export function HouseholdScreen() {
           })}
         </div>
 
-        {currentPreset && (
-          <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
-            いまの設定: {MODE_LABEL[currentPreset.cooking.mode]} ／{' '}
-            {settings.cooking.coverDays}日分 ／ 1回 {settings.cooking.maxPrepMinutes}分まで
-          </div>
-        )}
+        {/*
+          ひな形を選んでいなくても、いまの設定は出す。
+          「未設定」とだけ書くと、何かが欠けているように見える。実際は動いている
+        */}
+        <div className="rounded-lg border p-3 text-[11px] leading-relaxed text-muted-foreground">
+          いまの設定: {MODE_LABEL[currentPreset?.cooking.mode ?? 'batch']} ／{' '}
+          {settings.cooking.coverDays}日分 ／ 1回 {settings.cooking.maxPrepMinutes}分まで
+          <button
+            onClick={() => nav('/settings/cooking')}
+            className="ml-1 underline underline-offset-2"
+          >
+            直す
+          </button>
+        </div>
       </div>
 
       {pending && (
