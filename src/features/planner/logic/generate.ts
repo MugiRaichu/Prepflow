@@ -214,6 +214,22 @@ function effectiveCosts(
   return { costOf, coveredYen: Math.round(coveredYen) };
 }
 
+/**
+ * おいしく食べられる日数。冷凍したかどうかで変わる。
+ *
+ * **冷凍で風味が極端に落ちる品は、冷凍したぶんを先に食べる**（本人指摘）。
+ * じゃがいもはスカスカに、豆腐は高野豆腐に、和え物は水が出る。
+ * 30日もつからと後ろに回すと、いちばん風味の落ちたものが最後に残る。
+ *
+ * 冷凍で落ちない品は、凍っているあいだは味が進まないので日持ちいっぱい。
+ */
+const FROZEN_HOSTILE_BEST_DAYS = 7;
+
+function bestDaysFor(recipe: Recipe, freeze: boolean, keeps: number): number {
+  if (!freeze) return recipe.storage.bestWithinDays ?? keeps;
+  return recipe.storage.freezesWell === false ? FROZEN_HOSTILE_BEST_DAYS : 30;
+}
+
 /** 週の起点日（設定の weekStartsOn に合わせて、今日以降で最も近い日） */
 export function nextWeekStart(weekStartsOn: Weekday): string {
   const today = todayIso();
@@ -760,10 +776,7 @@ export async function commitWeek(
                 keepsDays: freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
                 // 実際に作る日は詰めるときに確定する。ここは仮置き（PackStep で引き直す）
                 useByDate: addDaysIso(ctx.weekStart, freeze ? 30 : keeps),
-                bestByDate: addDaysIso(
-                  ctx.weekStart,
-                  freeze ? 30 : (p.recipe.storage.bestWithinDays ?? keeps),
-                ),
+                bestByDate: addDaysIso(ctx.weekStart, bestDaysFor(p.recipe, freeze, keeps)),
                 packed: 0,
               });
             }
@@ -835,10 +848,7 @@ export async function commitWeek(
           storage: b.freeze ? 'freezer' : 'fridge',
           keepsDays: b.freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
           useByDate: addDaysIso(ctx.weekStart, b.freeze ? 30 : keeps),
-          bestByDate: addDaysIso(
-            ctx.weekStart,
-            b.freeze ? 30 : (b.recipe.storage.bestWithinDays ?? keeps),
-          ),
+          bestByDate: addDaysIso(ctx.weekStart, bestDaysFor(b.recipe, b.freeze, keeps)),
           packed: 0,
         });
       }

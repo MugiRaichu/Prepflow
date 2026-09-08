@@ -13,7 +13,13 @@ import type { InventoryItem } from './schema';
 import { DEFAULT_SECTION_ORDER, type AppSettings, type Ingredient } from './schema';
 import { BUILTIN_INGREDIENTS } from './data/ingredients';
 import { BUILTIN_RECIPES } from './data/recipes';
-import { bestWithinOf, buildRecipe, HIGH_PROTEIN_G, HIGH_PROTEIN_TAG } from './data/build';
+import {
+  bestWithinOf,
+  buildRecipe,
+  freezesWellOf,
+  HIGH_PROTEIN_G,
+  HIGH_PROTEIN_TAG,
+} from './data/build';
 import { recalcProfileTargets } from '@/lib/nutrition';
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -201,13 +207,17 @@ async function refreshProteinTag(): Promise<void> {
      * 栄養や原価は触らない。保存の決め方だけを今の定義に合わせる。
      */
     const best = seed ? bestWithinOf(seed) : r.storage.bestWithinDays;
-    const storageChanged = best !== r.storage.bestWithinDays;
+    const freezes = seed ? freezesWellOf(seed) : r.storage.freezesWell;
+    const storageChanged =
+      best !== r.storage.bestWithinDays || freezes !== r.storage.freezesWell;
 
     if (!storageChanged && tags.join('|') === r.tags.join('|')) continue;
     await db.recipes.put({
       ...r,
       tags,
-      ...(storageChanged ? { storage: { ...r.storage, bestWithinDays: best } } : {}),
+      ...(storageChanged
+        ? { storage: { ...r.storage, bestWithinDays: best, freezesWell: freezes } }
+        : {}),
       updatedAt: nowIso(),
     });
   }

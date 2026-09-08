@@ -165,6 +165,16 @@ export function PreppedList() {
                         'まで' +
                         (over ? '（過ぎています）' : '（あと' + daysLeft(c.useByDate, today) + '日）')}
                     ・{Math.round(c.grams)}g・{Math.round(c.nutrition.kcal)} kcal
+                    {/*
+                      **なぜ前に置いてあるかを言う。**並び順だけでは
+                      「早く食べて」が伝わらない。凍っていて期限は先なのに
+                      上にある品は、理由が無いと後回しにされる
+                    */}
+                    {c.storage === 'freezer' && c.bestByDate && c.bestByDate < c.useByDate && (
+                      <span className="block text-foreground">
+                        冷凍で食感が変わる材料が入っています。早めに
+                      </span>
+                    )}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">食べた</span>

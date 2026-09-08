@@ -37,6 +37,8 @@ export interface SeedRecipe {
     keepsDays: number;
     /** おいしく食べられる日数。省略時は keepsDays と同じ（→ build.ts で補う） */
     bestWithinDays?: number;
+    /** 冷凍に耐えるか。書かなければ材料から決める（→ build.ts） */
+    freezesWell?: boolean;
     reheatNote?: string;
   };
   tags: string[];
