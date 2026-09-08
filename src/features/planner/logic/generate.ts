@@ -15,6 +15,7 @@ import { applyRequest, solveWithRequest, EMPTY_REQUEST } from './request';
 import { modeFor, requiredKeepDays } from './cadence';
 import type { WeekRequest } from './request';
 import { buildShoppingList, listTotal } from './shoppingList';
+import { defaultWindow, MAX_PLAN_DAYS } from './window';
 import { syncSchedule } from '@/notify/gasClient';
 import { dueSoon, predictStaples } from '@/db/repositories/staples';
 import { getDefaultStore } from '@/db/repositories/stores';
@@ -242,6 +243,16 @@ export interface ProposeOptions {
    * 家にある食材を優先し、使った予算を差し引く。
    */
   fromDate?: string;
+  /**
+   * 献立の開始日。指定しなければ今日。
+   *
+   * **決め打ちの曜日に寄せない。**日曜に作れなくて月曜に立て直したとき、
+   * 次の日曜からの献立になっていた（本人報告）。作る日がずれたら、
+   * 献立もずれる。
+   */
+  startDate?: string;
+  /** 何日ぶん作るか。指定しなければ設定の日数。上限7日 */
+  days?: number;
 }
 
 /** 候補を出す。保存はしない（画面で選ばせてから保存する） */
@@ -276,8 +287,9 @@ export async function proposeWeek(
   // 週の途中で作り直す場合: いまの週プランの残りの日だけを対象にする。
   // すでに作って詰めた日は食べるものが冷蔵庫にあるので残し、それ以外の今日以降を組み直す
   let replan: ReplanInfo | undefined;
-  let weekStart = nextWeekStart(settings.weekStartsOn);
-  let dayCount = settings.cooking.coverDays;
+  const win = defaultWindow(settings.cooking);
+  let weekStart = opts.startDate ?? win.startDate;
+  let dayCount = Math.min(Math.max(opts.days ?? win.days, 1), MAX_PLAN_DAYS);
   let budgetYen = settings.shopping.weeklyBudgetYen;
   const previousRecipeIds = new Set<string>();
 
@@ -286,9 +298,13 @@ export async function proposeWeek(
     const cur = (await db.weekPlans.where('deleted').equals(0).reverse().sortBy('weekStart'))[0];
     if (!cur) throw new Error('作り直す献立がありません');
 
-    const weekDates = Array.from({ length: settings.cooking.coverDays }, (_, i) =>
-      addDaysIso(cur.weekStart, i),
-    );
+    // その週が何日ぶんだったかは、プランに入っている日付から見る。
+    // 設定の日数で数えると、5日の設定に変えたあと7日のプランを直せなくなる
+    const curMeals = await db.plannedMeals.where('weekPlanId').equals(cur.id).toArray();
+    const curDates = [...new Set(curMeals.filter((m) => m.deleted === 0).map((m) => m.date))].sort();
+    const weekDates = curDates.length
+      ? curDates
+      : Array.from({ length: settings.cooking.coverDays }, (_, i) => addDaysIso(cur.weekStart, i));
     const packed = (await db.containerAssignments.where('weekPlanId').equals(cur.id).toArray()).filter(
       (a) => a.packed === 1 && a.deleted === 0,
     );

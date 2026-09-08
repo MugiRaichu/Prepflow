@@ -14,6 +14,7 @@ import { adaptRice, hasRiceCooker } from './logic/rice';
 import { amountLabel, stepIngredients } from './logic/stepItems';
 import { DishPhotoInput } from '@/features/recipes/DishImage';
 import { PackStep } from './PackStep';
+import { PreppedList } from './PreppedList';
 import { consumeForPlan } from '@/db/repositories/inventory';
 import { useCookingMode } from '@/features/household/useCookingMode';
 import { useCookTimers } from './useTimers';
@@ -22,6 +23,34 @@ import { formatDateJa, todayIso } from '@/lib/labels';
 import type { ScheduledTask } from './logic/types';
 import type { PlannedMeal } from '@/db/schema';
 import { cn } from '@/lib/utils';
+
+/** 作る／詰めたもの の切り替え。下のタブは増やさない */
+function CookTabs({
+  tab,
+  onChange,
+}: {
+  tab: 'cook' | 'prepped';
+  onChange: (v: 'cook' | 'prepped') => void;
+}) {
+  const item = (v: 'cook' | 'prepped', label: string) => (
+    <button
+      key={v}
+      onClick={() => onChange(v)}
+      className={cn(
+        'min-h-9 flex-1 rounded-md text-xs',
+        tab === v ? 'bg-foreground font-medium text-background' : 'text-muted-foreground',
+      )}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="flex gap-1 rounded-lg border p-1">
+      {item('cook', '作る')}
+      {item('prepped', '詰めたもの')}
+    </div>
+  );
+}
 
 const fmtMin = (sec: number) => Math.round(sec / 60) + '分';
 const fmtClock = (sec: number) => {
@@ -36,6 +65,14 @@ const fmtClock = (sec: number) => {
  * 全体像は畳んでおく。画面は消さない。
  */
 export function CookScreen() {
+  /*
+   * 「作る」と「詰めたもの」を1つのタブの中で切り替える。
+   *
+   * 詰めた品の一覧は `/freezer` にしか無く、今日の画面のリンクからしか
+   * 行けなかった。**詰めたあと何がどれだけ残っているかは、作る画面の隣に
+   * あるべきだった**（本人指摘）。下のタブは増やさない（並びを何度も直した場所）。
+   */
+  const [tab, setTab] = useState<'cook' | 'prepped'>('cook');
   const [showAll, setShowAll] = useState(false);
   const nav = useNavigate();
   /** 「材料が傷んでいた」を開いているか。ふだんは畳んでおく */
@@ -165,10 +202,27 @@ export function CookScreen() {
     }
   }, [allDone, plan, consumedKey, consumedRow, daily]);
 
+  if (tab === 'prepped') {
+    return (
+      <div className="pb-6">
+        <PageHeader title={daily ? '今日作る' : '作り置き'} />
+        <div className="px-4 pt-3">
+          <CookTabs tab={tab} onChange={setTab} />
+        </div>
+        <div className="p-4">
+          <PreppedList />
+        </div>
+      </div>
+    );
+  }
+
   if (!plan || !result) {
     return (
       <div>
         <PageHeader title={daily ? '今日作る' : '作り置き'} />
+        <div className="px-4 pt-3">
+          <CookTabs tab={tab} onChange={setTab} />
+        </div>
         <div className="p-4">
           <EmptyState
             title={daily ? '今日のぶんはありません' : '作るものがありません'}
@@ -268,6 +322,9 @@ export function CookScreen() {
   return (
     <div className="pb-6">
       <PageHeader title={daily ? '今日作る' : '作り置き'} />
+      <div className="px-4 pt-3">
+        <CookTabs tab={tab} onChange={setTab} />
+      </div>
       {undo.bar}
 
       {/* 手を止めずに並行で動いているものは、常に見える位置に置く。

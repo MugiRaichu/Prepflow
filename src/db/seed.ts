@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   cooking: {
     prepDay: 0,
+    prepDays: [0],
     maxPrepMinutes: 120,
     allowFreezing: true,
     // 主菜1品が週3食まで。5食なら2品、14食なら5品が要る計算になる

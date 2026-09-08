@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { yen, formatDateJa, MEAL_SLOT_LABELS, todayIso } from '@/lib/labels';
 import { commitWeek, proposeWeek } from './logic/generate';
+import { defaultWindow, MAX_PLAN_DAYS, startOptions } from './logic/window';
 import { gramsPerServing } from './logic/distribute';
 import { WishBar } from './WishBar';
 import { PinPicker } from './PinPicker';
@@ -110,6 +111,17 @@ export function PlanScreen() {
 
   const [error, setError] = useState<string | null>(null);
 
+  /*
+   * 献立の期間。**決め打ちの曜日に寄せない。**
+   * 日曜に作れなくて月曜に立て直すと、次の日曜からの献立になっていた。
+   * 開始日は今日、日数は設定の値から始めて、その場で変えられるようにする。
+   */
+  const [startDate, setStartDate] = useState(todayIso());
+  const [days, setDays] = useState<number | null>(null);
+  useEffect(() => {
+    if (settings && days === null) setDays(defaultWindow(settings.cooking).days);
+  }, [settings, days]);
+
   // 希望を変えた直後にも押せるよう、state ではなく引数で受け取る
   const generate = async (
     req: WeekRequest = request,
@@ -124,6 +136,9 @@ export function PlanScreen() {
       setWithoutIds(without);
       const r = await proposeWeek(req, {
         ...(from ? { fromDate: from } : {}),
+        startDate,
+        // 設定を読む前に押せてしまうことはないが、型の上では null になりうる
+        ...(days ? { days } : {}),
         ...(without.length ? { withoutIngredientIds: without } : {}),
         ...(stockOnly ? { stockOnly: true } : {}),
       });
@@ -276,6 +291,60 @@ export function PlanScreen() {
             <Link to="/stock" className="ml-1 underline underline-offset-2">
               まだあるなら戻す
             </Link>
+          </div>
+        )}
+
+        {/*
+          いつから何日ぶんか。**案を出す前に決める。**
+          決め打ちで週の頭に寄せていたので、作れなかった日の翌日に立て直すと
+          次の週の献立になっていた（本人報告）。
+        */}
+        {!cands && settings && days !== null && (
+          <div className="space-y-2 rounded-lg border p-3">
+            <div className="text-xs font-medium">
+              {formatDateJa(startDate)} から {days} 日ぶん
+            </div>
+            <div className="flex gap-1 overflow-x-auto pb-0.5">
+              {startOptions(settings.cooking).map((o) => (
+                <button
+                  key={o.date}
+                  onClick={() => setStartDate(o.date)}
+                  className={cn(
+                    'min-h-10 shrink-0 rounded-md border px-2.5 text-[11px] tabular-nums',
+                    o.date === startDate
+                      ? 'border-foreground bg-foreground font-medium text-background'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {o.date === todayIso() ? '今日' : formatDateJa(o.date)}
+                  {/* 作り置きの曜日に印。待たせはしないが、目印にはなる */}
+                  {o.isPrepDay && <span className="ml-0.5">・</span>}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">何日ぶん</span>
+              <div className="flex flex-1 gap-1">
+                {Array.from({ length: MAX_PLAN_DAYS }, (_, i) => i + 1).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDays(d)}
+                    className={cn(
+                      'min-h-9 flex-1 rounded-md border text-[11px] tabular-nums',
+                      d === days
+                        ? 'border-foreground bg-foreground font-medium text-background'
+                        : 'text-muted-foreground',
+                    )}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              作り置きは7日を超えて持たないので、ここが上限です。
+              「・」は作り置きの曜日です。
+            </p>
           </div>
         )}
 
