@@ -39,6 +39,21 @@ async function containersOf(meal: PlannedMeal): Promise<ContainerAssignment[]> {
   );
 }
 
+/**
+ * 食べた・食べていないを切り替える。
+ *
+ * **押した本人が、押したことに気づける形にする。**画面側では、押した瞬間に
+ * その食事がカロリーの帯に変わる。ここは数字を正しくするだけ。
+ */
+export async function setMealEaten(meal: PlannedMeal, eaten: boolean): Promise<void> {
+  await db.plannedMeals.put({
+    ...meal,
+    status: eaten ? 'eaten' : 'planned',
+    ...(eaten ? { eatenAt: nowIso() } : { eatenAt: undefined }),
+    updatedAt: nowIso(),
+  });
+}
+
 export async function handleMissedMeal(
   meal: PlannedMeal,
   action: MissedAction,

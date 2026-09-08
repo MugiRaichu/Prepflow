@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Boxes, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Boxes, Check, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
 import { db } from '@/db/db';
 import { todayIso, formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
 import { sumMacros } from '@/lib/nutrition';
@@ -20,7 +20,7 @@ import type {
 } from '@/db/schema';
 import { DishImage } from '@/features/recipes/DishImage';
 import { useUndoBar } from '@/components/shared/UndoBar';
-import { handleMissedMeal, undoMissedMeal } from '@/db/repositories/meals';
+import { handleMissedMeal, setMealEaten, undoMissedMeal } from '@/db/repositories/meals';
 import { listPrepped } from '@/db/repositories/leftovers';
 import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
@@ -136,6 +136,18 @@ export function Dashboard() {
     const hands = recipes.filter((r) => ids.has(r.id)).reduce((n, r) => n + handsOnMinutes(r), 0);
     return hands > 0 ? Math.round(perDayMinutes(hands, 1)) : 0;
   })();
+  /*
+   * 人ごとの、その日の合計。**「食べた」を押した先がどこなのかを見せるために要る。**
+   * 押すと、その食事がここへ足されて帯が伸びる。
+   */
+  const dayTotals = new Map<string, { eaten: number; target: number }>();
+  for (const p of profiles ?? []) {
+    const eaten = (meals ?? [])
+      .filter((m) => m.profileId === p.id && m.status === 'eaten')
+      .reduce((n, m) => n + m.nutrition.kcal, 0);
+    dayTotals.set(p.id, { eaten, target: p.baseTargets.kcal });
+  }
+
   const me = profiles?.find((p) => p.isActive === 1);
   const manyPeople = (profiles?.length ?? 0) > 1;
   const streak = weekStreak(plans ?? [], today);
@@ -214,6 +226,8 @@ export function Dashboard() {
           recipes={byRecipeId}
           profiles={profiles ?? []}
           manyPeople={manyPeople}
+          dayTotals={dayTotals}
+          dayWord={isToday ? '今日' : 'この日'}
           onUndo={undo.offer}
         />
       )}
@@ -335,6 +349,8 @@ function MealBody({
   meal,
   assignments,
   recipes,
+  total,
+  dayWord,
   onUndo,
 }: {
   /** 誰のぶんか。1人のときは渡さない（書く意味がない） */
@@ -342,17 +358,24 @@ function MealBody({
   meal: PlannedMeal;
   assignments: ContainerAssignment[];
   recipes: Map<string, Recipe>;
+  /** この人の、その日の合計と目標。帯を出すのに使う */
+  total?: { eaten: number; target: number };
+  dayWord: string;
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const eaten = meal.status === 'eaten';
   const skipped = meal.status === 'skipped';
   const [asking, setAsking] = useState(false);
+  /*
+    押した瞬間だけ動かす。**開き直すたびに全部が動くのは違う**——
+    動きは「いま押した」ことを伝えるためのもので、飾りではない。
+  */
+  const [justAte, setJustAte] = useState(false);
 
-  const toggle = async () => {
-    const next = eaten
-      ? { status: 'planned' as const, eatenAt: undefined }
-      : { status: 'eaten' as const, eatenAt: new Date().toISOString() };
-    await db.plannedMeals.put({ ...meal, ...next, updatedAt: new Date().toISOString() });
+  const eat = async () => {
+    setJustAte(true);
+    await setMealEaten(meal, true);
+    window.setTimeout(() => setJustAte(false), 1100);
   };
 
   const missed = async (action: MissedAction, label: string) => {
@@ -366,56 +389,84 @@ function MealBody({
       {/*
         枠の名前（朝食・昼食・夕食）は**行の見出しがもう出している。**
         ここで繰り返すと、同じ言葉が1つの行に2回並ぶ。
-        出すのは、行の見出しでは分からないことだけ——誰のぶんか、食べたかどうか。
       */}
-      <button onClick={toggle} className="w-full text-left active:scale-[0.99]">
-        {meal.items.map((it, idx) => {
-          const a = assignments.find((x) => x.id === it.containerAssignmentId);
-          const r = recipes.get(it.recipeId);
-          return (
-            <div key={idx} className="flex items-center gap-2.5 py-0.5">
-              {/* 名前だけの行が並ぶと、どれがどれか読まないと分からない */}
-              {r && <DishImage recipe={r} className="size-11 shrink-0" />}
-              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-                {a && (
-                  <span className="rounded border px-1.5 py-0.5 font-mono text-xs font-semibold">
-                    {a.containerLabel}
-                  </span>
+      {meal.items.map((it, idx) => {
+        const a = assignments.find((x) => x.id === it.containerAssignmentId);
+        const r = recipes.get(it.recipeId);
+        return (
+          <div key={idx} className="flex items-center gap-2.5 py-0.5">
+            {/* 名前だけの行が並ぶと、どれがどれか読まないと分からない */}
+            {r && (
+              <DishImage
+                recipe={r}
+                className={cn(
+                  'shrink-0 transition-all duration-500',
+                  eaten ? 'size-8 opacity-60' : 'size-11',
+                  justAte && 'pf-eat-settle',
                 )}
-                <span className={cn('text-base font-semibold', eaten && 'text-muted-foreground')}>
-                  {it.recipeTitle}
+              />
+            )}
+            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+              {a && !eaten && (
+                <span className="rounded border px-1.5 py-0.5 font-mono text-xs font-semibold">
+                  {a.containerLabel}
                 </span>
+              )}
+              <span
+                className={cn(
+                  'font-semibold transition-all duration-500',
+                  eaten ? 'text-sm text-muted-foreground' : 'text-base',
+                )}
+              >
+                {it.recipeTitle}
+              </span>
+              {!eaten && (
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {Math.round(it.grams)}g
                 </span>
-              </div>
+              )}
             </div>
-          );
-        })}
+          </div>
+        );
+      })}
 
-        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs tabular-nums text-muted-foreground">
-          {who && <span className="font-medium">{who}</span>}
-          <span>
-            {Math.round(meal.nutrition.kcal)} kcal ・ P {Math.round(meal.nutrition.proteinG)}g ・ F{' '}
-            {Math.round(meal.nutrition.fatG)}g ・ C {Math.round(meal.nutrition.carbG)}g
-          </span>
-          {eaten && <span className="font-medium text-foreground">食べた</span>}
-          {skipped && <span>食べていません</span>}
+      {who && <div className="mt-1 text-xs font-medium text-muted-foreground">{who}</div>}
+
+      {/*
+        食べる前は、栄養の内訳。食べたあとは、**その食事が合計のどこへ入ったか。**
+        「食べた」と小さく出すだけでは、押したことが何につながったのか分からない
+        （初めて見た人には、そもそも押せる場所だと分からなかった）。
+      */}
+      {eaten && total ? (
+        <EatenGauge meal={meal} total={total} dayWord={dayWord} animate={justAte} />
+      ) : (
+        <div className="mt-1 text-xs tabular-nums text-muted-foreground">
+          {Math.round(meal.nutrition.kcal)} kcal ・ P {Math.round(meal.nutrition.proteinG)}g ・ F{' '}
+          {Math.round(meal.nutrition.fatG)}g ・ C {Math.round(meal.nutrition.carbG)}g
         </div>
-      </button>
+      )}
 
-      {/* 食べていない食事の始末。ふだんは1行、押すと3択が開く */}
+      {/*
+        **どちらか1つを選ぶ形にする。**
+
+        以前は献立の枠そのものが隠しボタンで、押すと「食べた」になっていた。
+        押せることがどこにも書いておらず、触っていないのに食べたことになる事故もあった。
+        「食べられなかった」のほうは灰色の細い文字で、押せるものに見えていなかった。
+
+        いまは同じ大きさの丸を2つ並べる。**選ぶものが2つある、と見れば分かる。**
+      */}
       {!eaten && !skipped && (
-        <div className="mt-1.5">
+        <div className="mt-2">
           {asking ? (
-            <div className="space-y-2 border-t pt-2">
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">この食事をどうしますか</div>
               {MISSED.map((m) => (
                 <button
                   key={m.value}
                   onClick={() => void missed(m.value, m.label)}
-                  className="flex min-h-11 w-full items-center gap-3 rounded-md border bg-background px-3 text-left active:bg-accent"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-lg border bg-background px-3 text-left active:bg-accent"
                 >
-                  <span className="shrink-0 text-xs font-medium">{m.label}</span>
+                  <span className="shrink-0 text-sm font-medium">{m.label}</span>
                   <span className="min-w-0 flex-1 text-xs text-muted-foreground">{m.note}</span>
                 </button>
               ))}
@@ -427,15 +478,97 @@ function MealBody({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setAsking(true)}
-              className="min-h-11 w-full text-left text-xs text-muted-foreground"
-            >
-              食べられなかった
-            </button>
+            /* 横に並べると「食べられなかった」が2行に折れる。縦に積む——
+               このあと開く3択とも同じ形になり、選ぶものが上から並ぶ */
+            <div className="space-y-2">
+              <button
+                onClick={() => void eat()}
+                className="flex min-h-12 w-full items-center gap-3 rounded-lg border bg-background px-3 text-left text-sm font-semibold active:bg-accent"
+              >
+                <Circle className="size-4 shrink-0 text-muted-foreground" />
+                食べた
+              </button>
+              <button
+                onClick={() => setAsking(true)}
+                className="flex min-h-12 w-full items-center gap-3 rounded-lg border bg-background px-3 text-left text-sm active:bg-accent"
+              >
+                <Circle className="size-4 shrink-0 text-muted-foreground" />
+                食べられなかった
+              </button>
+            </div>
           )}
         </div>
       )}
+
+      {/* 押したあと。**戻せる場所を画面に残す**（消える取り消しに頼らない） */}
+      {eaten && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground">
+            <Check className="size-3.5 text-background" strokeWidth={3} />
+          </span>
+          <span className="text-sm font-semibold">食べた</span>
+          <button
+            onClick={() => void setMealEaten(meal, false)}
+            className="ml-auto min-h-11 px-2 text-xs text-muted-foreground underline underline-offset-2"
+          >
+            取り消す
+          </button>
+        </div>
+      )}
+
+      {skipped && <div className="mt-1.5 text-sm text-muted-foreground">食べていません</div>}
+    </div>
+  );
+}
+
+/**
+ * 食べたものが、そのままカロリーの帯になる。
+ *
+ * 押しても小さく「食べた」と出るだけでは、押したことが何につながったのか
+ * 分からない（本人指摘）。料理の絵が縮んで沈み、その下に帯が左から伸びる。
+ *
+ * 帯は**その日の合計**で、濃いところが**いま押した食事**。
+ * 自分の1日のどこを埋めたのかが、押したその場で見える。
+ */
+function EatenGauge({
+  meal,
+  total,
+  dayWord,
+  animate,
+}: {
+  meal: PlannedMeal;
+  total: { eaten: number; target: number };
+  dayWord: string;
+  animate: boolean;
+}) {
+  const target = Math.max(total.target, 1);
+  const mine = Math.min(meal.nutrition.kcal, total.eaten);
+  const before = Math.max(0, total.eaten - mine);
+  // 目標を超えたぶんは帯の外に出さない。責める見た目にはしない
+  const pctBefore = Math.min(100, (before / target) * 100);
+  const pctMine = Math.min(100 - pctBefore, (mine / target) * 100);
+
+  return (
+    <div className="mt-1.5">
+      <div className="relative h-2 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-foreground/25"
+          style={{ width: pctBefore + '%' }}
+        />
+        <div
+          className={cn('absolute inset-y-0 rounded-full bg-foreground', animate && 'pf-eat-grow')}
+          style={{ left: pctBefore + '%', width: pctMine + '%' }}
+        />
+      </div>
+      {/*
+        **合計の数字は書かない。**下の「目標」の欄が同じ数字を出しているので、
+        ここに並べると同じことを2か所で言うことになる（D-142 と同じ轍）。
+        この行が答えるのは「いま押したぶんはどれだけか」だけ。
+        1日のどこを埋めたのかは、帯の濃いところが示す。
+      */}
+      <div className="mt-1 text-xs tabular-nums text-muted-foreground">
+        {dayWord}の目標に +{Math.round(mine)} kcal
+      </div>
     </div>
   );
 }
@@ -462,6 +595,8 @@ function TimelineCard({
   recipes,
   profiles,
   manyPeople,
+  dayTotals,
+  dayWord,
   onUndo,
 }: {
   date: string;
@@ -475,6 +610,9 @@ function TimelineCard({
   recipes: Map<string, Recipe>;
   profiles: Profile[];
   manyPeople: boolean;
+  /** 人ごとの、その日の合計と目標 */
+  dayTotals: Map<string, { eaten: number; target: number }>;
+  dayWord: string;
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const weekday = new Date(date + 'T00:00:00').getDay() as Weekday;
@@ -569,6 +707,10 @@ function TimelineCard({
                         assignments={assignments}
                         recipes={recipes}
                         onUndo={onUndo}
+                        dayWord={dayWord}
+                        {...(dayTotals.get(m.profileId)
+                          ? { total: dayTotals.get(m.profileId)! }
+                          : {})}
                         {...(nameOf(m) ? { who: nameOf(m) } : {})}
                       />
                     ))}
@@ -595,6 +737,10 @@ function TimelineCard({
                     assignments={assignments}
                     recipes={recipes}
                     onUndo={onUndo}
+                    dayWord={dayWord}
+                    {...(dayTotals.get(m.profileId)
+                      ? { total: dayTotals.get(m.profileId)! }
+                      : {})}
                     {...(nameOf(m) ? { who: nameOf(m) } : {})}
                   />
                 ))}
