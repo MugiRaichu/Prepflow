@@ -63,11 +63,12 @@
 
     直す前は 2450ms から出て 3600ms で消えていたので、見えるのは1.1秒だけ。
     伸びきる前に画面が変わっていた（本人指摘）。
-      1段目 900ms  … 下地（草・湯気・遠くのもの）。印を描いている裏で始まる
-      2段目 1900ms … 主役（花・実・雪）。名前が出るのと同じ拍で立ち上がる
-    起動画面は 4.4秒まで出しておく（main.tsx）。
+      1段目 700ms  … 下地（草・湯気・遠くのもの）。印を描いている裏で始まる
+      2段目 1500ms … 主役（花・実・雪）。名前が出るのと同じ拍で立ち上がる
+    起動画面は 3.7秒まで（main.tsx）。**全体を0.7秒短くした**ぶん、
+    出す時刻も前へずらして、絵が見える幅を保っている。
   */
-  var STAGE1 = 900, STAGE2 = 1900;
+  var STAGE1 = 700, STAGE2 = 1500;
 
   function put(node, motion, style, delay) {
     if (!frozen && motion) {
@@ -207,89 +208,6 @@
         fill: col
       });
     },
-    /*
-      生きもの。**丸と楕円だけで作る。**
-
-      細かい線で描くと、小さく薄く出したときに何なのか分からなくなる。
-      輪郭を太い面で取り、目とくちばしだけを乗せる。
-      どれも横向きの立ち姿で、`m-pop` でぽこっと現れる。
-
-      色は塗り分けない（1色＋地の色の抜き）。**塗り分けると、
-      薄くしたときに模様がにじんで泥になる。**
-    */
-    /** 猫。丸い頭に三角の耳、うしろにしっぽ */
-    cat: function (x, y, r, col) {
-      var g = svg('g', { fill: col });
-      g.appendChild(svg('path', {  // しっぽ
-        d: 'M' + n1(x - r * 0.9) + ' ' + n1(y - r * 0.1) + ' q ' + n1(-r * 0.9) + ' ' + n1(-r * 0.2) +
-           ' ' + n1(-r * 0.5) + ' ' + n1(-r * 1.1),
-        stroke: col, 'stroke-width': n1(r * 0.26), fill: 'none', 'stroke-linecap': 'round'
-      }));
-      g.appendChild(svg('ellipse', { cx: n1(x), cy: n1(y - r * 0.35), rx: n1(r * 0.95), ry: n1(r * 0.6) }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.7), cy: n1(y - r * 1.05), r: n1(r * 0.55) }));
-      g.appendChild(svg('path', {  // 耳
-        d: 'M' + n1(x + r * 0.3) + ' ' + n1(y - r * 1.4) + ' l ' + n1(r * 0.22) + ' ' + n1(-r * 0.45) +
-           ' l ' + n1(r * 0.3) + ' ' + n1(r * 0.3) + ' z M' + n1(x + r * 0.9) + ' ' + n1(y - r * 1.5) +
-           ' l ' + n1(r * 0.28) + ' ' + n1(-r * 0.4) + ' l ' + n1(r * 0.18) + ' ' + n1(r * 0.45) + ' z'
-      }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.95), cy: n1(y - r * 1.1), r: n1(r * 0.1), fill: C.cream }));
-      return g;
-    },
-    /** ペンギン。丸い体に、おなかの抜きとくちばし */
-    penguin: function (x, y, r, col) {
-      var g = svg('g', { fill: col });
-      g.appendChild(svg('ellipse', { cx: n1(x), cy: n1(y - r * 0.75), rx: n1(r * 0.72), ry: n1(r * 0.95) }));
-      g.appendChild(svg('ellipse', {  // おなか
-        cx: n1(x + r * 0.14), cy: n1(y - r * 0.66), rx: n1(r * 0.42), ry: n1(r * 0.66), fill: C.cream
-      }));
-      g.appendChild(svg('path', {  // くちばし
-        d: 'M' + n1(x + r * 0.6) + ' ' + n1(y - r * 1.3) + ' l ' + n1(r * 0.42) + ' ' + n1(r * 0.16) +
-           ' l ' + n1(-r * 0.42) + ' ' + n1(r * 0.16) + ' z', fill: C.grain
-      }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.36), cy: n1(y - r * 1.38), r: n1(r * 0.09), fill: C.cream }));
-      g.appendChild(svg('ellipse', {  // 足
-        cx: n1(x + r * 0.1), cy: n1(y + r * 0.14), rx: n1(r * 0.34), ry: n1(r * 0.12), fill: C.grain
-      }));
-      return g;
-    },
-    /** 埴輪。筒の体に、丸い穴の目と口 */
-    haniwa: function (x, y, r, col) {
-      var g = svg('g', { fill: col });
-      g.appendChild(svg('path', {  // 体。下がすこし広がる
-        d: 'M' + n1(x - r * 0.5) + ' ' + n1(y - r * 1.1) + ' L ' + n1(x + r * 0.5) + ' ' + n1(y - r * 1.1) +
-           ' L ' + n1(x + r * 0.66) + ' ' + n1(y) + ' L ' + n1(x - r * 0.66) + ' ' + n1(y) + ' z'
-      }));
-      g.appendChild(svg('ellipse', { cx: n1(x), cy: n1(y - r * 1.45), rx: n1(r * 0.52), ry: n1(r * 0.6) }));
-      g.appendChild(svg('ellipse', {  // 帽子のつば
-        cx: n1(x), cy: n1(y - r * 1.92), rx: n1(r * 0.66), ry: n1(r * 0.14)
-      }));
-      // 穴。埴輪はここが要（丸い抜きが3つ）
-      g.appendChild(svg('circle', { cx: n1(x - r * 0.2), cy: n1(y - r * 1.55), r: n1(r * 0.12), fill: C.cream }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.2), cy: n1(y - r * 1.55), r: n1(r * 0.12), fill: C.cream }));
-      g.appendChild(svg('ellipse', { cx: n1(x), cy: n1(y - r * 1.25), rx: n1(r * 0.13), ry: n1(r * 0.17), fill: C.cream }));
-      g.appendChild(svg('path', {  // 腕
-        d: 'M' + n1(x - r * 0.5) + ' ' + n1(y - r * 0.95) + ' l ' + n1(-r * 0.34) + ' ' + n1(r * 0.3) +
-           ' M' + n1(x + r * 0.5) + ' ' + n1(y - r * 0.95) + ' l ' + n1(r * 0.34) + ' ' + n1(r * 0.3),
-        stroke: col, 'stroke-width': n1(r * 0.2), 'stroke-linecap': 'round', fill: 'none'
-      }));
-      return g;
-    },
-    /** 小鳥。ひとつの丸にくちばしと尾 */
-    bird: function (x, y, r, col) {
-      var g = svg('g', { fill: col });
-      g.appendChild(svg('path', {  // 尾
-        d: 'M' + n1(x - r * 0.6) + ' ' + n1(y - r * 0.5) + ' l ' + n1(-r * 0.7) + ' ' + n1(-r * 0.28) +
-           ' l ' + n1(r * 0.16) + ' ' + n1(r * 0.5) + ' z'
-      }));
-      g.appendChild(svg('ellipse', { cx: n1(x), cy: n1(y - r * 0.55), rx: n1(r * 0.75), ry: n1(r * 0.58) }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.55), cy: n1(y - r * 0.95), r: n1(r * 0.42) }));
-      g.appendChild(svg('path', {  // くちばし
-        d: 'M' + n1(x + r * 0.92) + ' ' + n1(y - r * 0.98) + ' l ' + n1(r * 0.36) + ' ' + n1(r * 0.12) +
-           ' l ' + n1(-r * 0.34) + ' ' + n1(r * 0.13) + ' z', fill: C.grain
-      }));
-      g.appendChild(svg('circle', { cx: n1(x + r * 0.62), cy: n1(y - r * 1.02), r: n1(r * 0.08), fill: C.cream }));
-      return g;
-    },
     /** 四芒星。またたきに使う */
     star: function (x, y, r, col) {
       return svg('path', {
@@ -398,13 +316,7 @@
       if (tooClose(x, y, 48)) return;
       placed.push([x, y]);
     }
-    // 生きものは重ねない。重なると何なのか分からなくなる
-    if (sp.shape === 'cat' || sp.shape === 'penguin' || sp.shape === 'haniwa' || sp.shape === 'bird') {
-      if (tooClose(x, y, 130)) return;
-      placed.push([x, y]);
-    }
-    var living = sp.shape === 'cat' || sp.shape === 'penguin' || sp.shape === 'haniwa' || sp.shape === 'bird';
-    var d = living ? { cls: 'near', s: 1, o: 1 } : DEPTH[(R() * DEPTH.length) | 0];
+    var d = DEPTH[(R() * DEPTH.length) | 0];
     var r = rnd(sp.r[0], sp.r[1]) * d.s;
     var node = SHAPE[sp.shape](x, y, r, pick(sp.col));
     var st = style(sp.motion, x, y, ((sp.o || 0.5) * d.o).toFixed(2));
@@ -434,8 +346,6 @@
       ['雨あがり', [{ shape: 'ring', motion: 'pop', n: 26, r: [10, 34], col: [C.fish], o: 0.4, step: 45 }]],
       ['春一番', [{ shape: 'petal', motion: 'wind', n: 30, r: [8, 14], col: [C.akane, C.meat, C.cream], o: 0.5, step: 26 },
                   { shape: 'leaf', motion: 'wind', n: 14, r: [9, 15], col: V, o: 0.4, step: 30 }]],
-      ['ことりと若葉', [{ at: STAGE1, shape: 'leaf', motion: 'pop', cols: 5, rows: 10, r: [8, 14], col: V, o: 0.4, step: 30 },
-                       { shape: 'bird', motion: 'pop', n: 5, r: [13, 20], col: [C.soy, C.meat], o: 0.55, step: 150, avoidText: 1 }]],
       ['花畑', [{ at: STAGE1, shape: 'stalk', motion: 'grow', cols: 5, rows: 10, r: [7, 13], col: V, step: 45 },
                 { shape: 'blossom', motion: 'burst', cols: 6, rows: 12, r: [7, 12], col: [C.akane, C.fish, C.meat, C.grain, C.egg, C.veg, C.soy], avoidText: 1, o: 0.62, step: 18 }]]
     ],
@@ -450,8 +360,6 @@
       ['打ち水', [{ shape: 'ring', motion: 'pop', n: 30, r: [8, 30], col: [C.fish, C.cream], o: 0.38, step: 38 }]],
       ['朝顔', [{ shape: 'blossom', motion: 'burst', cols: 5, rows: 10, r: [8, 14], col: [C.fish, C.akane], avoidText: 1, o: 0.55, step: 22 }]],
       ['青嵐', [{ shape: 'leaf', motion: 'wind', n: 28, r: [10, 17], col: V, o: 0.45, step: 26 }]],
-      ['ねこ日和', [{ at: STAGE1, shape: 'dot', motion: 'pop', cols: 4, rows: 8, r: [18, 44], col: [C.egg, C.cream], o: 0.26, step: 45 },
-                   { shape: 'cat', motion: 'pop', n: 4, r: [16, 24], col: [C.soy, C.meat, C.grain], o: 0.55, step: 170, avoidText: 1 }]],
       ['入道雲', [{ shape: 'dot', motion: 'pop', n: 22, r: [26, 60], col: [C.cream], o: 0.3, step: 55 }]]
     ],
     autumn: [
@@ -465,8 +373,6 @@
       ['紅葉', [{ shape: 'petal', motion: 'fall', n: 26, r: [9, 15], col: [C.akane, C.meat, C.grain], o: 0.5, step: 32 }]],
       ['秋の空', [{ shape: 'ring', motion: 'rise', n: 20, r: [14, 40], col: [C.fish, C.cream], o: 0.34, step: 80 }]],
       ['木枯らし', [{ shape: 'leaf', motion: 'wind', n: 28, r: [9, 16], col: [C.grain, C.meat, C.akane, C.egg], o: 0.5, step: 24 }]],
-      ['埴輪くん', [{ shape: 'haniwa', motion: 'pop', n: 5, r: [15, 23], col: [C.meat, C.grain, C.soy], o: 0.5, step: 180, avoidText: 1 },
-                   { at: STAGE1, shape: 'ear', motion: 'grow', n: 14, r: [11, 18], col: GR, y0: 300, step: 55 }]],
       ['収穫', [{ shape: 'blossom', motion: 'burst', cols: 5, rows: 10, r: [7, 14], col: GR, avoidText: 1, o: 0.55, step: 26 }]]
     ],
     winter: [
@@ -480,8 +386,6 @@
       ['綿雪', [{ shape: 'dot', motion: 'fall', n: 34, r: [4, 9], col: [C.cream], o: 0.5, step: 34 }]],
       ['しずかな夜', [{ shape: 'dot', motion: 'twinkle', n: 22, r: [3, 6], col: [C.soy, C.fish], o: 0.55, step: 55 }]],
       ['吹雪', [{ shape: 'dot', motion: 'wind', n: 34, r: [3, 6], col: [C.fish, C.cream], o: 0.45, step: 16 }]],
-      ['ペンギンと粉雪', [{ shape: 'dot', motion: 'fall', n: 22, r: [3.5, 6.5], col: [C.fish, C.cream], o: 0.4, step: 26 },
-                        { shape: 'penguin', motion: 'pop', n: 4, r: [16, 24], col: [C.fish, C.soy], o: 0.6, step: 180, avoidText: 1 }]],
       ['根菜', [{ shape: 'dot', motion: 'pop', n: 28, r: [8, 18], col: [C.meat, C.grain, C.soy], y0: 320, o: 0.42, step: 34 }]]
     ]
   };
