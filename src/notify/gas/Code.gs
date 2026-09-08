@@ -76,6 +76,17 @@ function doPost(e) {
       return json({ ok: true, sent: true });
     }
 
+    /*
+     * 今日のぶんをいますぐ送る。
+     *
+     * 「今週を送る」は献立を**預けるだけ**で、LINE に流れるのは毎日の
+     * トリガーが動く時刻。押した直後に何も届かないので、壊れているように見える。
+     * 手で今すぐ流せる口を用意する。
+     */
+    if (body.action === 'pushNow') {
+      return json({ ok: true, count: sendToday() });
+    }
+
     // events: 自分の Google カレンダーの予定を返す（読むだけ。書き込まない）。
     // このスクリプトは自分のアカウントで動くので、OAuth の画面も
     // Google Cloud のプロジェクトも要らない。初回の許可にカレンダーの読み取りが含まれる。
@@ -195,21 +206,25 @@ function doPost(e) {
   }
 }
 
-/** 毎日のトリガーが呼ぶ。今日のぶんだけ送る */
+/**
+ * 毎日のトリガーが呼ぶ。今日のぶんだけ送る。
+ * 送った件数を返す（0 なら「今日のぶんが無い」で、失敗ではない）。
+ */
 function sendToday() {
   var raw = PROPS.getProperty('SCHEDULE');
-  if (!raw) return;
+  if (!raw) return 0;
 
   var today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
   var items = JSON.parse(raw).filter(function (x) {
     return x.date === today;
   });
-  if (items.length === 0) return;
+  if (items.length === 0) return 0;
 
   var lines = items.map(function (x) {
     return '［' + x.slot + '］' + x.text;
   });
   pushLine('今日の食事\n' + lines.join('\n'));
+  return items.length;
 }
 
 /** 毎日のトリガーを作り直す */
@@ -220,22 +235,79 @@ function setupTrigger() {
 
   var time = PROPS.getProperty('PUSH_TIME') || '17:30';
   var hour = parseInt(time.split(':')[0], 10);
+  var minute = parseInt(time.split(':')[1], 10) || 0;
 
-  ScriptApp.newTrigger('sendToday').timeBased().everyDays(1).atHour(hour).create();
+  // 分を捨てていたので、17:30 を選んでも「17時台のどこか」に届いていた。
+  // GAS の時刻トリガーは15分ほどの幅を持つので厳密にはならないが、近くにはなる
+  ScriptApp.newTrigger('sendToday')
+    .timeBased()
+    .everyDays(1)
+    .atHour(hour)
+    .nearMinute(minute)
+    .create();
 }
 
+/**
+ * LINE に1通押し出す。
+ *
+ * **返事を必ず見る。**ここは muteHttpExceptions を付けたまま返事を捨てていた。
+ * その結果、トークンが違っても・友だち追加していなくても・上限に達していても
+ * 例外は出ず、アプリには「成功しました」と表示され、LINE には何も届かなかった。
+ * 疎通確認（ping）は LINE を通らないので、そこだけは成功していた。
+ * 「疎通は確認しているのに届かない」の正体はこれ（本人報告）。
+ *
+ * LINE は理由を本文で返してくるので、そのまま持ち帰って画面に出す。
+ * 握りつぶすくらいなら、多少読みにくくても理由を見せるほうがいい。
+ */
 function pushLine(text) {
   var token = PROPS.getProperty('LINE_TOKEN');
   var userId = PROPS.getProperty('LINE_USER_ID');
-  if (!token || !userId) throw new Error('LINE_TOKEN / LINE_USER_ID が未設定です');
+  if (!token) throw new Error('LINE_TOKEN が未設定です（スクリプト プロパティ）');
+  if (!userId) throw new Error('LINE_USER_ID が未設定です（スクリプト プロパティ）');
 
-  UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+  var res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
     method: 'post',
     contentType: 'application/json',
     headers: { Authorization: 'Bearer ' + token },
     payload: JSON.stringify({ to: userId, messages: [{ type: 'text', text: text }] }),
     muteHttpExceptions: true,
   });
+
+  var code = res.getResponseCode();
+  if (code === 200) return;
+
+  var detail = '';
+  try {
+    var body = JSON.parse(res.getContentText());
+    detail = body.message || '';
+    if (body.details && body.details.length && body.details[0].message) {
+      detail += '（' + body.details[0].message + '）';
+    }
+  } catch (err) {
+    detail = String(res.getContentText()).slice(0, 200);
+  }
+
+  throw new Error('LINE が受け取りませんでした: HTTP ' + code + ' ' + detail + hintFor(code, detail));
+}
+
+/**
+ * よくある失敗の直し方を1行だけ添える。
+ * HTTPコードを見せても、どこを直せばよいかは分からない。
+ */
+function hintFor(code, detail) {
+  if (code === 401) {
+    return ' / LINE_TOKEN を見直してください。短期のトークンは切れます（長期のチャネルアクセストークンを使う）';
+  }
+  if (code === 403) {
+    return ' / このチャネルから送れません。Messaging API チャネルであること、応答設定を確認してください';
+  }
+  if (code === 400) {
+    return ' / LINE_USER_ID を見直してください。U で始まる自分のユーザーID（チャネルの基本設定にあります）で、そのチャネルを友だち追加している必要があります';
+  }
+  if (code === 429) {
+    return ' / 今月の無料の送信数を使い切っています。翌月まで届きません';
+  }
+  return '';
 }
 
 function json(obj) {
