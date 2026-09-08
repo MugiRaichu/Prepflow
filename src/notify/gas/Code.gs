@@ -276,6 +276,20 @@ function pushLine(text) {
   var code = res.getResponseCode();
   if (code === 200) return;
 
+  /*
+   * 取り違えを名指しする。
+   * チャネルシークレットは32文字、チャネルアクセストークンは数百文字。
+   * 同じ画面に並んでいて名前も似ているので、まずここを疑う
+   */
+  if (code === 401 && token.length < 100) {
+    throw new Error(
+      'LINE_TOKEN が短すぎます（' +
+        token.length +
+        '文字）。チャネルシークレットかチャネルIDを入れていませんか。' +
+        '要るのは「Messaging API設定」タブ一番下の チャネルアクセストークン（長期） です'
+    );
+  }
+
   var detail = '';
   try {
     var body = JSON.parse(res.getContentText());
