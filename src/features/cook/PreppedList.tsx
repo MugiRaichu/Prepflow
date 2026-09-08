@@ -2,7 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useUndoBar } from '@/components/shared/UndoBar';
-import { eatLeftover, listPrepped, undoEatLeftover } from '@/db/repositories/leftovers';
+import {
+  eatLeftover,
+  listEatenToday,
+  listPrepped,
+  undoEatByContainer,
+  undoEatLeftover,
+} from '@/db/repositories/leftovers';
+import type { ContainerAssignment } from '@/db/schema';
 import type { PreppedItem } from '@/db/repositories/leftovers';
 import { addDaysIso, formatDateJa, todayIso } from '@/lib/labels';
 import { cn } from '@/lib/utils';
@@ -35,16 +42,71 @@ function daysLeft(useBy: string, today: string): number {
   );
 }
 
+/**
+ * 今日食べたもの。
+ *
+ * 「食べた」を押すと一覧から**消えていた**。押し間違えたのか効いたのかが
+ * 画面から分からず、取り消しの帯は数秒で消える（本人指摘）。
+ * 下に残しておけば、効いたことも、戻せることも見える。
+ */
+function EatenToday({
+  rows,
+  undo,
+}: {
+  rows: ContainerAssignment[];
+  undo: ReturnType<typeof useUndoBar>;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] text-muted-foreground">
+        今日食べたもの（{rows.length} 件）
+      </div>
+      <div className="divide-y rounded-lg border">
+        {rows.map((c) => (
+          <div key={c.id} className="flex items-center gap-3 px-3 py-2.5">
+            <span className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              {c.containerLabel}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-muted-foreground line-through">
+                {c.recipeTitle}
+              </span>
+              <span className="block text-[10px] tabular-nums text-muted-foreground">
+                {Math.round(c.grams)}g・{Math.round(c.nutrition.kcal)} kcal
+              </span>
+            </span>
+            {/* 押し間違いはここから戻す。帯が消えたあとでも戻せる */}
+            <button
+              onClick={() => {
+                void undoEatByContainer(c);
+                undo.offer(c.recipeTitle + 'を戻しました', async () => {
+                  await eatLeftover(c);
+                });
+              }}
+              className="min-h-9 shrink-0 rounded-md border px-2.5 text-[11px] text-muted-foreground active:bg-accent"
+            >
+              戻す
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PreppedList() {
   const undo = useUndoBar();
   const rows = useLiveQuery(listPrepped, []);
+  const eaten = useLiveQuery(listEatenToday, []);
   if (!rows) return null;
 
   const today = todayIso();
   const freezer = rows.filter((x) => x.container.storage === 'freezer');
   const fridge = rows.filter((x) => x.container.storage !== 'freezer');
   const kcal = rows.reduce((n, x) => n + x.container.nutrition.kcal, 0);
-  const free = rows.filter((x) => !x.plannedDate).length;
+  // まとめ詰めは特定の日のものではないので、「予定なし」に数えない
+  const free = rows.filter((x) => !x.plannedDate && x.container.portion !== 'batch').length;
 
   const eat = async (c: PreppedItem['container']) => {
     const before = { ...c };
@@ -56,7 +118,7 @@ export function PreppedList() {
     items.length === 0 ? null : (
       <div className="space-y-2">
         <div className="text-[10px] text-muted-foreground">
-          {title}（{items.length} 食ぶん）
+          {title}（{items.length} 個）
         </div>
         <div className="divide-y rounded-lg border">
           {items.map(({ container: c, plannedDate }) => {
@@ -87,9 +149,11 @@ export function PreppedList() {
                   >
                     {formatDateJa(c.useByDate)}まで
                     {over ? '（過ぎています）' : '（あと' + daysLeft(c.useByDate, today) + '日）'}
-                    {plannedDate
-                      ? '・' + formatDateJa(plannedDate).replace(/（.）/, '') + 'に食べる予定'
-                      : '・予定なし'}
+                    {c.portion === 'batch'
+                      ? '・取り分け用' + (c.servingsCount ? '（' + c.servingsCount + '食ぶん）' : '')
+                      : plannedDate
+                        ? '・' + formatDateJa(plannedDate).replace(/（.）/, '') + 'に食べる予定'
+                        : '・予定なし'}
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">食べた</span>
@@ -105,7 +169,7 @@ export function PreppedList() {
       {undo.bar}
 
       {rows.length === 0 ? (
-        <div className="p-4">
+        <div className="space-y-4 p-4">
           <EmptyState
             title="作り置きはありません"
             description="作って詰めたものが、ここに全部並びます。"
@@ -118,15 +182,23 @@ export function PreppedList() {
               </Link>
             }
           />
+          {/* 全部食べ切った直後は、ここだけが「効いた」証拠になる */}
+          <EatenToday rows={eaten ?? []} undo={undo} />
         </div>
       ) : (
         <div className="space-y-4 p-4">
+          {/*
+            **「食ぶん」で数えない。**主菜は1食ずつ、副菜はまとめて詰めるので、
+            容器の数と食数は一致しない。
+            **「消えます」とも言わない。**押したものは下の「今日食べたもの」へ
+            移る（消えると押し間違いを戻せない。本人指摘）
+          */}
           <p className="text-xs leading-relaxed text-muted-foreground">
-            いま家にある作り置きです。合わせて {rows.length} 食ぶん・
+            いま家にある作り置きです。合わせて {rows.length} 個・
             {Math.round(kcal)} kcal
-            {free > 0 && '、うち ' + free + ' 食ぶんは予定が入っていません'}。
+            {free > 0 && '、うち ' + free + ' 個は食べる日が決まっていません'}。
             どれから食べるかは決めません。期限を見て選んでください。
-            食べたら押すだけで、その日の摂取に入り、ここから消えます。
+            食べたら押すだけで、その日の摂取に入ります。
           </p>
 
           <Group title="冷凍庫" items={freezer} />
@@ -135,6 +207,8 @@ export function PreppedList() {
           <p className="text-[10px] leading-relaxed text-muted-foreground">
             冷凍したものは、食べる前日に冷蔵へ移してください。
           </p>
+
+          <EatenToday rows={eaten ?? []} undo={undo} />
         </div>
       )}
     </div>

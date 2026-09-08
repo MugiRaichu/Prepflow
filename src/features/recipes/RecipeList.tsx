@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { removeUserRecipe, setRecipeEnabled } from '@/db/repositories/userRecipes';
 import { RECIPE_ROLE_LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
-import { DishPhotoInput } from './DishImage';
+import { DishImage } from './DishImage';
 import type { Recipe, RecipeRole } from '@/db/schema';
 
 /**
@@ -167,8 +167,7 @@ function Row({ recipe }: { recipe: Recipe }) {
 
   return (
     <div className="flex items-center gap-3 py-2.5">
-      {/* 押すと撮る。撮った写真は献立にも出る（DishImage） */}
-      <DishPhotoInput recipe={recipe} className="size-12" />
+      <DishImage recipe={recipe} className="size-12" />
       <button
         onClick={() => void setRecipeEnabled(recipe.id, !on)}
         className="min-w-0 flex-1 text-left"
