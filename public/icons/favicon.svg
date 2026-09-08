@@ -1,13 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!--
-    タブに出る小さいほう。icon.svg と同じ形で、角だけ丸めてある
-    （タブでは OS が丸めてくれないので、こちらで丸める）。
-    線は少し太い。16px まで縮むので、そこで消えないほうを採る。
-  -->
-  <rect width="512" height="512" rx="112" fill="#faf7f2"/>
-  <g fill="none" stroke="#a4483b" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M400 160 C 389 194 371 228 346 228 L 116 228 C 116 326 166 386 231 386 C 296 386 346 326 346 228" stroke-width="32"/>
-    <path d="M180 176 C 196 152 178 136 191 108" stroke-width="21"/>
-    <path d="M258 184 C 273 164 258 149 269 125" stroke-width="21"/>
+  <rect width="512" height="512" rx="112" fill="#a4483b"/>
+  <g fill="none" stroke="#faf7f2" stroke-linecap="round">
+    <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" stroke-width="38"/>
+    <path d="M 166 250 C 196 214 226 286 256 250 C 286 214 316 286 346 250" stroke-width="24" opacity="0.72"/>
+    <path d="M 206 128 C 232 100 206 82 220 56" stroke-width="20" opacity="0.6"/>
+    <path d="M 288 122 C 314 94 288 76 302 50" stroke-width="20" opacity="0.45"/>
   </g>
 </svg>

@@ -1,34 +1,19 @@
 import { cn } from '@/lib/utils';
 
-/**
- * ヘッダー用ロゴ。public/icons/icon.svg と同じ形。
- *
- * アイコンを描き直した（[[D-151]]）ときに、ここが**前の形のまま残っていた**。
- * ホーム画面と画面の中で違う印が出ると、同じアプリだと分からなくなる。
- *
- * 線は 24px で見るぶん、アイコンより太くしてある。細いままだと消える。
- */
+/** ヘッダー用ロゴ。public/icons/icon.svg と同じ幾何。currentColor で白黒どちらにも追従 */
 export function Logo({ className, withText = true }: { className?: string; withText?: boolean }) {
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 512 512" className="size-6 shrink-0" aria-hidden="true">
-        {/* 地は生成り、線は朱。アイコンと同じ向き */}
-        <rect width="512" height="512" rx="112" className="fill-background" />
-        <g
-          fill="none"
-          stroke="currentColor"
-          className="text-primary"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {/* 器（受けとめる）から、右上へ抜ける流れまでをひと続きで */}
-          <path
-            d="M400 160 C 389 194 371 228 346 228 L 116 228 C 116 326 166 386 231 386 C 296 386 346 326 346 228"
-            strokeWidth="44"
-          />
-          {/* 湯気。左右で高さを変える（そろえると顔に見える） */}
-          <path d="M180 176 C 196 152 178 136 191 108" strokeWidth="28" />
-          <path d="M258 184 C 273 164 258 149 269 125" strokeWidth="28" />
+        {/* アプリのアイコンと同じ一筆。地は朱色、線は生成り */}
+        <rect width="512" height="512" rx="112" className="fill-primary" />
+        <g fill="none" stroke="currentColor" className="text-background" strokeLinecap="round">
+          <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" strokeWidth="38" />
+          {/* 器が受けている中身。輪郭だけでは「うつわ」で終わる */}
+          <path d="M 166 250 C 196 214 226 286 256 250 C 286 214 316 286 346 250" strokeWidth="24" opacity="0.72" />
+          {/* 湯気。温かいものが今ここにある、は形では言えない */}
+          <path d="M 206 128 C 232 100 206 82 220 56" strokeWidth="20" opacity="0.6" />
+          <path d="M 288 122 C 314 94 288 76 302 50" strokeWidth="20" opacity="0.45" />
         </g>
       </svg>
       {withText && (
