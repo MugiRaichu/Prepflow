@@ -67,6 +67,17 @@ const RICE_OPTIONS: { value: RicePolicy; label: string }[] = [
   { value: 'large', label: '多め' },
 ];
 
+/**
+ * **冷蔵は選べない。**炊いたごはんは冷蔵で固くなる（でんぷんの老化）。
+ * それまで5食ぶんのごはんを冷蔵の容器に入れる献立を出していた。
+ */
+const RICE_COOK_HINT: Record<'sameDay' | 'batchFreeze', string> = {
+  sameDay:
+    '作り置きの段取りに入れません。炊飯器の予約で、食べる日にセットしてください',
+  batchFreeze:
+    '作り置きの日にまとめて炊き、粗熱を取ってすぐ冷凍します（冷蔵には置きません）',
+};
+
 const RICE_HINT: Record<RicePolicy, string> = {
   auto: 'おかずで足りないカロリーぶんだけ付けます（0〜2杯）',
   none: 'ごはんは付けません。カロリーはおかずだけで合わせます',
@@ -158,6 +169,27 @@ export function CookingSettings() {
             columns={3}
           />
         </Labeled>
+
+        {/*
+          いつ炊くか。量と並べて置く（考えるのは同じ場面）。
+          既定は「食べる日に炊く」。炊飯は予約でほぼ手が要らないので、
+          まとめて作る対象にする理由がない
+        */}
+        {(s.cooking.ricePolicy ?? 'auto') !== 'none' && (
+          <Labeled label="ごはんを炊く日" hint={RICE_COOK_HINT[s.cooking.riceCookMode ?? 'sameDay']}>
+            <Chips
+              options={[
+                { value: 'sameDay', label: '食べる日に炊く' },
+                { value: 'batchFreeze', label: 'まとめて炊いて冷凍' },
+              ]}
+              value={s.cooking.riceCookMode ?? 'sameDay'}
+              onChange={(v: 'sameDay' | 'batchFreeze') =>
+                updateCooking(() => ({ riceCookMode: v }))
+              }
+              columns={2}
+            />
+          </Labeled>
+        )}
 
         <details className="rounded-lg border">
           <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground">

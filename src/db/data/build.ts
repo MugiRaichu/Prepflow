@@ -27,6 +27,37 @@ export interface BuildResult {
 /** 1食あたりのグラム数として現実的な範囲。外れたら入力ミスを疑う */
 const PLAUSIBLE_GRAMS = { min: 40, max: 550 };
 
+/**
+ * おいしく食べられる日数を決める。
+ *
+ * **手で書かせない。**187品に1つずつ書かせると必ず抜けるし、
+ * 抜けた品が「まだ大丈夫」として後ろに回る。作り方から決める。
+ *
+ * 早いもの:
+ *   和え物・サラダ・おひたし・ナムル … 水が出て別の食べ物になる（2日）
+ *   衣を付けて焼いたもの … 衣が湿る（2日）
+ *   生のまま和えたもの … 1日
+ * 遅いもの:
+ *   煮もの・カレー・しぐれ煮 … 2日目のほうが味が入る（日持ちいっぱい）
+ *
+ * 判定は料理名で行う。タグには「和え物」のような分類が無く、
+ * 増やすと今度はタグの付け忘れが起きる。名前は必ず付いている。
+ */
+const QUICK_2D = /(サラダ|和え|あえ|ナムル|おひたし|マリネ|酢の物|浅漬け|ラペ)/;
+const QUICK_1D = /(トマトの|生|きゅうりの)/;
+const SLOW = /(煮|カレー|しぐれ|そぼろ|漬け)/;
+
+export function bestWithinOf(seed: SeedRecipe): number {
+  const keeps = seed.storage.keepsDays;
+  if (seed.storage.bestWithinDays) return Math.min(seed.storage.bestWithinDays, keeps);
+  const t = seed.title;
+  // 煮ものは日持ちいっぱいまでおいしい。先に見る（「トマトの煮込み」対策）
+  if (SLOW.test(t)) return keeps;
+  if (QUICK_1D.test(t)) return Math.min(1, keeps);
+  if (QUICK_2D.test(t)) return Math.min(2, keeps);
+  return keeps;
+}
+
 /** 「高たんぱく」と言える1人前のたんぱく質（g）。主菜の中央値は 22g、上位1/4が 27g */
 export const HIGH_PROTEIN_G = 25;
 export const HIGH_PROTEIN_TAG = '高たんぱく';
@@ -109,7 +140,7 @@ export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): B
       carbG: per(total.carbG),
     },
     estimatedCostYen: Math.round(costYen),
-    storage: seed.storage,
+    storage: { ...seed.storage, bestWithinDays: bestWithinOf(seed) },
     tags,
     allergens: [...allergens],
     source: 'builtin',

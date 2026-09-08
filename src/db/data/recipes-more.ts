@@ -305,7 +305,7 @@ const MAINS4: SeedRecipe[] = [
       st('調味料を煮立て、玉ねぎと牛肉を入れて煮る', 12, 4, 'stovetop_burner', [0]),
     ],
     storage: { location: 'fridge', keepsDays: 3, reheatNote: '600Wで2分' },
-    tags: ['牛肉', '主食込み'],
+    tags: ['牛肉', 'ごはんにかける'],
   },
   {
     title: '牛こまとしめじの甘辛煮',

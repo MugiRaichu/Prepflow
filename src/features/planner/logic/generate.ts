@@ -760,6 +760,10 @@ export async function commitWeek(
                 keepsDays: freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
                 // 実際に作る日は詰めるときに確定する。ここは仮置き（PackStep で引き直す）
                 useByDate: addDaysIso(ctx.weekStart, freeze ? 30 : keeps),
+                bestByDate: addDaysIso(
+                  ctx.weekStart,
+                  freeze ? 30 : (p.recipe.storage.bestWithinDays ?? keeps),
+                ),
                 packed: 0,
               });
             }
@@ -787,8 +791,24 @@ export async function commitWeek(
        */
       let batchSeq = 0;
       const shared = ctx.profiles[0];
+      const riceMode = settings.cooking.riceCookMode ?? 'sameDay';
       for (const b of batches.values()) {
         if (!shared) break;
+
+        /*
+         * ごはんの扱いは別。
+         *
+         * **冷蔵に置かない。**炊いたごはんは冷蔵で固くなる（でんぷんの老化）。
+         * それまで5食ぶんのごはんを冷蔵の容器に入れる献立を出していた。
+         *
+         * 既定は「食べる日に炊く」。炊飯は予約でほぼ手が要らないので、
+         * 週末にまとめて炊いて置いておく理由がない（本人指摘）。
+         * その場合は容器も作らない——冷凍もしないので、詰めるものがない。
+         */
+        if (b.recipe.role === 'staple') {
+          if (riceMode === 'sameDay') continue;
+          b.freeze = true;
+        }
         const keeps = b.recipe.storage.keepsDays;
         /*
          * **人数ぶんに分けない。**2人で春雨サラダのタッパーを2つ持つ家はない。
@@ -815,6 +835,10 @@ export async function commitWeek(
           storage: b.freeze ? 'freezer' : 'fridge',
           keepsDays: b.freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
           useByDate: addDaysIso(ctx.weekStart, b.freeze ? 30 : keeps),
+          bestByDate: addDaysIso(
+            ctx.weekStart,
+            b.freeze ? 30 : (b.recipe.storage.bestWithinDays ?? keeps),
+          ),
           packed: 0,
         });
       }

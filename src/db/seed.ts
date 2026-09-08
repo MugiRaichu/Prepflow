@@ -13,7 +13,7 @@ import type { InventoryItem } from './schema';
 import { DEFAULT_SECTION_ORDER, type AppSettings, type Ingredient } from './schema';
 import { BUILTIN_INGREDIENTS } from './data/ingredients';
 import { BUILTIN_RECIPES } from './data/recipes';
-import { buildRecipe, HIGH_PROTEIN_G, HIGH_PROTEIN_TAG } from './data/build';
+import { bestWithinOf, buildRecipe, HIGH_PROTEIN_G, HIGH_PROTEIN_TAG } from './data/build';
 import { recalcProfileTargets } from '@/lib/nutrition';
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cooking: {
     prepDay: 0,
     prepDays: [0],
+    riceCookMode: 'sameDay',
     maxPrepMinutes: 120,
     allowFreezing: true,
     // 主菜1品が週3食まで。5食なら2品、14食なら5品が要る計算になる
@@ -163,15 +164,52 @@ async function topUpBuiltinRecipes(): Promise<void> {
  */
 async function refreshProteinTag(): Promise<void> {
   const rows = await db.recipes.where('deleted').equals(0).toArray();
+  const byTitle = new Map(BUILTIN_RECIPES.map((s) => [s.title, s]));
+
   for (const r of rows) {
     if (r.source !== 'builtin') continue;
+    const seed = byTitle.get(r.title);
+
+    let tags = r.tags;
+
+    /*
+     * 組み込みレシピのタグを、いまの定義に合わせ直す。
+     *
+     * カレーや丼の具に `主食込み` が付いていた。**中身は具だけで、ごはんは
+     * 別に要る。**このタグが付いているとごはんが献立から外れ、
+     * 炭水化物も足りない献立になっていた（本人指摘）。
+     * 利用者が自分で足したタグは消さない（組み込みの定義に無いものは残す）。
+     */
+    if (seed) {
+      const owned = new Set(['主食込み', 'ごはんにかける']);
+      const mine = tags.filter((t) => !owned.has(t));
+      tags = [...new Set([...mine, ...seed.tags.filter((t) => owned.has(t))])];
+    }
+
+    /*
+     * `高たんぱく` は計算値から付け直す。手書きだったとき、印の付いた
+     * 主菜111品のうち28品が1人前25gを下回っていた（最低10g）。
+     */
     const should = r.role !== 'side' && r.nutritionPerServing.proteinG >= HIGH_PROTEIN_G;
-    const has = r.tags.includes(HIGH_PROTEIN_TAG);
-    if (should === has) continue;
-    const tags = should
-      ? [...r.tags, HIGH_PROTEIN_TAG]
-      : r.tags.filter((t) => t !== HIGH_PROTEIN_TAG);
-    await db.recipes.put({ ...r, tags, updatedAt: nowIso() });
+    const has = tags.includes(HIGH_PROTEIN_TAG);
+    if (should && !has) tags = [...tags, HIGH_PROTEIN_TAG];
+    if (!should && has) tags = tags.filter((t) => t !== HIGH_PROTEIN_TAG);
+
+    /*
+     * 「おいしく食べられる日数」も揃える。あとから足した項目なので、
+     * 既に入っている品には届かない（レシピの追加は新しい title だけを見る）。
+     * 栄養や原価は触らない。保存の決め方だけを今の定義に合わせる。
+     */
+    const best = seed ? bestWithinOf(seed) : r.storage.bestWithinDays;
+    const storageChanged = best !== r.storage.bestWithinDays;
+
+    if (!storageChanged && tags.join('|') === r.tags.join('|')) continue;
+    await db.recipes.put({
+      ...r,
+      tags,
+      ...(storageChanged ? { storage: { ...r.storage, bestWithinDays: best } } : {}),
+      updatedAt: nowIso(),
+    });
   }
 }
 

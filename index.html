@@ -23,6 +23,25 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
 
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+
+    <!--
+      名前だけに使う筆記体。
+
+      **本文には使わない。**読むための文字は system-ui のままにする
+      （筆記体の日本語は無いし、英数字も読みにくくなる）。
+      使うのは起動画面の「Prepflow」の8文字だけ。
+
+      オフラインで開いたときのために、端末に入っている筆記体を後ろに置く。
+      Apple の Snell Roundhand、Windows の Segoe Script。
+      どちらも無ければ cursive で、最後は system-ui に落ちる。
+      font-display: swap なので、届かなくても起動は止まらない。
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Parisienne&display=swap"
+    />
     <title>Prepflow</title>
 
     <!--
@@ -112,10 +131,17 @@
           pf-fade 700ms ease 900ms both,
           pf-swap-out 420ms ease 1900ms forwards;
       }
-      #pf-splash .pf-name {
-        font-size: 23px;
-        font-weight: 600;
-        line-height: 1.4;
+      /*
+        セレクタは `.pf-words > p` と同じ強さにする。
+        `#pf-splash .pf-name` だけだと、上の `#pf-splash .pf-words > p` に
+        font-family を上書きされて、筆記体が当たらなかった（実測）。
+      */
+      #pf-splash .pf-words > p.pf-name {
+        /* 筆記体は同じ級数だと小さく見える。字面が細いので少し大きく取る */
+        font-family: 'Parisienne', 'Snell Roundhand', 'Segoe Script', cursive;
+        font-size: 42px;
+        font-weight: 400;
+        line-height: 1.2;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -140,16 +166,18 @@
           transform: translateY(-9px);
         }
       }
+      /*
+        筆記体は字が繋がるので、字間を空けると崩れる。
+        詰まりながら定まる動きはやめて、下から静かに出るだけにする。
+      */
       @keyframes pf-swap-in {
         from {
           opacity: 0;
-          transform: translateY(10px) translateX(0.17em);
-          letter-spacing: 0.34em;
+          transform: translateY(8px) scale(0.96);
         }
         to {
           opacity: 1;
-          transform: translateX(0.06em);
-          letter-spacing: 0.12em;
+          transform: none;
         }
       }
       /*
@@ -172,14 +200,27 @@
           transform: none;
         }
         /* 上の transform: none のあとに、字送りぶんの寄りだけ戻す */
-        #pf-splash .pf-name {
-          letter-spacing: 0.12em;
-          transform: translateX(0.06em);
+        #pf-splash .pf-words > p.pf-name {
+          transform: none;
         }
       }
     </style>
   </head>
   <body class="antialiased">
+    <script>
+      /*
+        名前の筆記体を、いますぐ取りに行かせる。
+
+        フォントは「使われた瞬間」に読み込まれる。起動画面で名前が出るのは
+        2.1秒後なので、そこまで待ってから取りに行くと間に合わず、
+        毎回ゴシックのまま終わっていた（実測）。ここで先に走らせる。
+
+        届かなくても何も起きない。端末の筆記体か cursive に落ちる。
+      */
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('400 42px Parisienne').catch(function () {});
+      }
+    </script>
     <div id="pf-splash" aria-hidden="true">
       <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="34"
         stroke-linecap="round" stroke-linejoin="round">

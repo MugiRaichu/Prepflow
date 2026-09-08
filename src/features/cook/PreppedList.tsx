@@ -135,11 +135,21 @@ export function PreppedList() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{c.recipeTitle}</span>
-                  {/* **作った日を必ず出す。**「9/10まで」だけだと、それが
-                      いつ作ったものか分からず、判断の材料にならない */}
-                  <span className="block text-[10px] tabular-nums text-muted-foreground">
-                    {c.cookedAt ? formatDateJa(c.cookedAt.slice(0, 10)) + 'に作った' : '作った日は不明'}
-                    ・{Math.round(c.grams)}g・{Math.round(c.nutrition.kcal)} kcal
+                  {/*
+                    **いつ食べるかを一番大きく出す。**
+                    以前は「9/8に作った」を先頭に置いていたが、作った日を
+                    知っても手は動かない（本人指摘）。冷蔵庫を開けて探して
+                    いるのは「今日食べるのはどれか」なので、それを先に出す。
+                    期限とグラムは、その下に小さく添える。
+                  */}
+                  <span className="mt-0.5 block text-[13px] font-medium tabular-nums">
+                    {c.portion === 'batch'
+                      ? '取り分け用' + (c.servingsCount ? '（' + c.servingsCount + '食ぶん）' : '')
+                      : plannedDate
+                        ? plannedDate === today
+                          ? '今日たべる'
+                          : formatDateJa(plannedDate).replace(/（.）/, '') + 'にたべる'
+                        : '食べる日は未定'}
                   </span>
                   <span
                     className={cn(
@@ -147,13 +157,14 @@ export function PreppedList() {
                       over || soon ? 'font-medium text-foreground' : 'text-muted-foreground',
                     )}
                   >
-                    {formatDateJa(c.useByDate)}まで
-                    {over ? '（過ぎています）' : '（あと' + daysLeft(c.useByDate, today) + '日）'}
-                    {c.portion === 'batch'
-                      ? '・取り分け用' + (c.servingsCount ? '（' + c.servingsCount + '食ぶん）' : '')
-                      : plannedDate
-                        ? '・' + formatDateJa(plannedDate).replace(/（.）/, '') + 'に食べる予定'
-                        : '・予定なし'}
+                    {/* 味が先に落ちる品だけ、その日を出す。同じなら期限だけ */}
+                    {c.bestByDate && c.bestByDate < c.useByDate
+                      ? 'おいしいのは ' + formatDateJa(c.bestByDate) + 'まで（期限は ' +
+                        formatDateJa(c.useByDate) + '）'
+                      : formatDateJa(c.useByDate) +
+                        'まで' +
+                        (over ? '（過ぎています）' : '（あと' + daysLeft(c.useByDate, today) + '日）')}
+                    ・{Math.round(c.grams)}g・{Math.round(c.nutrition.kcal)} kcal
                   </span>
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">食べた</span>
@@ -197,7 +208,8 @@ export function PreppedList() {
             いま家にある作り置きです。合わせて {rows.length} 個・
             {Math.round(kcal)} kcal
             {free > 0 && '、うち ' + free + ' 個は食べる日が決まっていません'}。
-            どれから食べるかは決めません。期限を見て選んでください。
+            <b className="text-foreground">おいしいうちに食べたい順</b>
+            に並べています（傷む日ではなく、味が落ちる日の順）。
             食べたら押すだけで、その日の摂取に入ります。
           </p>
 

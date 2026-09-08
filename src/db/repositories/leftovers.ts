@@ -66,8 +66,16 @@ export async function listPrepped(): Promise<PreppedItem[]> {
             ? c.intendedDate
             : null,
     }))
+    /*
+     * **おいしいうちの日が早い順。**傷む日ではない。
+     * 和え物は3日もつが2日目には水が出る。傷む日で並べると、
+     * おいしくないものばかりが後ろに残っていく（本人指摘）。
+     */
     .sort(
       (a, b) =>
+        (a.container.bestByDate ?? a.container.useByDate).localeCompare(
+          b.container.bestByDate ?? b.container.useByDate,
+        ) ||
         a.container.useByDate.localeCompare(b.container.useByDate) ||
         a.container.containerLabel.localeCompare(b.container.containerLabel, 'ja', {
           numeric: true,

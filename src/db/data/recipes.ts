@@ -32,7 +32,13 @@ export interface SeedRecipe {
   /** [食材のnameKey, グラム数, 表示用（任意）] */
   items: [string, number, string?][];
   steps: SeedStep[];
-  storage: { location: 'fridge' | 'freezer'; keepsDays: number; reheatNote?: string };
+  storage: {
+    location: 'fridge' | 'freezer';
+    keepsDays: number;
+    /** おいしく食べられる日数。省略時は keepsDays と同じ（→ build.ts で補う） */
+    bestWithinDays?: number;
+    reheatNote?: string;
+  };
   tags: string[];
 }
 
