@@ -36,7 +36,25 @@ export interface CalendarCache {
 }
 
 const META_KEY = 'calendarEvents';
-const STALE_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * 取り直す間隔。**場面で変える。**
+ *
+ * 6時間だけを見ていたので、Google カレンダーを直してアプリに戻っても、
+ * 今日の流れは半日前のままだった（本人指摘）。
+ *
+ * 画面に戻ってきた直後は「たったいま別のアプリで直してきた」可能性が高いので
+ * 短くする。開きっぱなしのときは、そこまで急がない。
+ */
+export const CALENDAR_STALE = {
+  /** ふだん（起動時） */
+  open: 6 * 60 * 60 * 1000,
+  /** 別のアプリから戻ってきたとき。カレンダーを直した直後を拾う */
+  foreground: 60 * 1000,
+  /** 開いたまま置いているとき */
+  polling: 10 * 60 * 1000,
+};
+const STALE_MS = CALENDAR_STALE.open;
 
 export async function readCache(): Promise<CalendarCache | null> {
   const row = await db.meta.get(META_KEY);
@@ -79,12 +97,18 @@ export async function syncCalendar(
   return { ok: true, count: events.length };
 }
 
-/** 古ければ取り直す。失敗しても黙る（今日タブを開くたびに出るエラーは害） */
-export async function syncCalendarIfStale(settings: AppSettings): Promise<void> {
+/**
+ * 古ければ取り直す。失敗しても黙る（今日タブを開くたびに出るエラーは害）。
+ * どこまでを「古い」とするかは呼ぶ側が決める（戻ってきた直後は短く見る）。
+ */
+export async function syncCalendarIfStale(
+  settings: AppSettings,
+  maxAgeMs: number = STALE_MS,
+): Promise<void> {
   if (!settings.calendar.enabled) return;
   const cache = await readCache();
   const age = cache ? Date.now() - new Date(cache.syncedAt).getTime() : Infinity;
-  if (age < STALE_MS) return;
+  if (age < maxAgeMs) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
   await syncCalendar(settings);
 }

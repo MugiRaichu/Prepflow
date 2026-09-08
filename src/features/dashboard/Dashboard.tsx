@@ -25,11 +25,11 @@ import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
 import type { CalendarBlock } from '@/features/rhythm/logic/timeline';
-import { blocksFor, readCache, syncCalendarIfStale } from '@/calendar/gasCalendar';
+import { blocksFor, readCache } from '@/calendar/gasCalendar';
+import { useCalendarSync } from '@/calendar/useCalendarSync';
 import { useCookingMode } from '@/features/household/useCookingMode';
 import { handsOnMinutes } from '@/db/data/build';
 import { perDayMinutes } from '@/features/planner/logic/time';
-import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -108,11 +108,14 @@ export function Dashboard() {
   const byRecipeId = new Map((recipes ?? []).map((r) => [r.id, r]));
   const undo = useUndoBar();
 
-  // カレンダーの予定。今日タブを開いたとき、古ければ取り直す
+  /*
+   * カレンダーの予定。
+   * 開いたときだけでなく、**別のアプリから戻ってきたときにも**取り直す。
+   * 直してすぐ戻っても半日前のままだったため（本人指摘）。
+   * useLiveQuery なので、取れた瞬間に今日の流れが差し替わる
+   */
   const calendar = useLiveQuery(readCache, []);
-  useEffect(() => {
-    if (settings) void syncCalendarIfStale(settings);
-  }, [settings]);
+  useCalendarSync(settings);
 
   // 毎日作る人には「作る」の枠を流れに入れる。手を動かす時間は今日の料理から出す
   const cookMinutes = (() => {
