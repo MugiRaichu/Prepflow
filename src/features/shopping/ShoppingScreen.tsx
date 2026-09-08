@@ -9,6 +9,7 @@ import { getDefaultStore, learnFromReceipt, reliabilityOf } from '@/db/repositor
 import { StapleCheck } from './StapleCheck';
 import { ReceiptScan } from './ReceiptScan';
 import { db, nowIso } from '@/db/db';
+import { ContainerCheck } from './ContainerCheck';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { STORE_SECTION_LABELS, formatDateJa, todayIso, yen } from '@/lib/labels';
@@ -164,6 +165,18 @@ export function ShoppingScreen() {
             title="全部そろいました"
             description={'買ったものは在庫として記録され、次の週の買い出しから引かれます。'}
           />
+
+          {/*
+            容器の話はここでする。**買い終わったあと。**
+
+            画面の一行目に置いていたので、買い物を始める人がまず容器の
+            過不足を読むことになっていた（本人指摘）。買う手は進まないし、
+            足りないときの答えは「皿で足りる」で買い足しでもない。
+            買い終えたこの位置なら、まだ店にいる可能性があり、
+            読んでも次の行動（詰め方）を邪魔しない。足りていれば出ない
+          */}
+          <ContainerCheck />
+
           <ReceiptScan items={done} onDone={(t) => { if (t != null) setTotal(String(t)); }} />
 
           <div className="space-y-2 rounded-lg border p-4">
@@ -251,14 +264,6 @@ export function ShoppingScreen() {
         </div>
       )}
 
-      {/*
-        容器の話はここに出さない（→ 作り置きタブへ移した）。
-
-        買い出しの画面を開いた人がやろうとしているのは**買うこと**で、
-        その一行目に容器の過不足が出ても、いま何を買えばよいかは進まない。
-        しかも足りないときの答えは「皿で足りる」であって、買い足しではない。
-        **手当てするのは詰める直前**なので、そこに置くほうが効く（本人指摘）。
-      */}
       {groups.map((g) => (
         <div key={g.section}>
           <div className="bg-secondary/50 px-4 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">

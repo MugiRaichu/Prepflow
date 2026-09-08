@@ -498,7 +498,7 @@ const CURRY: SeedRecipe[] = [
       st('火を止めてルーを溶かし、弱火で煮る', 10, 3, 'stovetop_burner', [1]),
     ],
     storage: { location: 'freezer', keepsDays: 30, reheatNote: '600Wで4分' },
-    tags: ['カレー', '鶏肉', '主食込み', '放置できる'],
+    tags: ['カレー', '鶏肉', 'ごはんにかける', '放置できる'],
   },
   {
     title: 'キーマカレー',
@@ -521,7 +521,7 @@ const CURRY: SeedRecipe[] = [
       st('炒めてカレー粉を加え、トマト缶を入れて煮詰める', 18, 5, 'stovetop_burner', [0]),
     ],
     storage: { location: 'fridge', keepsDays: 4, reheatNote: '600Wで2分' },
-    tags: ['カレー', '主食込み', '日持ち'],
+    tags: ['カレー', 'ごはんにかける', '日持ち'],
   },
   {
     title: 'さば缶のドライカレー',
@@ -542,7 +542,7 @@ const CURRY: SeedRecipe[] = [
       st('炒めてカレー粉を加え、さば缶を汁ごと入れて水気を飛ばす', 12, 6, 'stovetop_burner', [0]),
     ],
     storage: { location: 'fridge', keepsDays: 3, reheatNote: '600Wで2分' },
-    tags: ['カレー', '魚', '主食込み', '節約', '時短'],
+    tags: ['カレー', '魚', 'ごはんにかける', '節約', '時短'],
   },
   {
     title: 'かぼちゃと豆の豆乳カレー',
@@ -564,7 +564,7 @@ const CURRY: SeedRecipe[] = [
       st('ルーを溶かし、豆乳を入れて弱火で温める', 8, 3, 'stovetop_burner', [1]),
     ],
     storage: { location: 'fridge', keepsDays: 3, reheatNote: '600Wで3分' },
-    tags: ['カレー', '野菜', '主食込み'],
+    tags: ['カレー', '野菜', 'ごはんにかける'],
   },
 ];
 

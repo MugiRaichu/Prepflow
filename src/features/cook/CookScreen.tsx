@@ -14,7 +14,6 @@ import { adaptRice, hasRiceCooker } from './logic/rice';
 import { amountLabel, stepIngredients } from './logic/stepItems';
 import { PackStep } from './PackStep';
 import { PreppedList } from './PreppedList';
-import { ContainerCheck } from '@/features/shopping/ContainerCheck';
 import { consumeForPlan } from '@/db/repositories/inventory';
 import { useCookingMode } from '@/features/household/useCookingMode';
 import { useCookTimers } from './useTimers';
@@ -147,10 +146,22 @@ export function CookScreen() {
       for (const id of plan.recipeIds) counts.set(id, (counts.get(id) ?? 0) + 1);
     }
 
+    /*
+     * 「食べる日に炊く」なら、作り置きの段取りからごはんを外す。
+     *
+     * 炊飯は予約でほぼ手が要らないのに、まとめて作る日の工程に入れると
+     * コンロや炊飯器を50分押さえ、段取り全体が長く見えていた。
+     * 当日その日のぶんを炊く人には、そこは作り置きの仕事ではない（本人指摘）。
+     * 毎日作る場合は、その日の献立なのでそのまま入れる。
+     */
+    const skipRice = !daily && (settings?.cooking.riceCookMode ?? 'sameDay') === 'sameDay';
+
     const items: { recipe: NonNullable<ReturnType<typeof byId.get>>; batches: number }[] = [];
     for (const [id, batches] of counts) {
       const r = byId.get(id);
-      if (r) items.push({ recipe: r, batches });
+      if (!r) continue;
+      if (skipRice && r.role === 'staple') continue;
+      items.push({ recipe: r, batches });
     }
     if (items.length === 0) return null;
 
@@ -306,16 +317,6 @@ export function CookScreen() {
         <CookTabs tab={tab} onChange={setTab} />
       </div>
       {undo.bar}
-
-      {/*
-        容器の過不足はここで出す。**詰める直前が、手当てできる時刻。**
-        買い出しの一行目に置いていたが、買う手は進まないうえ、
-        足りないときの答えは「皿で足りる」で買い足しではない（本人指摘）。
-        足りていれば何も出ない
-      */}
-      <div className="px-4 pt-3">
-        <ContainerCheck />
-      </div>
 
       {/* 手を止めずに並行で動いているものは、常に見える位置に置く。
           スクロールしても隠れない（本人指摘: 同時並行の操作が見えない） */}

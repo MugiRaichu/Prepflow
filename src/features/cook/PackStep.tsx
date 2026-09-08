@@ -83,6 +83,22 @@ export function PackStep({ weekPlanId }: { weekPlanId: string }) {
       packed: 1,
       cookedAt,
       ...(a.keepsDays ? { useByDate: addDaysIso(cookedAt.slice(0, 10), a.keepsDays) } : {}),
+      // 味の落ちる日も、詰めたこの瞬間から数え直す
+      ...(a.bestByDate && a.keepsDays
+        ? {
+            bestByDate: addDaysIso(
+              cookedAt.slice(0, 10),
+              Math.max(
+                0,
+                Math.round(
+                  (new Date(a.bestByDate + 'T00:00:00').getTime() -
+                    new Date(a.useByDate + 'T00:00:00').getTime()) /
+                    86400000,
+                ) + a.keepsDays,
+              ),
+            ),
+          }
+        : {}),
       updatedAt: nowIso(),
     });
   };

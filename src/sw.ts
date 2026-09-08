@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 import { createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 /**
  * Service Worker。
@@ -79,6 +81,27 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // 静的ホスティングに /plan のようなファイルは無いので、index.html を返す
 registerRoute(new NavigationRoute(createHandlerBoundToURL(BASE + 'index.html')));
+
+/*
+ * 名前に使う筆記体（Google Fonts）を、一度取れたら端末に残す。
+ *
+ * このアプリは圏外でも動く。**唯一の外部依存がこのフォント**なので、
+ * 初回に取れたぶんをキャッシュして、次からは通信なしで出す。
+ * 取れなければ端末の筆記体に落ちるだけで、起動は止まらない。
+ *
+ * 対象は名前の8文字ぶんだけ（数十KB）。本文には使っていない。
+ */
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  new StaleWhileRevalidate({ cacheName: 'pf-font-css' }),
+);
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'pf-font-files',
+    plugins: [new ExpirationPlugin({ maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 365 })],
+  }),
+);
 
 // 新しい版をすぐ有効にする（registerType: 'autoUpdate' と同じ挙動）
 self.skipWaiting();

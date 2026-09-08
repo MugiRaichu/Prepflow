@@ -581,6 +581,17 @@ export interface RecipeStorage {
   location: 'fridge' | 'freezer';
   /** 保存可能日数。ダッシュボードの期限警告の根拠 */
   keepsDays: number;
+  /**
+   * おいしく食べられる日数。**日持ち（keepsDays）とは別。**
+   *
+   * 傷むまでの日数と、味が落ちるまでの日数は違う。和え物やサラダは
+   * 3日もつが、2日目には水が出て別の食べ物になる。逆に煮ものは
+   * 2日目のほうがうまい。「傷んでいないから」と後回しにすると、
+   * おいしくないものばかりが残る（本人指摘）。
+   *
+   * 省略時は keepsDays と同じ。作り置き一覧の並び順に使う。
+   */
+  bestWithinDays?: number;
   reheatNote?: string;
 }
 
@@ -724,6 +735,12 @@ export interface ContainerAssignment extends Entity {
   keepsDays?: number;
   /** cookedAt + keepsDays。期限警告の判定に使う */
   useByDate: ISODate;
+  /**
+   * cookedAt + bestWithinDays。**傷む前に、味が落ちる。**
+   * 一覧はこちらの順に並べる。「傷んでいないから」と後回しにすると、
+   * おいしくないものばかりが残る（本人指摘）。
+   */
+  bestByDate?: ISODate;
   packed: Bool;
   consumedAt?: ISODateTime;
 }
@@ -960,6 +977,17 @@ export interface CookingSettings {
    * その結果、条件によっては組めなくなることがある（そのときは画面に出る）。
    */
   ricePolicy?: RicePolicy;
+  /**
+   * ごはんをいつ炊くか。
+   *
+   * `sameDay`（既定）= 食べる日に炊く。作り置きの段取りには入れない
+   * `batchFreeze`    = 作り置きのときにまとめて炊いて、すぐ冷凍する
+   *
+   * **ごはんを冷蔵に置かない。**炊いたごはんは冷蔵で固くなる（でんぷんの老化）。
+   * それまで、5食ぶんのごはんを冷蔵の容器に入れる献立を平気で出していた。
+   * 炊飯は炊飯器の予約でほぼ手が要らないので、まとめて作る対象にしなくてよい。
+   */
+  riceCookMode?: 'sameDay' | 'batchFreeze';
   /**
    * ごはんが炊き上がるまでの分数。
    *
