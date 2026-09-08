@@ -90,6 +90,23 @@ export async function pushNow(url: string, token: string) {
   return post<{ count: number }>(url, { action: 'pushNow', token });
 }
 
+export interface GasStatus {
+  count: number;
+  from: string | null;
+  to: string | null;
+  today: string;
+  todayCount: number;
+  pushTime: string | null;
+  updatedAt: string | null;
+  hasTrigger: boolean;
+  timeZone: string;
+}
+
+/** GAS が今どうなっているかを聞く。来ない理由を推測させない */
+export async function fetchStatus(url: string, token: string) {
+  return post<GasStatus>(url, { action: 'status', token });
+}
+
 /**
  * スケジュールを同期する。
  * 中身が前回と同じなら送らない（GAS の実行回数を無駄にしない）。
