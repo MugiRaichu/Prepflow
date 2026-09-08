@@ -41,41 +41,47 @@ export class ErrorBoundary extends Component<Props, State> {
     const { error } = this.state;
     if (!error) return this.props.children;
 
+    /*
+      **`.pf-shell` に乗せる。**素の div のままだと、上端が時刻に重なる
+      （避けるぶんを持っているのは外枠だけ）
+    */
     return (
-      <div className="mx-auto max-w-md space-y-4 p-6">
-        <h1 className="text-xl font-semibold">この画面がうまく開けませんでした</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          記録したものは残っています。開き直すと直ることがほとんどです。
-        </p>
+      <div className="pf-shell overflow-y-auto bg-background text-foreground">
+        <div className="mx-auto max-w-md space-y-4 p-6">
+          <h1 className="text-xl font-semibold">この画面がうまく開けませんでした</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            記録したものは残っています。開き直すと直ることがほとんどです。
+          </p>
 
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => location.reload()}
-            className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background"
-          >
-            開き直す
-          </button>
-          <button
-            onClick={() => {
-              // 落ちた画面から抜ける。開き直すより軽い
-              this.setState({ error: null });
-              location.assign(import.meta.env.BASE_URL);
-            }}
-            className="min-h-12 w-full rounded-lg border text-sm font-medium"
-          >
-            今日の画面へ戻る
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => location.reload()}
+              className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background"
+            >
+              開き直す
+            </button>
+            <button
+              onClick={() => {
+                // 落ちた画面から抜ける。開き直すより軽い
+                this.setState({ error: null });
+                location.assign(import.meta.env.BASE_URL);
+              }}
+              className="min-h-12 w-full rounded-lg border text-sm font-medium"
+            >
+              今日の画面へ戻る
+            </button>
+          </div>
+
+          {/* 伝えるための手がかり。読めなくてよい。長押しで選んで送れる */}
+          <details className="rounded-lg border p-3">
+            <summary className="cursor-pointer text-xs text-muted-foreground">
+              うまくいかないときに伝える文
+            </summary>
+            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
+              {String(error.message || error)}
+            </pre>
+          </details>
         </div>
-
-        {/* 伝えるための手がかり。読めなくてよい。長押しで選んで送れる */}
-        <details className="rounded-lg border p-3">
-          <summary className="cursor-pointer text-xs text-muted-foreground">
-            うまくいかないときに伝える文
-          </summary>
-          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
-            {String(error.message || error)}
-          </pre>
-        </details>
       </div>
     );
   }
