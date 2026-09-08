@@ -16,73 +16,9 @@
  *
  * 色は食材の色（`--food-*`）だけを使う。イラスト専用の色で、装飾には使わない。
  */
+import { BoxGlyph, PlateGlyph } from '@/components/shared/Pictogram';
+
 const MAX_SLOTS = 14;
-
-/** 容器。ふた付きの保存容器を真横から見た形 */
-function Box({ filled, delay }: { filled: boolean; delay: number }) {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6 shrink-0" aria-hidden="true">
-      {/* 本体。下が少しすぼまった形にすると、皿と見分けがつく */}
-      <path
-        d="M4.5 9 L6 19.5 H18 L19.5 9 Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-        strokeDasharray={filled ? undefined : '2.5 2'}
-        opacity={filled ? 1 : 0.45}
-      />
-      {/* ふた */}
-      <path
-        d="M3 8 H21"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeDasharray={filled ? undefined : '2.5 2'}
-        opacity={filled ? 1 : 0.45}
-      />
-      {filled && (
-        // 中身。順に落ちてくる
-        <path
-          d="M6.6 14 L17.4 14 L18 19.5 H6 Z"
-          className="pf-fill-drop"
-          style={{ animationDelay: delay + 'ms' }}
-          fill="var(--food-veg)"
-        />
-      )}
-    </svg>
-  );
-}
-
-/**
- * 皿にラップ。容器が足りないぶんの逃げ道。
- *
- * 線を減らす。24pxの中に皿・盛り・ラップを全部描くと、
- * 何の絵か分からない塊になる（実際そうなった）。
- * 皿の輪郭とラップの弧の2本だけにして、中身は面で置く。
- */
-function Plate({ delay }: { delay: number }) {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6 shrink-0" aria-hidden="true">
-      <g className="pf-plate-in" style={{ animationDelay: delay + 'ms' }}>
-        {/* ラップ。皿の上にふんわり掛かっている1本の弧 */}
-        <path
-          d="M4 12.5 Q12 6 20 12.5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          opacity="0.45"
-        />
-        {/* 盛ったもの */}
-        <path d="M8 15.5 Q12 11.5 16 15.5 Z" fill="var(--food-veg)" />
-        {/* 皿。少し上から見た楕円 */}
-        <ellipse cx="12" cy="16" rx="9" ry="2.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      </g>
-    </svg>
-  );
-}
 
 export function ContainerGauge({ need, have }: { need: number; have: number }) {
   const short = Math.max(0, need - have);
@@ -95,7 +31,7 @@ export function ContainerGauge({ need, have }: { need: number; have: number }) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-1 text-foreground">
         {Array.from({ length: shownHave }, (_, i) => (
-          <Box key={'b' + i} filled delay={i * 90} />
+          <BoxGlyph key={'b' + i} delay={i * 90} />
         ))}
         {shownShort > 0 && (
           <>
@@ -110,7 +46,7 @@ export function ContainerGauge({ need, have }: { need: number; have: number }) {
               区切り線と皿の形で足りている
             */}
             {Array.from({ length: shownShort }, (_, i) => (
-              <Plate key={'s' + i} delay={shownHave * 90 + 200 + i * 90} />
+              <PlateGlyph key={'s' + i} delay={shownHave * 90 + 200 + i * 90} />
             ))}
           </>
         )}
@@ -121,10 +57,14 @@ export function ContainerGauge({ need, have }: { need: number; have: number }) {
         )}
       </div>
 
-      {/* 絵が言っていることを、そのまま1行で言う。絵だけに頼らない */}
+      {/*
+        絵が言っていることを、そのまま1行で言う。絵だけに頼らない。
+        **「食ぶん」と言わない。**主菜は1食ずつ、副菜はまとめて詰めるので、
+        容器の数と食数は一致しない（以前は全品を1容器に混ぜて数えていた）
+      */}
       <p className="text-[11px] leading-relaxed">
-        今週詰めるのは <b>{need} 食ぶん</b>。容器は <b>{have} 個</b>あるので、
-        <b>残り {short} 食ぶんは皿に盛ってラップ</b>で足ります。
+        今週使う容器は <b>{need} 個</b>。持っているのは <b>{have} 個</b>なので、
+        <b>残り {short} 個は皿に盛ってラップ</b>で足ります。
       </p>
     </div>
   );

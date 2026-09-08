@@ -19,7 +19,7 @@ import { defaultWindow, MAX_PLAN_DAYS } from './window';
 import { syncSchedule } from '@/notify/gasClient';
 import { dueSoon, predictStaples } from '@/db/repositories/staples';
 import { getDefaultStore } from '@/db/repositories/stores';
-import { buildDailyMenus, gramsPerServing, portionMacros } from './distribute';
+import { buildDailyMenus, gramsPerServing, macrosOf, portionMacros } from './distribute';
 import type { WeekPlanCandidate } from './types';
 import type {
   AllergenTag,
@@ -613,6 +613,27 @@ export async function commitWeek(
        * **量を決めている人には渡さない。**「毎食 茶碗1杯」と決めたのに
        * 日によって 0.5杯や1.5杯になるのでは、決めた意味がない。
        */
+      /*
+       * まとめ詰めにする品（副菜・ごはん）を、週ぶん貯めておく入れ物。
+       * 鍵に冷蔵/冷凍を混ぜているのは、同じ副菜でも後半ぶんは冷凍に回るため
+       */
+      const batches = new Map<
+        string,
+        { recipe: Recipe; servings: number; firstDate: string; slot: MealSlot; freeze: boolean }
+      >();
+
+      /*
+       * 冷蔵で持つ日数を超える日ぶんは冷凍に回す。
+       * これを冷蔵のままにすると、5日目に傷んだものを食べることになる。
+       *
+       * 上限は自己ルール（maxFridgeDays）だけでは足りない。品によっては
+       * それより先に傷む（ゆで野菜は2日）ので、短いほうに合わせる。
+       */
+      const freezeFor = (dayIndex: number, r: Recipe): boolean => {
+        const limit = Math.min(settings.cooking.maxFridgeDays, r.storage.keepsDays);
+        return dayIndex >= limit && settings.cooking.allowFreezing;
+      };
+
       const menus = buildDailyMenus(
         plan.mains,
         plan.sides,
@@ -688,45 +709,63 @@ export async function commitWeek(
             grams: Math.round((p.servings * gramsPerServing(p.recipe)) / n),
           }));
 
-          // その日の主菜（人前が最も多い品）を代表として扱う
-          const lead = [...portions].sort((a, b) => b.servings - a.servings)[0];
-          // 賞味期限は、その日に使う品の中で最も短い保存日数に合わせる
-          const keeps = portions.length
-            ? Math.min(...portions.map((p) => p.recipe.storage.keepsDays))
-            : settings.cooking.maxFridgeDays;
+          /*
+           * **1容器に主菜と副菜を混ぜない。**
+           *
+           * 以前は1食ぶんの全品を1行に押し込み、`recipeTitle` を
+           * 「つけそば + かぼちゃの煮もの」、`grams` を合計789gにしていた。
+           * 実際には詰められない詰め方を数えていた（本人指摘）。
+           *
+           * 詰め方は台所の使い方に合わせる:
+           *   主菜 → 1食ずつ。温めてそのまま食べる（考えずに1つ取れる）
+           *   副菜・ごはん → まとめて1つ。食べるときに取り分ける（常備菜と同じ）
+           */
+          for (const p of portions) {
+            if (p.recipe.role !== 'main') {
+              // まとめ詰めの側。日ごとに足していって、週の終わりに1つにする
+              const key = p.recipe.id + (freezeFor(d, p.recipe) ? ':f' : ':r');
+              const cur = batches.get(key);
+              if (cur) {
+                cur.servings += p.servings;
+                if (date < cur.firstDate) cur.firstDate = date;
+              } else {
+                batches.set(key, {
+                  recipe: p.recipe,
+                  servings: p.servings,
+                  firstDate: date,
+                  slot,
+                  freeze: freezeFor(d, p.recipe),
+                });
+              }
+              continue;
+            }
 
-          // 冷蔵で持つ日数を超える日ぶんは冷凍に回す。
-          // これを冷蔵のままにすると、5日目に傷んだものを食べることになる。
-          //
-          // 上限は自己ルール（maxFridgeDays）だけでは足りない。品によっては
-          // それより先に傷む（ゆで野菜は2日）ので、短いほうに合わせる。
-          // ここを自己ルールだけで見ていたとき、保存2日の副菜が4日目まで
-          // 冷蔵に置かれ、賞味期限が食べる日より前になっていた
-          const limitDays = Math.min(settings.cooking.maxFridgeDays, keeps);
-          const freeze = d >= limitDays && settings.cooking.allowFreezing;
+            const keeps = p.recipe.storage.keepsDays;
+            const freeze = freezeFor(d, p.recipe);
+            for (const profile of ctx.profiles) {
+              await db.containerAssignments.add({
+                ...newEntity(),
+                weekPlanId: weekPlan.id,
+                containerLabel: 'A' + ++labelSeq,
+                recipeId: p.recipe.id,
+                recipeTitle: p.recipe.title,
+                profileId: profile.id,
+                profileName: profile.name,
+                grams: Math.round((p.servings * gramsPerServing(p.recipe)) / n),
+                nutrition: macrosOf(p.recipe.nutritionPerServing, p.servings / n),
+                portion: 'meal',
+                intendedDate: date,
+                intendedSlot: slot,
+                storage: freeze ? 'freezer' : 'fridge',
+                keepsDays: freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
+                // 実際に作る日は詰めるときに確定する。ここは仮置き（PackStep で引き直す）
+                useByDate: addDaysIso(ctx.weekStart, freeze ? 30 : keeps),
+                packed: 0,
+              });
+            }
+          }
 
           for (const profile of ctx.profiles) {
-            const label = 'A' + (++labelSeq);
-
-            await db.containerAssignments.add({
-              ...newEntity(),
-              weekPlanId: weekPlan.id,
-              containerLabel: label,
-              recipeId: lead?.recipe.id ?? '',
-              recipeTitle: items.map((i) => i.recipeTitle).join(' + '),
-              profileId: profile.id,
-              profileName: profile.name,
-              grams: items.reduce((g, i) => g + i.grams, 0),
-              nutrition: { ...nutrition },
-              intendedDate: date,
-              intendedSlot: slot,
-              storage: freeze ? 'freezer' : 'fridge',
-              keepsDays: freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
-              // 実際に作る日は詰めるときに確定する。ここは仮置き（PackStep で引き直す）
-              useByDate: addDaysIso(ctx.weekStart, freeze ? 30 : keeps),
-              packed: 0,
-            });
-
             await db.plannedMeals.add({
               ...newEntity(),
               weekPlanId: weekPlan.id,
@@ -739,6 +778,45 @@ export async function commitWeek(
             });
           }
         }
+      }
+
+      /*
+       * まとめ詰めの容器。副菜とごはんを、品ごとに1つずつ。
+       * 日ごとに分けないので、5日ぶんの副菜が1つのタッパーに入る。
+       * ラベルを A ではなく B にして、「取り分けるほう」だと形で分かるようにする。
+       */
+      let batchSeq = 0;
+      const shared = ctx.profiles[0];
+      for (const b of batches.values()) {
+        if (!shared) break;
+        const keeps = b.recipe.storage.keepsDays;
+        /*
+         * **人数ぶんに分けない。**2人で春雨サラダのタッパーを2つ持つ家はない。
+         * 人数ぶん作ったとき、最初は1品につき4つ（2人×冷蔵冷凍）できて、
+         * まとめ詰めにした意味が消えていた。世帯で1つにする。
+         *
+         * 食べた記録は献立（plannedMeals）が人ごとに持っているので、
+         * こちらを世帯共用にしても摂取の集計は狂わない。
+         */
+        await db.containerAssignments.add({
+          ...newEntity(),
+          weekPlanId: weekPlan.id,
+          containerLabel: 'B' + ++batchSeq,
+          recipeId: b.recipe.id,
+          recipeTitle: b.recipe.title,
+          profileId: shared.id,
+          profileName: ctx.profiles.length > 1 ? '共用' : shared.name,
+          grams: Math.round(b.servings * gramsPerServing(b.recipe)),
+          nutrition: macrosOf(b.recipe.nutritionPerServing, b.servings),
+          portion: 'batch',
+          servingsCount: Math.round(b.servings * 10) / 10,
+          intendedDate: b.firstDate,
+          intendedSlot: b.slot,
+          storage: b.freeze ? 'freezer' : 'fridge',
+          keepsDays: b.freeze ? 30 : Math.min(keeps, settings.cooking.maxFridgeDays),
+          useByDate: addDaysIso(ctx.weekStart, b.freeze ? 30 : keeps),
+          packed: 0,
+        });
       }
 
       const shoppingList: ShoppingList = {

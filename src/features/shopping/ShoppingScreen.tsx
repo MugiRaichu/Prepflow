@@ -7,7 +7,6 @@ import { markPurchased } from '@/db/repositories/staples';
 import { autoBackup } from '@/db/repositories/backup';
 import { getDefaultStore, learnFromReceipt, reliabilityOf } from '@/db/repositories/stores';
 import { StapleCheck } from './StapleCheck';
-import { ContainerCheck } from './ContainerCheck';
 import { ReceiptScan } from './ReceiptScan';
 import { db, nowIso } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -252,11 +251,14 @@ export function ShoppingScreen() {
         </div>
       )}
 
-      {/* 容器は買い出しに出る前が唯一の手当てできる時刻。足りていれば何も出さない */}
-      <div className="px-4 pb-2">
-        <ContainerCheck />
-      </div>
+      {/*
+        容器の話はここに出さない（→ 作り置きタブへ移した）。
 
+        買い出しの画面を開いた人がやろうとしているのは**買うこと**で、
+        その一行目に容器の過不足が出ても、いま何を買えばよいかは進まない。
+        しかも足りないときの答えは「皿で足りる」であって、買い足しではない。
+        **手当てするのは詰める直前**なので、そこに置くほうが効く（本人指摘）。
+      */}
       {groups.map((g) => (
         <div key={g.section}>
           <div className="bg-secondary/50 px-4 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">

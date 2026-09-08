@@ -15,6 +15,7 @@ import { amountLabel, stepIngredients } from './logic/stepItems';
 import { DishPhotoInput } from '@/features/recipes/DishImage';
 import { PackStep } from './PackStep';
 import { PreppedList } from './PreppedList';
+import { ContainerCheck } from '@/features/shopping/ContainerCheck';
 import { consumeForPlan } from '@/db/repositories/inventory';
 import { useCookingMode } from '@/features/household/useCookingMode';
 import { useCookTimers } from './useTimers';
@@ -326,6 +327,16 @@ export function CookScreen() {
         <CookTabs tab={tab} onChange={setTab} />
       </div>
       {undo.bar}
+
+      {/*
+        容器の過不足はここで出す。**詰める直前が、手当てできる時刻。**
+        買い出しの一行目に置いていたが、買う手は進まないうえ、
+        足りないときの答えは「皿で足りる」で買い足しではない（本人指摘）。
+        足りていれば何も出ない
+      */}
+      <div className="px-4 pt-3">
+        <ContainerCheck />
+      </div>
 
       {/* 手を止めずに並行で動いているものは、常に見える位置に置く。
           スクロールしても隠れない（本人指摘: 同時並行の操作が見えない） */}

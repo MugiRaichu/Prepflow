@@ -699,6 +699,20 @@ export interface ContainerAssignment extends Entity {
   profileName: string;
   grams: Grams;
   nutrition: Macros;
+  /**
+   * 詰め方。
+   *
+   * `meal`  = 1食ぶん。そのまま温めて食べる（主菜）
+   * `batch` = まとめ詰め。食べるときに取り分ける（副菜・ごはん）
+   *
+   * **1容器に主菜と副菜を混ぜない。**以前は1食ぶんの全品を1行に押し込み、
+   * `recipeTitle` を「つけそば + かぼちゃの煮もの」、`grams` を合計789gに
+   * していた。**実際には詰められない詰め方**を数えていた（本人指摘）。
+   * このスキーマが recipeId / recipeTitle を単数で持っているのは元々そのため。
+   */
+  portion?: 'meal' | 'batch';
+  /** batch のとき、何食ぶん入っているか。取り分ける目安になる */
+  servingsCount?: number;
   intendedDate: ISODate;
   intendedSlot: MealSlot;
   storage: 'fridge' | 'freezer';

@@ -241,6 +241,38 @@ export async function buildPublishItems(settings: AppSettings): Promise<{
   return { items, from: range[0]!, to: range[range.length - 1]! };
 }
 
+/**
+ * 書いた献立をカレンダーから消す。
+ *
+ * `publish` は「消してから書く」ので入れ替えはできるが、
+ * **書き直さずに消す**ことができなかった。手で消すしかない状態だった。
+ *
+ * 消したあとは書き出しの控え（ハッシュ）も捨てる。
+ * 残しておくと、同じ献立を書き直すときに「中身が同じ」と判定されて
+ * 書き込みが飛ばされ、カレンダーが空のままになる。
+ */
+export async function clearCalendar(
+  settings: AppSettings,
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const url = settings.notify.gasEndpointUrl;
+  const token = await getSecret('gas_shared_token');
+  if (!url || !token) return { ok: false, error: '接続設定が終わっていません' };
+
+  const built = await buildPublishItems(settings);
+  if (!built) return { ok: false, error: '消す範囲が分かりません（献立がありません）' };
+
+  const r = await post<{ count: number }>(url, {
+    action: 'clear',
+    token,
+    from: built.from,
+    to: built.to,
+  });
+  if (!r.ok) return { ok: false, error: r.error ?? '消せませんでした' };
+
+  await db.meta.delete(PUBLISH_HASH_KEY);
+  return { ok: true, count: r.count ?? 0 };
+}
+
 /** 献立を書き出す。中身が前回と同じなら書かない（GAS の実行回数を無駄にしない） */
 export async function publishMenus(
   settings: AppSettings,

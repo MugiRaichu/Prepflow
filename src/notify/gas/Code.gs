@@ -188,6 +188,25 @@ function doPost(e) {
       return json({ ok: true, count: items.length });
     }
 
+    /*
+     * clear: 書いた献立を消す。**書き直さずに消したいときの口。**
+     *
+     * publish は「消してから書く」ので入れ替えはできるが、
+     * 「やっぱり全部消す」ができなかった。手で消すしかない状態だった。
+     * 消すのは Prepflow カレンダーの中だけ。他のカレンダーには触れない。
+     */
+    if (body.action === 'clear') {
+      var delCal = CalendarApp.getCalendarsByName(PREPFLOW_CALENDAR)[0];
+      if (!delCal) return json({ ok: true, count: 0 });
+      var f = new Date(body.from + 'T00:00:00+09:00');
+      var t = new Date(body.to + 'T23:59:59+09:00');
+      var evs = delCal.getEvents(f, t);
+      evs.forEach(function (ev) {
+        ev.deleteEvent();
+      });
+      return json({ ok: true, count: evs.length });
+    }
+
     // schedule: [{ date: '2026-09-07', slot: '夕', text: 'A1 鶏むねの照り焼き 220g' }]
     if (body.schedule) {
       PROPS.setProperty('SCHEDULE', JSON.stringify(body.schedule));
