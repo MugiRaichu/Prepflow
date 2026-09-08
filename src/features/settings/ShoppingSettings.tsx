@@ -6,7 +6,6 @@ import { Chips, MultiChips } from '@/components/shared/Chips';
 import { Stepper } from '@/components/shared/Stepper';
 import { WeekdayMultiPicker, WeekdayPicker } from '@/components/shared/WeekdayPicker';
 import { prepDaysOf } from '@/features/planner/logic/window';
-import { LifeStagePresets } from '@/features/household/HouseholdScreen';
 import { updateCooking, updateShopping } from '@/db/repositories/settings';
 import { getDefaultStore, setPriceBand, reliabilityOf } from '@/db/repositories/stores';
 import { cadenceLabel } from '@/features/planner/logic/cadence';
@@ -193,25 +192,13 @@ export function CookingSettings() {
         )}
 
         {/*
-          暮らしのひな形はここに置く。**別の入口にしない。**
-          入れるのは作り方の初期値だけなので、独立した画面にすると
-          「いまの暮らし」を開いてから「作り方」を開き直すことになる。
-          畳んでおくのは、選ばない人のほうが多いため（当てはまる名前が無い）
+          **畳まない。**「細かい設定」に4つ隠していたが、隠したものは
+          スマホに慣れていない人にとっては存在しないのと同じ。
+          この画面は全部で9項目しかなく、1画面をなぞれば端まで見える。
+          押して開く手間のほうが、並んでいることの負担より大きかった。
         */}
-        <details className="rounded-lg border">
-          <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground">
-            暮らしのひな形からまとめて入れる
-          </summary>
-          <div className="border-t">
-            <LifeStagePresets />
-          </div>
-        </details>
-
-        <details className="rounded-lg border">
-          <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground">
-            細かい設定
-          </summary>
-          <div className="space-y-6 border-t p-4">
+        <div className="space-y-6 border-t pt-6">
+          <div className="space-y-6">
             {!daily && (
               <>
                 {/*
@@ -285,7 +272,7 @@ export function CookingSettings() {
               />
             </Labeled>
           </div>
-        </details>
+        </div>
       </div>
     </div>
   );

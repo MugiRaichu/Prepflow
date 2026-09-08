@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Download, Upload, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { resetEverything } from '@/db/repositories/backup';
+import { BloomSetting } from './BloomSetting';
 import { ViewportInfo } from './ViewportInfo';
 import {
   autoBackupSupported,
@@ -47,6 +48,14 @@ export function DataSettings() {
   return (
     <div>
       <PageHeader title="書き出し・元に戻す" backTo="/settings" />
+
+      {/*
+        起動の絵の設定はここに置く。**探して見つからないと諦める**ので、
+        設定の一覧から辿れる場所に出しておく（小さい粒が苦手な人に要る）
+      */}
+      <div className="border-b p-4">
+        <BloomSetting />
+      </div>
 
       <div className="space-y-6 p-4">
         <ViewportInfo />

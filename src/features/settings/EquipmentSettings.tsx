@@ -17,18 +17,26 @@ import type { Equipment, EquipmentKind } from '@/db/schema';
  * 何を聞かれているのか分からなかった。追加も削除も種別変更も要らない。
  * 一覧に対して数を増減するだけにする（0台＝持っていない）。
  */
+/*
+ * 聞くのは、**献立に効くものだけ**。
+ *
+ * 12種類を並べていたが、レシピの手順が実際に使うのは6種類だけだった
+ * （レシピ187品を調べた結果）。エアフライヤー・圧力鍋・フードプロセッサー・
+ * ハンドミキサー・オーブントースター・IHコンロは、答えても何も変わらない。
+ * **効果の無い入力を置かない**（D-084）。
+ *
+ * この画面は 2378px あり、持っていない道具を9つスクロールして通り過ぎる
+ * 作りになっていた。聞くのをやめれば、畳んで隠す必要もない。
+ *
+ * IH は「コンロ」に含める。ガスかIHかで段取りは変わらない（同時に火に
+ * かけられる数だけが効く）ので、2つに分けて聞く意味がなかった。
+ */
 const KINDS: { kind: EquipmentKind; unit: string; hint?: string }[] = [
+  { kind: 'stovetop_burner', unit: '口', hint: 'ガスでもIHでも。同時に火にかけられる数' },
   { kind: 'microwave', unit: '台' },
-  { kind: 'stovetop_burner', unit: '口', hint: '同時に火にかけられる数' },
-  { kind: 'ih_burner', unit: '口', hint: '同時に火にかけられる数' },
   { kind: 'rice_cooker', unit: '台' },
   { kind: 'oven', unit: '台' },
-  { kind: 'oven_toaster', unit: '台' },
-  { kind: 'air_fryer', unit: '台' },
-  { kind: 'pressure_cooker', unit: '台' },
   { kind: 'blender', unit: '台', hint: 'スムージー・プロテイン用' },
-  { kind: 'hand_mixer', unit: '台' },
-  { kind: 'food_processor', unit: '台' },
   { kind: 'shaker', unit: '本', hint: 'プロテインを溶かす' },
 ];
 
