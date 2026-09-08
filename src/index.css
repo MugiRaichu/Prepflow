@@ -246,11 +246,12 @@
    * 名前は読ませるものなので、整えるのは字間と太さだけにする。
    */
   .pf-wordmark {
-    /* 細く、広く。詰めて太らせるより、空けて軽くするほうが名前は締まる */
-    font-weight: 400;
-    letter-spacing: 0.085em;
+    font-family: 'Quicksand', system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    /* 丸い骨格は細いと痩せて見える。600 で置くと、太らずに温かさだけ残る */
+    font-weight: 600;
+    letter-spacing: 0.06em;
     /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-    text-indent: 0.085em;
+    text-indent: 0.06em;
   }
 
   .pf-shell {

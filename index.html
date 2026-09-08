@@ -28,19 +28,26 @@
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前に使う書体は、**本文と同じもの**（端末に入っているゴシック）。
+      名前に使う書体（Quicksand）。
 
-      筆記体 → Fraunces と試して、どちらも戻ってきた（本人「やっぱりもっと
-      シンプルにしてください」）。**名前は読ませるもので、飾るものではない。**
-      8文字のために書体を取りに行くのをやめる。
+      **温かみとレトロ**（本人指定。「インスタグラムのような」）。
+      角を丸めた幾何学的な骨格で、70年代の丸ゴシックの気配がありながら、
+      字面は整っていて小さくしても崩れない。
+      筆記体（流れて読めない）とも、明朝寄り（硬い）とも違う方向。
 
-      やめて減ったもの
-        ・外への通信が1つも無くなった（**圏外でも見た目が変わらない**）
-        ・届くまで名前が出ない、という待ちが消えた
-        ・Service Worker のフォント置き場（2種類）が要らなくなった
+      **本文には使わない。**読むための文字は端末のゴシックのまま
+      （日本語を持たない書体なので、混ぜると和文だけ別の字になる）。
+      使うのは「Prepflow」の8文字だけ。
 
-      整えるのは字間と太さだけ。詰めると8文字が1語のかたまりに見える。
+      取れなくても止まらない。`display=swap` で、届くまでは端末のゴシックが出る。
+      一度取れたぶんは Service Worker が持つので、次からは通信なしで出る。
     -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Quicksand:wght@600&display=swap"
+    />
     <title>Prepflow</title>
 
     <!--
@@ -135,7 +142,7 @@
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
       #pf-splash .pf-words > p.pf-name {
-        font-family: system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
+        font-family: 'Quicksand', system-ui, -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
         font-size: 40px;
         /*
          * **細く、広く。**太くして詰めると「立つ」が、同時に重くなる。
@@ -143,11 +150,12 @@
          * 太さを 600 → 400 に落とし、字間を詰めから広げに転じる。
          * 字が細いぶん、間を空けても1語のまとまりは崩れない。
          */
-        font-weight: 400;
+        /* 丸い骨格は細いと痩せて見える。600 で置くと、太らずに温かさだけ残る */
+        font-weight: 600;
         line-height: 1.15;
-        letter-spacing: 0.09em;
+        letter-spacing: 0.06em;
         /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-        text-indent: 0.09em;
+        text-indent: 0.06em;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -468,9 +476,15 @@
       /*
         名前の筆記体を、いますぐ取りに行かせる。
 
-        書体は端末に入っているものだけを使う。取りに行くものが無いので、
-        ここで先に読ませる仕掛けも要らなくなった。
+        書体は「使われた瞬間」に読み込まれる。起動画面で名前が出るのは
+        2.1秒後なので、そこまで待ってから取りに行くと間に合わず、
+        毎回ゴシックのまま終わる（前に実測した）。ここで先に走らせる。
+
+        届かなくても何も起きない。端末のゴシックのまま出る。
       */
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('600 40px Quicksand').catch(function () {});
+      }
     </script>
     <div id="pf-splash" aria-hidden="true">
       <!--

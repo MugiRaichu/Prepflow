@@ -5,6 +5,8 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 /**
  * Service Worker。
@@ -112,12 +114,25 @@ registerRoute(
 );
 
 /*
- * 外部から取ってくるものは、もう無い。
+ * 名前に使う書体（Google Fonts）を、一度取れたら端末に残す。
  *
- * 名前に使っていた書体（Google Fonts）をやめたので、
- * **このアプリは自分の配信元以外へ一切つながらない**。
- * ここにあったフォント用のキャッシュ2種類も、置いておく意味が無くなった。
+ * このアプリは圏外でも動く。**唯一の外部依存がこの書体**なので、
+ * 初回に取れたぶんを持っておいて、次からは通信なしで出す。
+ * 取れなければ端末のゴシックで出るだけで、起動は止まらない。
+ *
+ * 対象は名前の8文字ぶん（数十KB）。本文には使っていない。
  */
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  new StaleWhileRevalidate({ cacheName: 'pf-font-css' }),
+);
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'pf-font-files',
+    plugins: [new ExpirationPlugin({ maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 365 })],
+  }),
+);
 
 // 新しい版をすぐ有効にする（registerType: 'autoUpdate' と同じ挙動）
 self.skipWaiting();
