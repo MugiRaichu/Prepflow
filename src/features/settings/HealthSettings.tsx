@@ -87,7 +87,7 @@ export function HealthSection() {
           <>
             <Step n={1} title="ショートカットを新規作成">
               iPhone の「ショートカット」App を開き、右上の ＋ を押します。
-              名前は「Prepflow 健康」など分かるものに。
+              名前は「オヒツ 健康」など分かるものに。
             </Step>
 
             <Step n={2} title="ヘルスケアから数値を取る">

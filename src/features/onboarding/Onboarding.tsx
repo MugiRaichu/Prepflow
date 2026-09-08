@@ -330,7 +330,7 @@ export function Onboarding() {
           ) : (
             <Logo withText={false} />
           )}
-          <span className="flex-1 text-sm font-medium">{cur.chapter || 'Prepflow'}</span>
+          <span className="flex-1 text-sm font-medium">{cur.chapter || 'オヒツ'}</span>
           <span className="text-xs tabular-nums text-muted-foreground">
             {step + 1} / {STEPS.length}
           </span>

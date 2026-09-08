@@ -1,11 +1,11 @@
 /**
- * Prepflow — LINE通知（Google Apps Script 側）
+ * オヒツ — LINE通知（Google Apps Script 側）
  *
  * 役割は3つだけ。
  *   1. アプリから送られてくる「今週の献立」を受け取って保存する（doPost）
  *   2. 毎日きまった時刻に、その日のぶんを LINE へ送る（sendToday）
  *   3. 自分の Google カレンダーの予定を、件名と時刻だけアプリへ返す（events）
- *   4. 決まった献立を「Prepflow」カレンダーに書く（publish）。他のカレンダーには触れない
+ *   4. 決まった献立を「オヒツ」カレンダーに書く（publish）。他のカレンダーには触れない
  *
  * アプリはローカルファーストなので、ここに置くのは「送るための最小の写し」だけ。
  * 体重・栄養・買い物の中身は送らない。
@@ -49,7 +49,12 @@ function lineUserId() {
 }
 
 /** 献立を書く先のカレンダー名。読むときはこの名前のものを飛ばす */
-var PREPFLOW_CALENDAR = 'Prepflow';
+/*
+ * 書き出し先のカレンダー名。**利用者の Google カレンダーに、この名前で現れる。**
+ * 名前を変えると、次に書いたときに新しいカレンダーが作られる。
+ * 前の「Prepflow」カレンダーは残るので、要らなければ手で消す。
+ */
+var PREPFLOW_CALENDAR = 'オヒツ';
 
 /**
  * 許可を出すためだけの関数。エディタから1回だけ実行する。
@@ -100,7 +105,7 @@ function readEvents(days) {
   var cals = CalendarApp.getAllCalendars();
   for (var i = 0; i < cals.length; i++) {
     var cal = cals[i];
-    // 自分が書いた献立（Prepflow カレンダー）は「予定」ではない。
+    // 自分が書いた献立（オヒツ カレンダー）は「予定」ではない。
     // 読んでしまうと、献立が食事の時刻を押しのける循環になる
     if (cal.getName() === PREPFLOW_CALENDAR) continue;
 
@@ -167,7 +172,7 @@ function doPost(e) {
     }
 
     if (body.action === 'test') {
-      pushLine('Prepflow のテスト通知です。これが届けば設定は完了しています。');
+      pushLine('オヒツ のテスト通知です。これが届けば設定は完了しています。');
       return json({ ok: true, sent: true });
     }
 
@@ -247,7 +252,7 @@ function doPost(e) {
       return json(out);
     }
 
-    // publish: 献立を「Prepflow」カレンダーに書く。
+    // publish: 献立を「オヒツ」カレンダーに書く。
     // 無ければ作る。対象期間の中身を**このカレンダーだけ**入れ替える（他には触れない）。
     // items: [{ date, start:'HH:mm', minutes, title, description, allDay }]
     if (body.action === 'publish') {
@@ -279,7 +284,7 @@ function doPost(e) {
      *
      * publish は「消してから書く」ので入れ替えはできるが、
      * 「やっぱり全部消す」ができなかった。手で消すしかない状態だった。
-     * 消すのは Prepflow カレンダーの中だけ。他のカレンダーには触れない。
+     * 消すのは オヒツ カレンダーの中だけ。他のカレンダーには触れない。
      */
     if (body.action === 'clear') {
       var delCal = CalendarApp.getCalendarsByName(PREPFLOW_CALENDAR)[0];
@@ -505,6 +510,11 @@ function hintFor(code, detail) {
 }
 
 /** 共有ファイルの名前。ドライブの一番上に置く */
+/*
+ * 家族の置き場。**名前は変えない。**変えると、すでに共有している家族の
+ * ファイルが見つからなくなり、買い出しも在庫も一度消える。
+ * この名前は人の目に触れない（ドライブの中のファイル名）ので、旧名のままでよい。
+ */
 var FAMILY_FILE = 'Prepflow-family.json';
 
 function familyFile() {

@@ -135,7 +135,7 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
       <div className="space-y-2 border-t pt-4">
         <Labeled
           label="献立を Google カレンダーに書く"
-          hint="「Prepflow」というカレンダーを作り、そこだけに書きます。日付・時刻・料理名だけ"
+          hint="「オヒツ」というカレンダーを作り、そこだけに書きます。日付・時刻・料理名だけ"
         >
           <Segmented
             options={[
@@ -161,7 +161,7 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
               {/*
                 **書き直さずに消せなかった。**publish は「消してから書く」ので
                 入れ替えはできるが、やめたいときは手で消すしかなかった。
-                消すのは Prepflow カレンダーの中だけ
+                消すのは オヒツ カレンダーの中だけ
               */}
               <button
                 onClick={() =>
@@ -179,7 +179,7 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
               {lastOut
                 ? '最終書き出し ' + new Date(lastOut).toLocaleString('ja-JP') + '。'
                 : ''}
-              献立を確定すると自動で書きます。書くたびに、その期間の「Prepflow」
+              献立を確定すると自動で書きます。書くたびに、その期間の「オヒツ」
               カレンダーを入れ替えます（ほかのカレンダーには触れません。過去の日も残します）。
             </div>
           </>
