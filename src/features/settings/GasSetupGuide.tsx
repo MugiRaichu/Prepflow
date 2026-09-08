@@ -62,20 +62,39 @@ export function GasSetupGuide({
               </ul>
             </Step>
 
-            <Step n={n()} title="2つの値を控える">
-              同じ「Messaging API設定」の画面に両方あります。
+            {/*
+              **タブが違う。**「両方この画面にあります」と書いていたが、
+              ユーザーIDは別のタブにある。探し回った末に、
+              同じ画面にあるチャネルシークレットを拾ってしまう（本人報告）。
+              どのタブの、どこにあるかまで書く。
+            */}
+            <Step n={n()} title="2つの値を控える（タブが違います）">
               <ul className="mt-1.5 space-y-1 text-muted-foreground">
                 <li>
                   ・<span className="text-foreground">チャネルアクセストークン（長期）</span>
-                  — 一番下。「発行」を押すと出ます
+                  <br />
+                  「Messaging API設定」タブの<span className="text-foreground">一番下</span>。
+                  「発行」を押すと出ます。とても長い文字列です
                 </li>
                 <li>
                   ・<span className="text-foreground">あなたのユーザーID</span>
-                  — 上のほう。U から始まる文字列です
+                  <br />
+                  <span className="text-foreground">「チャネル基本設定」タブ</span>に切り替えて、
+                  その一番下。U から始まる33文字です
                 </li>
               </ul>
+              {/*
+                この3つは同じ画面に並んでいて、名前も似ている。
+                どれを入れても保存はできてしまうので、先に否定しておく
+              */}
+              <p className="mt-1.5 rounded border p-2 text-muted-foreground">
+                <span className="text-foreground">チャネルシークレット</span>と
+                <span className="text-foreground">チャネルID</span>は使いません。
+                これらを入れると LINE に拒否されます（設定は保存できてしまいます）。
+                トークンは数百文字、シークレットは32文字なので、長さで見分けられます。
+              </p>
               <p className="mt-1.5 text-muted-foreground">
-                同じ画面の QR コードから、自分のチャネルを友だち追加しておきます。
+                「Messaging API設定」タブの QR コードから、自分のチャネルを友だち追加しておきます。
                 していないと通知が届きません。
               </p>
             </Step>
