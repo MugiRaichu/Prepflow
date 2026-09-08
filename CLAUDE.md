@@ -18,6 +18,8 @@ Vite + React 19 + TypeScript / Tailwind v4 + shadcn/ui（自然素材の色・�
 - 通信を伴う推論は `src/ai/router.ts` を通す。直接 fetch しない
 - コードを変えたら、**その回のうちに** `04 決定記録.md` へ追記する。書くのは「何をしたか」ではなく
   **「なぜそうしたか」と「何を捨てたか」**。何をしたかはコードと git log が持っている
+- 直したら**すぐ公開する**（PR を作る → rebase マージ → Actions のデプロイ成功まで見届ける）。
+  聞き直さない。**本人が試すのは公開版**なので、手元で直っていても届いていなければ直っていない
 
 ## コマンド
 `npm run dev` / `npm run build` / `npm run typecheck` / `npm run icons`（SVG→PNG 再生成）
