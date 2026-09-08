@@ -894,8 +894,21 @@ export const RICE_POLICY_SERVINGS: Record<Exclude<RicePolicy, 'auto'>, number> =
 };
 
 export interface CookingSettings {
-  /** 作り置きをする曜日 */
+  /**
+   * 作り置きをする曜日。
+   * 古い設定のために残す。読むときは `prepDays` を先に見る
+   */
   prepDay: Weekday;
+  /**
+   * 作り置きをする曜日（複数）。
+   *
+   * 週2回作る人は「日曜と水曜」のように分かれる。1つしか持てなかったので、
+   * 週に何回作るかと噛み合っていなかった。
+   *
+   * ここで効くのは**献立を作るときの開始日の候補**。
+   * 決め打ちで週の頭に寄せず、この曜日に印を付けて選びやすくする。
+   */
+  prepDays?: Weekday[];
   /** 1回の作り置きに使える上限時間 */
   maxPrepMinutes: number;
   allowFreezing: boolean;

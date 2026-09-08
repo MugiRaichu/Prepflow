@@ -4,7 +4,8 @@ import { db } from '@/db/db';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Chips, MultiChips } from '@/components/shared/Chips';
 import { Stepper } from '@/components/shared/Stepper';
-import { WeekdayPicker } from '@/components/shared/WeekdayPicker';
+import { WeekdayMultiPicker, WeekdayPicker } from '@/components/shared/WeekdayPicker';
+import { prepDaysOf } from '@/features/planner/logic/window';
 import { updateCooking, updateShopping } from '@/db/repositories/settings';
 import { getDefaultStore, setPriceBand, reliabilityOf } from '@/db/repositories/stores';
 import { cadenceLabel } from '@/features/planner/logic/cadence';
@@ -165,10 +166,23 @@ export function CookingSettings() {
           <div className="space-y-6 border-t p-4">
             {!daily && (
               <>
-                <Labeled label="作り置きの曜日">
-                  <WeekdayPicker
-                    value={s.cooking.prepDay}
-                    onChange={(v: Weekday) => updateCooking(() => ({ prepDay: v }))}
+                {/*
+                  週2回作る人は「日曜と水曜」のように分かれる。
+                  1つしか持てず、「週に何回作るか」と噛み合っていなかった
+                */}
+                <Labeled
+                  label="作り置きをする曜日"
+                  hint="献立を作るとき、この曜日に印が付きます"
+                >
+                  <WeekdayMultiPicker
+                    values={prepDaysOf(s.cooking)}
+                    onChange={(v: Weekday[]) =>
+                      updateCooking(() => ({
+                        prepDays: v,
+                        // 古い設定しか読まない画面のために、先頭を単数側にも残す
+                        ...(v.length ? { prepDay: v[0]! } : {}),
+                      }))
+                    }
                   />
                 </Labeled>
 

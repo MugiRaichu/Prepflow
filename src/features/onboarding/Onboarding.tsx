@@ -5,7 +5,7 @@ import { Check, ChevronLeft } from 'lucide-react';
 import { Chips, MultiChips } from '@/components/shared/Chips';
 import { Segmented } from '@/components/shared/Segmented';
 import { Stepper } from '@/components/shared/Stepper';
-import { WeekdayPicker } from '@/components/shared/WeekdayPicker';
+import { WeekdayMultiPicker, WeekdayPicker } from '@/components/shared/WeekdayPicker';
 import { Logo } from '@/components/shared/Logo';
 import { calcTargets } from '@/lib/nutrition';
 import { createProfile, markOnboarded } from '@/db/repositories/profiles';
@@ -160,7 +160,7 @@ export function Onboarding() {
   const [riceCookMinutes, setRiceCookMinutes] = useState(DEFAULT_RICE_MINUTES);
   const [weeklyBudgetYen, setWeeklyBudgetYen] = useState(5000);
   const [shoppingDay, setShoppingDay] = useState<Weekday>(6);
-  const [prepDay, setPrepDay] = useState<Weekday>(0);
+  const [prepDays, setPrepDays] = useState<Weekday[]>([0]);
   const [maxFridgeDays, setMaxFridgeDays] = useState(3);
   const [allowFreezing, setAllowFreezing] = useState(true);
 
@@ -253,7 +253,9 @@ export function Onboarding() {
           shopping: { ...s.shopping, weeklyBudgetYen, shoppingDay },
           cooking: {
             ...s.cooking,
-            prepDay,
+            prepDays,
+            // 複数版を読まない古い画面のために、先頭を単数側にも残す
+            prepDay: prepDays[0] ?? 0,
             cookSessionsPerWeek: sessions,
             coverDays,
             coverSlots: sortSlots(coverSlots),
@@ -566,9 +568,10 @@ export function Onboarding() {
                 <Labeled label="買い出しの曜日">
                   <WeekdayPicker value={shoppingDay} onChange={setShoppingDay} />
                 </Labeled>
+                {/* 週2回作る人は「日曜と水曜」のように分かれる。複数選べる */}
                 {!daily && (
-                  <Labeled label="作り置きの曜日">
-                    <WeekdayPicker value={prepDay} onChange={setPrepDay} />
+                  <Labeled label="作り置きをする曜日">
+                    <WeekdayMultiPicker values={prepDays} onChange={setPrepDays} />
                   </Labeled>
                 )}
                 {/*
