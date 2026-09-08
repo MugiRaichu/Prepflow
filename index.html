@@ -200,62 +200,141 @@
         height: 100%;
         pointer-events: none;
       }
-      #pf-bloom .pf-vine {
+
+      /*
+        背景の透かし。**いちばん後ろに、動かさず敷く。**
+        起動の絵が消えたあと何も残らないと、さっきのは何だったのか、
+        という置き去りが出る。同じ柄を薄く残して、そこをつなぐ。
+
+        濃さは 0.09。カードは自分の地色を持っているので、透かしが出るのは
+        カードとカードのあいだだけになる。**文字の下には来ない。**
+      */
+      #pf-watermark {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.09;
+        pointer-events: none;
+        z-index: 0;
+      }
+      #root {
+        position: relative;
+        z-index: 1;
+      }
+
+      /*
+        起動の絵。**開くたびに変わる。**
+
+        毎日開くものなので、同じ演出が毎回だと3日で飽きる。
+        10種類を用意して、起動のたびにどれかを出す。
+
+        分け方は「形」ではなく**動きの種類**にした。形だけ変えても、
+        同じ向きに同じ速さで出てくるものは同じ絵に見える。
+        伸びる・散る・降る・昇る・またたく・弾む、で分けてある。
+
+        どれも**地の生成りに薄く重ねる**（0.5前後）。名前と印の上を
+        通るので、濃く乗せると Prepflow が読めなくなる。
+      */
+      #pf-bloom .m-grow {
         fill: none;
-        stroke: #6e8b5b;
         stroke-linecap: round;
         opacity: 0.5;
-        stroke-dasharray: 620;
-        stroke-dashoffset: 620;
-        /* 親と子で同じ番号を持たせてある。親が伸びる流れに子蔓が乗る */
-        animation: pf-grow 1600ms cubic-bezier(0.25, 0.6, 0.25, 1) forwards;
-        animation-delay: calc(2350ms + var(--i) * 40ms);
+        stroke-dasharray: 260;
+        stroke-dashoffset: 260;
+        animation: pf-grow 900ms cubic-bezier(0.25, 0.6, 0.25, 1) forwards;
       }
-      #pf-bloom .pf-leaf {
-        fill: #6e8b5b;
-        opacity: 0;
-        animation: pf-leaf-in 520ms ease forwards;
-        animation-delay: calc(2750ms + var(--i) * 40ms);
-      }
-      /*
-        花は**文字のまわりから一気に出す。**
-        蔓の先で順に咲かせると、外周に丸く並ぶだけで「広がる」感じが出ない。
-        中央の小さな輪から出発して、それぞれの居場所へ散る。
-
-        透けたまま置く（0.62）。地の生成りと名前の上を通るので、
-        濃く乗せると名前が読めなくなる。
-      */
-      #pf-bloom .pf-flower {
+      /* 中央（文字のまわり）から、それぞれの居場所へ散る */
+      #pf-bloom .m-burst {
         opacity: 0;
         animation: pf-burst 1100ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
-        /* 一気に出す。ばらつきは 20ms だけ（完全に同時だと機械に見える） */
-        animation-delay: calc(2500ms + var(--k) * 20ms);
       }
-      #pf-bloom .pf-core {
-        fill: #faf7f2;
-        opacity: 0.8;
+      /* 下からゆっくり昇る。湯気・しゃぼん玉 */
+      #pf-bloom .m-rise {
+        opacity: 0;
+        animation: pf-rise 2600ms cubic-bezier(0.3, 0, 0.4, 1) forwards;
       }
-      @keyframes pf-grow {
-        to {
-          stroke-dashoffset: 0;
-        }
+      /* 上から静かに降る。雪・落ち葉・さくら */
+      #pf-bloom .m-fall {
+        opacity: 0;
+        animation: pf-fall 3200ms linear forwards;
       }
-      @keyframes pf-leaf-in {
-        to {
-          opacity: 0.6;
-        }
+      /* その場でふくらむ。木漏れ日・実り */
+      #pf-bloom .m-pop {
+        opacity: 0;
+        animation: pf-pop 900ms cubic-bezier(0.2, 1.3, 0.4, 1) forwards;
       }
+      /* またたく。星あかり */
+      #pf-bloom .m-twinkle {
+        opacity: 0;
+        animation: pf-twinkle 2200ms ease-in-out infinite;
+      }
+
       @keyframes pf-burst {
         from {
           opacity: 0;
           transform: translate(var(--dx), var(--dy)) scale(0.2) rotate(-50deg);
         }
         60% {
-          opacity: 0.62;
+          opacity: var(--o, 0.62);
         }
         to {
-          opacity: 0.62;
+          opacity: var(--o, 0.62);
           transform: translate(0, 0) scale(1) rotate(0deg);
+        }
+      }
+      @keyframes pf-rise {
+        from {
+          opacity: 0;
+          transform: translateY(var(--dy, 120px)) scale(0.7);
+        }
+        25% {
+          opacity: var(--o, 0.5);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(calc(var(--dy, 120px) * -1.6)) scale(1.15);
+        }
+      }
+      @keyframes pf-fall {
+        from {
+          opacity: 0;
+          transform: translate(0, var(--dy, -160px)) rotate(0deg);
+        }
+        15% {
+          opacity: var(--o, 0.55);
+        }
+        85% {
+          opacity: var(--o, 0.55);
+        }
+        to {
+          opacity: 0;
+          transform: translate(var(--dx, 30px), calc(var(--dy, -160px) * -3)) rotate(var(--rot, 240deg));
+        }
+      }
+      @keyframes pf-pop {
+        from {
+          opacity: 0;
+          transform: scale(0.2);
+        }
+        to {
+          opacity: var(--o, 0.5);
+          transform: scale(1);
+        }
+      }
+      @keyframes pf-twinkle {
+        0%,
+        100% {
+          opacity: 0.12;
+        }
+        50% {
+          opacity: var(--o, 0.7);
+        }
+      }
+
+      @keyframes pf-grow {
+        to {
+          stroke-dashoffset: 0;
         }
       }
 
@@ -290,6 +369,12 @@
     </style>
   </head>
   <body class="antialiased">
+    <!--
+      背景の透かし。**起動の絵と同じ柄を、動かさずうんと薄く敷く。**
+      花のエフェクトが出た日は、そのあとの画面にも花の柄が残る。
+      読むものではないので、文字の邪魔をしない濃さまで落とす。
+    -->
+    <svg id="pf-watermark" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
     <script>
       /*
         名前の筆記体を、いますぐ取りに行かせる。
@@ -311,197 +396,7 @@
         画面いっぱいに広がりきる前に本体へ渡すので、待ち時間は増えない
         （消えていく最中も伸び続ける）。
       -->
-      <svg id="pf-bloom" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <g class="pf-vines">
-          <path class="pf-vine" style="--i:0; stroke-width:1.2" d="M200 400 C 285 354 407 423 511 382 S 501 406 501 406" />
-          <path class="pf-vine" style="--i:0; stroke-width:1.2" d="M379 360 Q 383 382 406 388 T 394 399" />
-          <path class="pf-vine" style="--i:0; stroke-width:1.2" d="M441 356 Q 454 330 482 324 T 473 311" />
-          <path class="pf-vine" style="--i:1; stroke-width:1.8" d="M200 400 C 277 478 427 410 526 484 S 509 505 509 505" />
-          <path class="pf-vine" style="--i:1; stroke-width:1.0" d="M301 467 Q 310 500 339 519 T 326 529" />
-          <path class="pf-vine" style="--i:2; stroke-width:1.4" d="M200 400 C 251 496 413 462 485 560 S 464 575 464 575" />
-          <path class="pf-vine" style="--i:2; stroke-width:1.1" d="M276 491 Q 297 472 325 476 T 320 460" />
-          <path class="pf-vine" style="--i:2; stroke-width:1.0" d="M345 530 Q 346 563 369 587 T 355 593" />
-          <path class="pf-vine" style="--i:3; stroke-width:1.5" d="M200 400 C 296 423 321 569 426 610 S 401 620 401 620" />
-          <path class="pf-vine" style="--i:3; stroke-width:1.3" d="M400 538 Q 391 570 406 600 T 390 602" />
-          <path class="pf-vine" style="--i:4; stroke-width:1.6" d="M200 400 C 222 531 405 599 449 745 S 423 750 423 750" />
-          <path class="pf-vine" style="--i:4; stroke-width:1.2" d="M310 625 Q 346 620 378 639 T 381 623" />
-          <path class="pf-vine" style="--i:5; stroke-width:1.2" d="M200 400 C 292 496 262 686 356 810 S 330 808 330 808" />
-          <path class="pf-vine" style="--i:5; stroke-width:1.0" d="M288 526 Q 315 519 337 536 T 340 521" />
-          <path class="pf-vine" style="--i:5; stroke-width:1.3" d="M326 624 Q 297 646 289 681 T 275 672" />
-          <path class="pf-vine" style="--i:6; stroke-width:1.6" d="M200 400 C 140 501 287 611 240 731 S 215 723 215 723" />
-          <path class="pf-vine" style="--i:6; stroke-width:1.1" d="M172 598 Q 148 610 144 636 T 131 626" />
-          <path class="pf-vine" style="--i:6; stroke-width:1.0" d="M180 664 Q 211 673 227 700 T 237 688" />
-          <path class="pf-vine" style="--i:7; stroke-width:1.4" d="M200 400 C 105 509 238 687 153 822 S 130 809 130 809" />
-          <path class="pf-vine" style="--i:7; stroke-width:1.0" d="M114 638 Q 143 648 156 676 T 166 664" />
-          <path class="pf-vine" style="--i:7; stroke-width:1.1" d="M104 723 Q 124 737 121 761 T 136 755" />
-          <path class="pf-vine" style="--i:8; stroke-width:1.6" d="M200 400 C 233 552 35 674 47 849 S 28 831 28 831" />
-          <path class="pf-vine" style="--i:8; stroke-width:1.1" d="M135 769 Q 107 773 93 797 T 84 784" />
-          <path class="pf-vine" style="--i:9; stroke-width:1.3" d="M200 400 C 103 457 93 621 -11 700 S -24 677 -24 677" />
-          <path class="pf-vine" style="--i:10; stroke-width:1.5" d="M200 400 C 135 525 -59 574 -150 712 S -157 687 -157 687" />
-          <path class="pf-vine" style="--i:10; stroke-width:1.2" d="M21 608 Q -11 602 -39 620 T -42 605" />
-          <path class="pf-vine" style="--i:11; stroke-width:1.6" d="M200 400 C 146 511 -35 451 -113 562 S -114 535 -114 535" />
-          <path class="pf-vine" style="--i:11; stroke-width:1.3" d="M43 541 Q 11 524 -24 532 T -22 516" />
-          <path class="pf-vine" style="--i:11; stroke-width:1.1" d="M-20 573 Q -31 555 -51 559 T -45 544" />
-          <path class="pf-vine" style="--i:12; stroke-width:1.5" d="M200 400 C 98 367 7 503 -111 483 S -107 457 -107 457" />
-          <path class="pf-vine" style="--i:12; stroke-width:1.0" d="M9 408 Q -0 437 -28 450 T -16 461" />
-          <path class="pf-vine" style="--i:12; stroke-width:1.1" d="M-54 424 Q -50 445 -69 456 T -54 463" />
-          <path class="pf-vine" style="--i:13; stroke-width:1.3" d="M200 400 C 89 343 -61 451 -196 403 S -185 379 -185 379" />
-          <path class="pf-vine" style="--i:13; stroke-width:1.0" d="M65 360 Q 58 338 35 335 T 45 323" />
-          <path class="pf-vine" style="--i:13; stroke-width:1.2" d="M-30 361 Q -39 392 -67 410 T -54 420" />
-          <path class="pf-vine" style="--i:14; stroke-width:1.9" d="M200 400 C 67 422 -85 302 -243 312 S -228 291 -228 291" />
-          <path class="pf-vine" style="--i:14; stroke-width:1.4" d="M43 404 Q 35 376 9 364 T 21 354" />
-          <path class="pf-vine" style="--i:14; stroke-width:0.9" d="M-152 365 Q -160 334 -187 318 T -174 308" />
-          <path class="pf-vine" style="--i:15; stroke-width:1.7" d="M200 400 C 131 290 -60 316 -155 202 S -133 187 -133 187" />
-          <path class="pf-vine" style="--i:15; stroke-width:1.2" d="M16 246 Q -10 266 -44 264 T -39 279" />
-          <path class="pf-vine" style="--i:16; stroke-width:2.1" d="M200 400 C 155 285 -25 265 -94 141 S -70 131 -70 131" />
-          <path class="pf-vine" style="--i:16; stroke-width:1.3" d="M127 282 Q 137 252 124 223 T 139 222" />
-          <path class="pf-vine" style="--i:16; stroke-width:1.1" d="M56 220 Q 62 186 45 157 T 61 154" />
-          <path class="pf-vine" style="--i:17; stroke-width:1.3" d="M200 400 C 206 276 16 241 1 105 S 27 101 27 101" />
-          <path class="pf-vine" style="--i:17; stroke-width:0.9" d="M90 140 Q 100 121 87 104 T 103 102" />
-          <path class="pf-vine" style="--i:18; stroke-width:1.6" d="M200 400 C 205 291 97 179 89 51 S 116 54 116 54" />
-          <path class="pf-vine" style="--i:18; stroke-width:1.2" d="M188 273 Q 210 251 209 220 T 223 225" />
-          <path class="pf-vine" style="--i:18; stroke-width:1.3" d="M162 190 Q 127 188 102 164 T 96 178" />
-          <path class="pf-vine" style="--i:18; stroke-width:1.1" d="M139 120 Q 169 102 180 69 T 192 79" />
-          <path class="pf-vine" style="--i:19; stroke-width:1.7" d="M200 400 C 271 278 105 137 161 -8 S 186 0 186 0" />
-          <path class="pf-vine" style="--i:19; stroke-width:1.0" d="M246 256 Q 273 233 280 199 T 294 207" />
-          <path class="pf-vine" style="--i:19; stroke-width:1.1" d="M236 158 Q 213 153 207 131 T 196 143" />
-          <path class="pf-vine" style="--i:19; stroke-width:1.4" d="M228 76 Q 197 73 178 48 T 170 62" />
-          <path class="pf-vine" style="--i:20; stroke-width:1.7" d="M200 400 C 146 290 269 155 225 23 S 248 35 248 35" />
-          <path class="pf-vine" style="--i:20; stroke-width:1.2" d="M170 178 Q 144 166 137 139 T 125 149" />
-          <path class="pf-vine" style="--i:20; stroke-width:1.0" d="M175 103 Q 211 96 235 68 T 243 82" />
-          <path class="pf-vine" style="--i:21; stroke-width:1.9" d="M200 400 C 310 302 266 91 377 -37 S 395 -18 395 -18" />
-          <path class="pf-vine" style="--i:21; stroke-width:1.2" d="M304 269 Q 284 261 284 239 T 271 248" />
-          <path class="pf-vine" style="--i:21; stroke-width:1.2" d="M382 76 Q 362 58 365 31 T 350 36" />
-          <path class="pf-vine" style="--i:22; stroke-width:1.5" d="M200 400 C 308 351 278 173 390 100 S 404 123 404 123" />
-          <path class="pf-vine" style="--i:22; stroke-width:1.0" d="M350 252 Q 339 224 352 197 T 336 197" />
-          <path class="pf-vine" style="--i:22; stroke-width:0.9" d="M388 192 Q 376 171 388 150 T 372 150" />
-          <path class="pf-vine" style="--i:23; stroke-width:1.3" d="M200 400 C 289 371 328 241 427 196 S 435 221 435 221" />
-          <path class="pf-vine" style="--i:23; stroke-width:1.1" d="M295 351 Q 282 329 292 305 T 276 306" />
-          <path class="pf-vine" style="--i:23; stroke-width:1.3" d="M350 302 Q 379 320 414 315 T 411 331" />
-          <path class="pf-vine" style="--i:24; stroke-width:1.9" d="M200 400 C 305 426 347 259 463 268 S 464 294 464 294" />
-          <path class="pf-vine" style="--i:24; stroke-width:1.1" d="M375 368 Q 402 383 431 375 T 430 390" />
-          <path class="pf-vine" style="--i:24; stroke-width:1.2" d="M428 342 Q 454 360 485 355 T 482 371" />
-          <path class="pf-vine" style="--i:25; stroke-width:1.3" d="M200 400 C 281 314 441 393 545 310 S 541 336 541 336" />
-          <path class="pf-vine" style="--i:25; stroke-width:1.1" d="M306 325 Q 331 348 365 348 T 359 363" />
-          <path class="pf-vine" style="--i:25; stroke-width:1.3" d="M458 286 Q 460 252 484 227 T 469 221" />
-        </g>
-        <g class="pf-leaves">
-          <ellipse class="pf-leaf" style="--i:0" cx="292" cy="374" rx="9.1" ry="4.4" transform="rotate(31 292 374)" />
-          <ellipse class="pf-leaf" style="--i:0" cx="359" cy="354" rx="7.6" ry="3.7" transform="rotate(-37 359 354)" />
-          <ellipse class="pf-leaf" style="--i:0" cx="429" cy="366" rx="7.7" ry="3.8" transform="rotate(31 429 366)" />
-          <ellipse class="pf-leaf" style="--i:1" cx="286" cy="471" rx="8.9" ry="4.4" transform="rotate(49 286 471)" />
-          <ellipse class="pf-leaf" style="--i:1" cx="362" cy="474" rx="8.6" ry="4.2" transform="rotate(-19 362 474)" />
-          <ellipse class="pf-leaf" style="--i:1" cx="430" cy="508" rx="9.2" ry="4.5" transform="rotate(49 430 508)" />
-          <ellipse class="pf-leaf" style="--i:2" cx="269" cy="477" rx="8.7" ry="4.3" transform="rotate(-5 269 477)" />
-          <ellipse class="pf-leaf" style="--i:2" cx="324" cy="526" rx="7.0" ry="3.4" transform="rotate(63 324 526)" />
-          <ellipse class="pf-leaf" style="--i:2" cx="395" cy="547" rx="8.5" ry="4.1" transform="rotate(-5 395 547)" />
-          <ellipse class="pf-leaf" style="--i:3" cx="296" cy="432" rx="6.8" ry="3.3" transform="rotate(9 296 432)" />
-          <ellipse class="pf-leaf" style="--i:3" cx="335" cy="490" rx="9.8" ry="4.8" transform="rotate(77 335 490)" />
-          <ellipse class="pf-leaf" style="--i:3" cx="385" cy="536" rx="7.0" ry="3.4" transform="rotate(77 385 536)" />
-          <ellipse class="pf-leaf" style="--i:4" cx="235" cy="532" rx="9.2" ry="4.5" transform="rotate(88 235 532)" />
-          <ellipse class="pf-leaf" style="--i:4" cx="302" cy="599" rx="8.1" ry="4.0" transform="rotate(20 302 599)" />
-          <ellipse class="pf-leaf" style="--i:4" cx="357" cy="675" rx="6.4" ry="3.1" transform="rotate(20 357 675)" />
-          <ellipse class="pf-leaf" style="--i:5" cx="288" cy="507" rx="8.8" ry="4.3" transform="rotate(35 288 507)" />
-          <ellipse class="pf-leaf" style="--i:5" cx="323" cy="597" rx="8.3" ry="4.0" transform="rotate(35 323 597)" />
-          <ellipse class="pf-leaf" style="--i:5" cx="357" cy="687" rx="8.8" ry="4.3" transform="rotate(35 357 687)" />
-          <ellipse class="pf-leaf" style="--i:6" cx="170" cy="504" rx="6.8" ry="3.3" transform="rotate(49 170 504)" />
-          <ellipse class="pf-leaf" style="--i:6" cx="163" cy="579" rx="6.8" ry="3.3" transform="rotate(117 163 579)" />
-          <ellipse class="pf-leaf" style="--i:6" cx="172" cy="652" rx="7.4" ry="3.6" transform="rotate(117 172 652)" />
-          <ellipse class="pf-leaf" style="--i:7" cx="137" cy="521" rx="7.2" ry="3.5" transform="rotate(62 137 521)" />
-          <ellipse class="pf-leaf" style="--i:7" cx="110" cy="612" rx="7.4" ry="3.6" transform="rotate(130 110 612)" />
-          <ellipse class="pf-leaf" style="--i:7" cx="116" cy="707" rx="6.7" ry="3.3" transform="rotate(62 116 707)" />
-          <ellipse class="pf-leaf" style="--i:8" cx="200" cy="550" rx="6.3" ry="3.1" transform="rotate(143 200 550)" />
-          <ellipse class="pf-leaf" style="--i:8" cx="166" cy="649" rx="9.0" ry="4.4" transform="rotate(143 166 649)" />
-          <ellipse class="pf-leaf" style="--i:8" cx="132" cy="748" rx="9.6" ry="4.7" transform="rotate(143 132 748)" />
-          <ellipse class="pf-leaf" style="--i:9" cx="117" cy="476" rx="8.8" ry="4.3" transform="rotate(91 117 476)" />
-          <ellipse class="pf-leaf" style="--i:9" cx="57" cy="533" rx="9.5" ry="4.7" transform="rotate(159 57 533)" />
-          <ellipse class="pf-leaf" style="--i:9" cx="11" cy="598" rx="7.4" ry="3.6" transform="rotate(159 11 598)" />
-          <ellipse class="pf-leaf" style="--i:10" cx="113" cy="514" rx="9.4" ry="4.6" transform="rotate(172 113 514)" />
-          <ellipse class="pf-leaf" style="--i:10" cx="36" cy="582" rx="9.5" ry="4.7" transform="rotate(172 36 582)" />
-          <ellipse class="pf-leaf" style="--i:10" cx="-41" cy="651" rx="6.7" ry="3.3" transform="rotate(172 -41 651)" />
-          <ellipse class="pf-leaf" style="--i:11" cx="126" cy="487" rx="8.0" ry="3.9" transform="rotate(187 126 487)" />
-          <ellipse class="pf-leaf" style="--i:11" cx="65" cy="537" rx="9.5" ry="4.7" transform="rotate(119 65 537)" />
-          <ellipse class="pf-leaf" style="--i:11" cx="-4" cy="573" rx="8.9" ry="4.4" transform="rotate(119 -4 573)" />
-          <ellipse class="pf-leaf" style="--i:12" cx="94" cy="378" rx="9.3" ry="4.5" transform="rotate(199 94 378)" />
-          <ellipse class="pf-leaf" style="--i:12" cx="30" cy="412" rx="9.5" ry="4.7" transform="rotate(131 30 412)" />
-          <ellipse class="pf-leaf" style="--i:12" cx="-39" cy="430" rx="9.5" ry="4.7" transform="rotate(131 -39 430)" />
-          <ellipse class="pf-leaf" style="--i:13" cx="81" cy="353" rx="6.6" ry="3.2" transform="rotate(214 81 353)" />
-          <ellipse class="pf-leaf" style="--i:13" cx="-6" cy="369" rx="9.5" ry="4.7" transform="rotate(146 -6 369)" />
-          <ellipse class="pf-leaf" style="--i:13" cx="-93" cy="370" rx="9.8" ry="4.8" transform="rotate(146 -93 370)" />
-          <ellipse class="pf-leaf" style="--i:14" cx="59" cy="414" rx="7.5" ry="3.7" transform="rotate(157 59 414)" />
-          <ellipse class="pf-leaf" style="--i:14" cx="-39" cy="395" rx="8.3" ry="4.0" transform="rotate(157 -39 395)" />
-          <ellipse class="pf-leaf" style="--i:14" cx="-136" cy="376" rx="6.8" ry="3.3" transform="rotate(157 -136 376)" />
-          <ellipse class="pf-leaf" style="--i:15" cx="111" cy="309" rx="7.2" ry="3.5" transform="rotate(175 111 309)" />
-          <ellipse class="pf-leaf" style="--i:15" cx="41" cy="252" rx="8.5" ry="4.2" transform="rotate(243 41 252)" />
-          <ellipse class="pf-leaf" style="--i:15" cx="-37" cy="208" rx="9.8" ry="4.8" transform="rotate(243 -37 208)" />
-          <ellipse class="pf-leaf" style="--i:16" cx="143" cy="287" rx="6.8" ry="3.3" transform="rotate(255 143 287)" />
-          <ellipse class="pf-leaf" style="--i:16" cx="68" cy="242" rx="6.8" ry="3.3" transform="rotate(187 68 242)" />
-          <ellipse class="pf-leaf" style="--i:16" cx="3" cy="185" rx="9.0" ry="4.4" transform="rotate(187 3 185)" />
-          <ellipse class="pf-leaf" style="--i:17" cx="177" cy="287" rx="8.4" ry="4.1" transform="rotate(202 177 287)" />
-          <ellipse class="pf-leaf" style="--i:17" cx="147" cy="213" rx="7.6" ry="3.7" transform="rotate(270 147 213)" />
-          <ellipse class="pf-leaf" style="--i:17" cx="103" cy="148" rx="8.2" ry="4.0" transform="rotate(270 103 148)" />
-          <ellipse class="pf-leaf" style="--i:18" cx="184" cy="290" rx="8.2" ry="4.0" transform="rotate(218 184 290)" />
-          <ellipse class="pf-leaf" style="--i:18" cx="175" cy="208" rx="9.9" ry="4.8" transform="rotate(286 175 208)" />
-          <ellipse class="pf-leaf" style="--i:18" cx="135" cy="136" rx="9.8" ry="4.8" transform="rotate(218 135 136)" />
-          <ellipse class="pf-leaf" style="--i:19" cx="253" cy="271" rx="8.9" ry="4.4" transform="rotate(299 253 271)" />
-          <ellipse class="pf-leaf" style="--i:19" cx="245" cy="182" rx="7.8" ry="3.8" transform="rotate(299 245 182)" />
-          <ellipse class="pf-leaf" style="--i:19" cx="220" cy="93" rx="9.8" ry="4.8" transform="rotate(231 220 93)" />
-          <ellipse class="pf-leaf" style="--i:20" cx="156" cy="283" rx="7.3" ry="3.6" transform="rotate(240 156 283)" />
-          <ellipse class="pf-leaf" style="--i:20" cx="178" cy="202" rx="6.8" ry="3.3" transform="rotate(308 178 202)" />
-          <ellipse class="pf-leaf" style="--i:20" cx="167" cy="118" rx="7.7" ry="3.8" transform="rotate(240 167 118)" />
-          <ellipse class="pf-leaf" style="--i:21" cx="303" cy="289" rx="9.7" ry="4.8" transform="rotate(326 303 289)" />
-          <ellipse class="pf-leaf" style="--i:21" cx="342" cy="193" rx="8.7" ry="4.3" transform="rotate(326 342 193)" />
-          <ellipse class="pf-leaf" style="--i:21" cx="366" cy="90" rx="9.6" ry="4.7" transform="rotate(258 366 90)" />
-          <ellipse class="pf-leaf" style="--i:22" cx="289" cy="330" rx="8.2" ry="4.0" transform="rotate(268 289 330)" />
-          <ellipse class="pf-leaf" style="--i:22" cx="344" cy="273" rx="6.4" ry="3.1" transform="rotate(336 344 273)" />
-          <ellipse class="pf-leaf" style="--i:22" cx="386" cy="207" rx="7.2" ry="3.5" transform="rotate(336 386 207)" />
-          <ellipse class="pf-leaf" style="--i:23" cx="281" cy="353" rx="8.1" ry="4.0" transform="rotate(284 281 353)" />
-          <ellipse class="pf-leaf" style="--i:23" cx="331" cy="308" rx="9.1" ry="4.4" transform="rotate(284 331 308)" />
-          <ellipse class="pf-leaf" style="--i:23" cx="381" cy="263" rx="8.4" ry="4.1" transform="rotate(284 381 263)" />
-          <ellipse class="pf-leaf" style="--i:24" cx="305" cy="411" rx="7.2" ry="3.5" transform="rotate(367 305 411)" />
-          <ellipse class="pf-leaf" style="--i:24" cx="362" cy="382" rx="9.2" ry="4.5" transform="rotate(367 362 382)" />
-          <ellipse class="pf-leaf" style="--i:24" cx="413" cy="339" rx="8.5" ry="4.1" transform="rotate(299 413 339)" />
-          <ellipse class="pf-leaf" style="--i:25" cx="295" cy="338" rx="9.3" ry="4.5" transform="rotate(379 295 338)" />
-          <ellipse class="pf-leaf" style="--i:25" cx="370" cy="318" rx="7.3" ry="3.6" transform="rotate(379 370 318)" />
-          <ellipse class="pf-leaf" style="--i:25" cx="446" cy="299" rx="9.2" ry="4.5" transform="rotate(379 446 299)" />
-        </g>
-        <g class="pf-flowers">
-          <g class="pf-flower" style="--k:0; --dx:-196px; --dy:-1px; fill:#a4483b; transform-origin:439px 401px"><ellipse cx="448" cy="398" rx="7.2" ry="4.7" transform="rotate(-18 448 398)" /><ellipse cx="444" cy="409" rx="7.2" ry="4.7" transform="rotate(54 444 409)" /><ellipse cx="434" cy="409" rx="7.2" ry="4.7" transform="rotate(126 434 409)" /><ellipse cx="431" cy="398" rx="7.2" ry="4.7" transform="rotate(198 431 398)" /><ellipse cx="439" cy="392" rx="7.2" ry="4.7" transform="rotate(270 439 392)" /><circle class="pf-core" cx="439" cy="401" r="3.8" /></g>
-          <g class="pf-flower" style="--k:1; --dx:-255px; --dy:-59px; fill:#4a6c8c; transform-origin:497px 469px"><ellipse cx="504" cy="472" rx="6.6" ry="4.3" transform="rotate(22 504 472)" /><ellipse cx="496" cy="477" rx="6.6" ry="4.3" transform="rotate(94 496 477)" /><ellipse cx="489" cy="471" rx="6.6" ry="4.3" transform="rotate(166 489 471)" /><ellipse cx="492" cy="462" rx="6.6" ry="4.3" transform="rotate(238 492 462)" /><ellipse cx="502" cy="463" rx="6.6" ry="4.3" transform="rotate(310 502 463)" /><circle class="pf-core" cx="497" cy="469" r="3.4" /></g>
-          <g class="pf-flower" style="--k:2; --dx:-257px; --dy:-132px; fill:#9c5a4a; transform-origin:494px 551px"><ellipse cx="501" cy="553" rx="6.2" ry="4.1" transform="rotate(12 501 553)" /><ellipse cx="494" cy="559" rx="6.2" ry="4.1" transform="rotate(84 494 559)" /><ellipse cx="486" cy="554" rx="6.2" ry="4.1" transform="rotate(156 486 554)" /><ellipse cx="488" cy="545" rx="6.2" ry="4.1" transform="rotate(228 488 545)" /><ellipse cx="497" cy="544" rx="6.2" ry="4.1" transform="rotate(300 497 544)" /><circle class="pf-core" cx="494" cy="551" r="3.3" /></g>
-          <g class="pf-flower" style="--k:3; --dx:-280px; --dy:-135px; fill:#b98c4a; transform-origin:512px 550px"><ellipse cx="518" cy="557" rx="7.2" ry="4.7" transform="rotate(47 518 557)" /><ellipse cx="507" cy="558" rx="7.2" ry="4.7" transform="rotate(119 507 558)" /><ellipse cx="503" cy="549" rx="7.2" ry="4.7" transform="rotate(191 503 549)" /><ellipse cx="511" cy="541" rx="7.2" ry="4.7" transform="rotate(263 511 541)" /><ellipse cx="520" cy="547" rx="7.2" ry="4.7" transform="rotate(335 520 547)" /><circle class="pf-core" cx="512" cy="550" r="3.8" /></g>
-          <g class="pf-flower" style="--k:4; --dx:-207px; --dy:-190px; fill:#c9a227; transform-origin:429px 610px"><ellipse cx="436" cy="615" rx="6.4" ry="4.2" transform="rotate(34 436 615)" /><ellipse cx="427" cy="618" rx="6.4" ry="4.2" transform="rotate(106 427 618)" /><ellipse cx="421" cy="610" rx="6.4" ry="4.2" transform="rotate(178 421 610)" /><ellipse cx="426" cy="603" rx="6.4" ry="4.2" transform="rotate(250 426 603)" /><ellipse cx="435" cy="605" rx="6.4" ry="4.2" transform="rotate(322 435 605)" /><circle class="pf-core" cx="429" cy="610" r="3.4" /></g>
-          <g class="pf-flower" style="--k:5; --dx:-50px; --dy:-69px; fill:#6e8b5b; transform-origin:272px 499px"><ellipse cx="275" cy="509" rx="8.2" ry="5.4" transform="rotate(73 275 509)" /><ellipse cx="264" cy="505" rx="8.2" ry="5.4" transform="rotate(145 264 505)" /><ellipse cx="264" cy="493" rx="8.2" ry="5.4" transform="rotate(217 264 493)" /><ellipse cx="275" cy="490" rx="8.2" ry="5.4" transform="rotate(289 275 490)" /><ellipse cx="282" cy="499" rx="8.2" ry="5.4" transform="rotate(361 282 499)" /><circle class="pf-core" cx="272" cy="499" r="4.3" /></g>
-          <g class="pf-flower" style="--k:6; --dx:-129px; --dy:-363px; fill:#8a7a5c; transform-origin:340px 792px"><ellipse cx="343" cy="800" rx="7.0" ry="4.6" transform="rotate(72 343 800)" /><ellipse cx="333" cy="797" rx="7.0" ry="4.6" transform="rotate(144 333 797)" /><ellipse cx="333" cy="787" rx="7.0" ry="4.6" transform="rotate(216 333 787)" /><ellipse cx="343" cy="783" rx="7.0" ry="4.6" transform="rotate(288 343 783)" /><ellipse cx="349" cy="792" rx="7.0" ry="4.6" transform="rotate(360 349 792)" /><circle class="pf-core" cx="340" cy="792" r="3.7" /></g>
-          <g class="pf-flower" style="--k:7; --dx:-35px; --dy:-188px; fill:#a4483b; transform-origin:241px 621px"><ellipse cx="248" cy="628" rx="7.8" ry="5.0" transform="rotate(50 248 628)" /><ellipse cx="236" cy="629" rx="7.8" ry="5.0" transform="rotate(122 236 629)" /><ellipse cx="232" cy="618" rx="7.8" ry="5.0" transform="rotate(194 232 618)" /><ellipse cx="241" cy="611" rx="7.8" ry="5.0" transform="rotate(266 241 611)" /><ellipse cx="250" cy="617" rx="7.8" ry="5.0" transform="rotate(338 250 617)" /><circle class="pf-core" cx="241" cy="621" r="4.1" /></g>
-          <g class="pf-flower" style="--k:8; --dx:-56px; --dy:-270px; fill:#4a6c8c; transform-origin:265px 714px"><ellipse cx="266" cy="724" rx="7.4" ry="4.8" transform="rotate(84 266 724)" /><ellipse cx="257" cy="718" rx="7.4" ry="4.8" transform="rotate(156 257 718)" /><ellipse cx="259" cy="708" rx="7.4" ry="4.8" transform="rotate(228 259 708)" /><ellipse cx="270" cy="706" rx="7.4" ry="4.8" transform="rotate(300 270 706)" /><ellipse cx="274" cy="716" rx="7.4" ry="4.8" transform="rotate(372 274 716)" /><circle class="pf-core" cx="265" cy="714" r="3.9" /></g>
-          <g class="pf-flower" style="--k:9; --dx:5px; --dy:-212px; fill:#9c5a4a; transform-origin:194px 656px"><ellipse cx="194" cy="663" rx="5.7" ry="3.7" transform="rotate(88 194 663)" /><ellipse cx="187" cy="659" rx="5.7" ry="3.7" transform="rotate(160 187 659)" /><ellipse cx="189" cy="650" rx="5.7" ry="3.7" transform="rotate(232 189 650)" /><ellipse cx="198" cy="650" rx="5.7" ry="3.7" transform="rotate(304 198 650)" /><ellipse cx="200" cy="658" rx="5.7" ry="3.7" transform="rotate(376 200 658)" /><circle class="pf-core" cx="194" cy="656" r="3.0" /></g>
-          <g class="pf-flower" style="--k:10; --dx:46px; --dy:-132px; fill:#b98c4a; transform-origin:142px 567px"><ellipse cx="138" cy="572" rx="4.6" ry="3.0" transform="rotate(129 138 572)" /><ellipse cx="137" cy="565" rx="4.6" ry="3.0" transform="rotate(201 137 565)" /><ellipse cx="142" cy="561" rx="4.6" ry="3.0" transform="rotate(273 142 561)" /><ellipse cx="148" cy="566" rx="4.6" ry="3.0" transform="rotate(345 148 566)" /><ellipse cx="145" cy="572" rx="4.6" ry="3.0" transform="rotate(417 145 572)" /><circle class="pf-core" cx="142" cy="567" r="2.4" /></g>
-          <g class="pf-flower" style="--k:11; --dx:176px; --dy:-330px; fill:#c9a227; transform-origin:8px 759px"><ellipse cx="5" cy="766" rx="6.5" ry="4.2" transform="rotate(114 5 766)" /><ellipse cx="0" cy="758" rx="6.5" ry="4.2" transform="rotate(186 0 758)" /><ellipse cx="7" cy="751" rx="6.5" ry="4.2" transform="rotate(258 7 751)" /><ellipse cx="15" cy="755" rx="6.5" ry="4.2" transform="rotate(330 15 755)" /><ellipse cx="14" cy="764" rx="6.5" ry="4.2" transform="rotate(402 14 764)" /><circle class="pf-core" cx="8" cy="759" r="3.4" /></g>
-          <g class="pf-flower" style="--k:12; --dx:193px; --dy:-231px; fill:#6e8b5b; transform-origin:-16px 658px"><ellipse cx="-21" cy="662" rx="4.8" ry="3.1" transform="rotate(141 -21 662)" /><ellipse cx="-21" cy="655" rx="4.8" ry="3.1" transform="rotate(213 -21 655)" /><ellipse cx="-15" cy="653" rx="4.8" ry="3.1" transform="rotate(285 -15 653)" /><ellipse cx="-10" cy="658" rx="4.8" ry="3.1" transform="rotate(357 -10 658)" /><ellipse cx="-14" cy="664" rx="4.8" ry="3.1" transform="rotate(429 -14 664)" /><circle class="pf-core" cx="-16" cy="658" r="2.5" /></g>
-          <g class="pf-flower" style="--k:13; --dx:172px; --dy:-146px; fill:#8a7a5c; transform-origin:4px 566px"><ellipse cx="-1" cy="569" rx="4.6" ry="3.0" transform="rotate(151 -1 569)" /><ellipse cx="-0" cy="563" rx="4.6" ry="3.0" transform="rotate(223 -0 563)" /><ellipse cx="6" cy="561" rx="4.6" ry="3.0" transform="rotate(295 6 561)" /><ellipse cx="10" cy="567" rx="4.6" ry="3.0" transform="rotate(367 10 567)" /><ellipse cx="5" cy="572" rx="4.6" ry="3.0" transform="rotate(439 5 572)" /><circle class="pf-core" cx="4" cy="566" r="2.4" /></g>
-          <g class="pf-flower" style="--k:14; --dx:284px; --dy:-198px; fill:#a4483b; transform-origin:-120px 622px"><ellipse cx="-129" cy="626" rx="7.8" ry="5.1" transform="rotate(159 -129 626)" /><ellipse cx="-126" cy="615" rx="7.8" ry="5.1" transform="rotate(231 -126 615)" /><ellipse cx="-115" cy="614" rx="7.8" ry="5.1" transform="rotate(303 -115 614)" /><ellipse cx="-111" cy="625" rx="7.8" ry="5.1" transform="rotate(375 -111 625)" /><ellipse cx="-120" cy="632" rx="7.8" ry="5.1" transform="rotate(447 -120 632)" /><circle class="pf-core" cx="-120" cy="622" r="4.1" /></g>
-          <g class="pf-flower" style="--k:15; --dx:112px; --dy:-41px; fill:#4a6c8c; transform-origin:58px 452px"><ellipse cx="49" cy="455" rx="7.8" ry="5.0" transform="rotate(163 49 455)" /><ellipse cx="52" cy="444" rx="7.8" ry="5.0" transform="rotate(235 52 444)" /><ellipse cx="64" cy="444" rx="7.8" ry="5.0" transform="rotate(307 64 444)" /><ellipse cx="67" cy="455" rx="7.8" ry="5.0" transform="rotate(379 67 455)" /><ellipse cx="58" cy="462" rx="7.8" ry="5.0" transform="rotate(451 58 462)" /><circle class="pf-core" cx="58" cy="452" r="4.1" /></g>
-          <g class="pf-flower" style="--k:16; --dx:268px; --dy:-74px; fill:#9c5a4a; transform-origin:-105px 484px"><ellipse cx="-113" cy="484" rx="7.0" ry="4.5" transform="rotate(180 -113 484)" /><ellipse cx="-107" cy="476" rx="7.0" ry="4.5" transform="rotate(252 -107 476)" /><ellipse cx="-98" cy="479" rx="7.0" ry="4.5" transform="rotate(324 -98 479)" /><ellipse cx="-98" cy="489" rx="7.0" ry="4.5" transform="rotate(396 -98 489)" /><ellipse cx="-107" cy="492" rx="7.0" ry="4.5" transform="rotate(468 -107 492)" /><circle class="pf-core" cx="-105" cy="484" r="3.7" /></g>
-          <g class="pf-flower" style="--k:17; --dx:213px; --dy:7px; fill:#b98c4a; transform-origin:-55px 391px"><ellipse cx="-64" cy="394" rx="6.8" ry="4.4" transform="rotate(162 -64 394)" /><ellipse cx="-60" cy="384" rx="6.8" ry="4.4" transform="rotate(234 -60 384)" /><ellipse cx="-50" cy="384" rx="6.8" ry="4.4" transform="rotate(306 -50 384)" /><ellipse cx="-47" cy="394" rx="6.8" ry="4.4" transform="rotate(378 -47 394)" /><ellipse cx="-55" cy="400" rx="6.8" ry="4.4" transform="rotate(450 -55 400)" /><circle class="pf-core" cx="-55" cy="391" r="3.6" /></g>
-          <g class="pf-flower" style="--k:18; --dx:362px; --dy:38px; fill:#c9a227; transform-origin:-197px 358px"><ellipse cx="-205" cy="353" rx="8.2" ry="5.4" transform="rotate(213 -205 353)" /><ellipse cx="-194" cy="348" rx="8.2" ry="5.4" transform="rotate(285 -194 348)" /><ellipse cx="-186" cy="358" rx="8.2" ry="5.4" transform="rotate(357 -186 358)" /><ellipse cx="-193" cy="368" rx="8.2" ry="5.4" transform="rotate(429 -193 368)" /><ellipse cx="-205" cy="365" rx="8.2" ry="5.4" transform="rotate(501 -205 365)" /><circle class="pf-core" cx="-197" cy="358" r="4.3" /></g>
-          <g class="pf-flower" style="--k:19; --dx:222px; --dy:73px; fill:#6e8b5b; transform-origin:-55px 316px"><ellipse cx="-63" cy="317" rx="6.2" ry="4.1" transform="rotate(171 -63 317)" /><ellipse cx="-59" cy="309" rx="6.2" ry="4.1" transform="rotate(243 -59 309)" /><ellipse cx="-49" cy="310" rx="6.2" ry="4.1" transform="rotate(315 -49 310)" /><ellipse cx="-48" cy="319" rx="6.2" ry="4.1" transform="rotate(387 -48 319)" /><ellipse cx="-56" cy="324" rx="6.2" ry="4.1" transform="rotate(459 -56 324)" /><circle class="pf-core" cx="-55" cy="316" r="3.3" /></g>
-          <g class="pf-flower" style="--k:20; --dx:153px; --dy:87px; fill:#8a7a5c; transform-origin:10px 292px"><ellipse cx="3" cy="290" rx="6.1" ry="4.0" transform="rotate(195 3 290)" /><ellipse cx="10" cy="285" rx="6.1" ry="4.0" transform="rotate(267 10 285)" /><ellipse cx="17" cy="290" rx="6.1" ry="4.0" transform="rotate(339 17 290)" /><ellipse cx="15" cy="298" rx="6.1" ry="4.0" transform="rotate(411 15 298)" /><ellipse cx="6" cy="299" rx="6.1" ry="4.0" transform="rotate(483 6 299)" /><circle class="pf-core" cx="10" cy="292" r="3.2" /></g>
-          <g class="pf-flower" style="--k:21; --dx:121px; --dy:136px; fill:#a4483b; transform-origin:51px 233px"><ellipse cx="46" cy="224" rx="8.1" ry="5.3" transform="rotate(239 46 224)" /><ellipse cx="58" cy="225" rx="8.1" ry="5.3" transform="rotate(311 58 225)" /><ellipse cx="61" cy="237" rx="8.1" ry="5.3" transform="rotate(383 61 237)" /><ellipse cx="50" cy="243" rx="8.1" ry="5.3" transform="rotate(455 50 243)" /><ellipse cx="41" cy="235" rx="8.1" ry="5.3" transform="rotate(527 41 235)" /><circle class="pf-core" cx="51" cy="233" r="4.2" /></g>
-          <g class="pf-flower" style="--k:22; --dx:149px; --dy:155px; fill:#4a6c8c; transform-origin:34px 227px"><ellipse cx="31" cy="219" rx="7.2" ry="4.7" transform="rotate(251 31 219)" /><ellipse cx="41" cy="222" rx="7.2" ry="4.7" transform="rotate(323 41 222)" /><ellipse cx="41" cy="233" rx="7.2" ry="4.7" transform="rotate(395 41 233)" /><ellipse cx="31" cy="236" rx="7.2" ry="4.7" transform="rotate(467 31 236)" /><ellipse cx="25" cy="227" rx="7.2" ry="4.7" transform="rotate(539 25 227)" /><circle class="pf-core" cx="34" cy="227" r="3.8" /></g>
-          <g class="pf-flower" style="--k:23; --dx:68px; --dy:121px; fill:#9c5a4a; transform-origin:119px 257px"><ellipse cx="119" cy="250" rx="5.4" ry="3.5" transform="rotate(268 119 250)" /><ellipse cx="125" cy="254" rx="5.4" ry="3.5" transform="rotate(340 125 254)" /><ellipse cx="123" cy="262" rx="5.4" ry="3.5" transform="rotate(412 123 262)" /><ellipse cx="115" cy="262" rx="5.4" ry="3.5" transform="rotate(484 115 262)" /><ellipse cx="113" cy="255" rx="5.4" ry="3.5" transform="rotate(556 113 255)" /><circle class="pf-core" cx="119" cy="257" r="2.8" /></g>
-          <g class="pf-flower" style="--k:24; --dx:105px; --dy:331px; fill:#b98c4a; transform-origin:83px 30px"><ellipse cx="79" cy="24" rx="5.4" ry="3.5" transform="rotate(237 79 24)" /><ellipse cx="87" cy="24" rx="5.4" ry="3.5" transform="rotate(309 87 24)" /><ellipse cx="89" cy="32" rx="5.4" ry="3.5" transform="rotate(381 89 32)" /><ellipse cx="83" cy="37" rx="5.4" ry="3.5" transform="rotate(453 83 37)" /><ellipse cx="77" cy="32" rx="5.4" ry="3.5" transform="rotate(525 77 32)" /><circle class="pf-core" cx="83" cy="30" r="2.9" /></g>
-          <g class="pf-flower" style="--k:25; --dx:8px; --dy:197px; fill:#c9a227; transform-origin:191px 171px"><ellipse cx="188" cy="164" rx="5.6" ry="3.6" transform="rotate(246 188 164)" /><ellipse cx="196" cy="166" rx="5.6" ry="3.6" transform="rotate(318 196 166)" /><ellipse cx="197" cy="174" rx="5.6" ry="3.6" transform="rotate(390 197 174)" /><ellipse cx="189" cy="178" rx="5.6" ry="3.6" transform="rotate(462 189 178)" /><ellipse cx="184" cy="172" rx="5.6" ry="3.6" transform="rotate(534 184 172)" /><circle class="pf-core" cx="191" cy="171" r="2.9" /></g>
-          <g class="pf-flower" style="--k:26; --dx:-10px; --dy:191px; fill:#6e8b5b; transform-origin:212px 168px"><ellipse cx="214" cy="162" rx="5.2" ry="3.4" transform="rotate(294 214 162)" /><ellipse cx="218" cy="168" rx="5.2" ry="3.4" transform="rotate(366 218 168)" /><ellipse cx="213" cy="174" rx="5.2" ry="3.4" transform="rotate(438 213 174)" /><ellipse cx="206" cy="171" rx="5.2" ry="3.4" transform="rotate(510 206 171)" /><ellipse cx="207" cy="163" rx="5.2" ry="3.4" transform="rotate(582 207 163)" /><circle class="pf-core" cx="212" cy="168" r="2.7" /></g>
-          <g class="pf-flower" style="--k:27; --dx:-40px; --dy:164px; fill:#8a7a5c; transform-origin:250px 194px"><ellipse cx="253" cy="185" rx="7.6" ry="4.9" transform="rotate(288 253 185)" /><ellipse cx="260" cy="194" rx="7.6" ry="4.9" transform="rotate(360 260 194)" /><ellipse cx="253" cy="203" rx="7.6" ry="4.9" transform="rotate(432 253 203)" /><ellipse cx="243" cy="200" rx="7.6" ry="4.9" transform="rotate(504 243 200)" /><ellipse cx="243" cy="189" rx="7.6" ry="4.9" transform="rotate(576 243 189)" /><circle class="pf-core" cx="250" cy="194" r="4.0" /></g>
-          <g class="pf-flower" style="--k:28; --dx:-119px; --dy:212px; fill:#a4483b; transform-origin:338px 155px"><ellipse cx="341" cy="145" rx="8.2" ry="5.4" transform="rotate(285 341 145)" /><ellipse cx="348" cy="154" rx="8.2" ry="5.4" transform="rotate(357 348 154)" /><ellipse cx="342" cy="164" rx="8.2" ry="5.4" transform="rotate(429 342 164)" /><ellipse cx="330" cy="161" rx="8.2" ry="5.4" transform="rotate(501 330 161)" /><ellipse cx="329" cy="149" rx="8.2" ry="5.4" transform="rotate(573 329 149)" /><circle class="pf-core" cx="338" cy="155" r="4.3" /></g>
-          <g class="pf-flower" style="--k:29; --dx:-87px; --dy:129px; fill:#4a6c8c; transform-origin:308px 240px"><ellipse cx="310" cy="231" rx="7.5" ry="4.9" transform="rotate(286 310 231)" /><ellipse cx="317" cy="240" rx="7.5" ry="4.9" transform="rotate(358 317 240)" /><ellipse cx="311" cy="249" rx="7.5" ry="4.9" transform="rotate(430 311 249)" /><ellipse cx="300" cy="246" rx="7.5" ry="4.9" transform="rotate(502 300 246)" /><ellipse cx="300" cy="235" rx="7.5" ry="4.9" transform="rotate(574 300 235)" /><circle class="pf-core" cx="308" cy="240" r="3.9" /></g>
-          <g class="pf-flower" style="--k:30; --dx:-290px; --dy:265px; fill:#9c5a4a; transform-origin:515px 112px"><ellipse cx="518" cy="102" rx="7.8" ry="5.1" transform="rotate(291 518 102)" /><ellipse cx="525" cy="112" rx="7.8" ry="5.1" transform="rotate(363 525 112)" /><ellipse cx="517" cy="121" rx="7.8" ry="5.1" transform="rotate(435 517 121)" /><ellipse cx="507" cy="117" rx="7.8" ry="5.1" transform="rotate(507 507 117)" /><ellipse cx="507" cy="105" rx="7.8" ry="5.1" transform="rotate(579 507 105)" /><circle class="pf-core" cx="515" cy="112" r="4.1" /></g>
-          <g class="pf-flower" style="--k:31; --dx:-317px; --dy:228px; fill:#b98c4a; transform-origin:554px 145px"><ellipse cx="562" cy="139" rx="8.0" ry="5.2" transform="rotate(320 562 139)" /><ellipse cx="562" cy="150" rx="8.0" ry="5.2" transform="rotate(392 562 150)" /><ellipse cx="551" cy="155" rx="8.0" ry="5.2" transform="rotate(464 551 155)" /><ellipse cx="544" cy="146" rx="8.0" ry="5.2" transform="rotate(536 544 146)" /><ellipse cx="550" cy="136" rx="8.0" ry="5.2" transform="rotate(608 550 136)" /><circle class="pf-core" cx="554" cy="145" r="4.2" /></g>
-          <g class="pf-flower" style="--k:32; --dx:-352px; --dy:120px; fill:#c9a227; transform-origin:583px 270px"><ellipse cx="591" cy="266" rx="6.9" ry="4.5" transform="rotate(339 591 266)" /><ellipse cx="588" cy="276" rx="6.9" ry="4.5" transform="rotate(411 588 276)" /><ellipse cx="578" cy="277" rx="6.9" ry="4.5" transform="rotate(483 578 277)" /><ellipse cx="574" cy="267" rx="6.9" ry="4.5" transform="rotate(555 574 267)" /><ellipse cx="582" cy="261" rx="6.9" ry="4.5" transform="rotate(627 582 261)" /><circle class="pf-core" cx="583" cy="270" r="3.6" /></g>
-          <g class="pf-flower" style="--k:33; --dx:-276px; --dy:33px; fill:#6e8b5b; transform-origin:507px 363px"><ellipse cx="517" cy="365" rx="7.7" ry="5.0" transform="rotate(370 517 365)" /><ellipse cx="509" cy="372" rx="7.7" ry="5.0" transform="rotate(442 509 372)" /><ellipse cx="499" cy="367" rx="7.7" ry="5.0" transform="rotate(514 499 367)" /><ellipse cx="501" cy="356" rx="7.7" ry="5.0" transform="rotate(586 501 356)" /><ellipse cx="512" cy="354" rx="7.7" ry="5.0" transform="rotate(658 512 354)" /><circle class="pf-core" cx="507" cy="363" r="4.0" /></g>
-        </g>
-      </svg>
+      <svg id="pf-bloom" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
       <!--
         アイコンと同じ一筆。器で受けて、右上へ流れてほどける。
         起動画面とホーム画面で違う印を出さない
@@ -518,6 +413,12 @@
         <p class="pf-name">Prepflow</p>
       </div>
     </div>
+    <!--
+      起動の絵と背景の透かしを作る。**本体より先に走らせる。**
+      別ファイルにしてあるのは、40通りぶんの指定が index.html に入ると
+      最初の描画が重くなるため。Service Worker が持つので通信は初回だけ
+    -->
+    <script src="/splash-theme.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
