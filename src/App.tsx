@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AppShell } from '@/components/shared/AppShell';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Onboarding } from '@/features/onboarding/Onboarding';
 import { Dashboard } from '@/features/dashboard/Dashboard';
 import { SettingsHome } from '@/features/settings/SettingsHome';
@@ -25,9 +27,41 @@ import { db } from '@/db/db';
 
 export default function App() {
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
+  /*
+   * 読み込みが**終わらないとき**に、白い画面のまま置かない。
+   *
+   * 設定が読めるまで何も描かないのは、オンボーディングが一瞬見える事故を
+   * 防ぐため。ふつうは一瞬で終わる。
+   *
+   * ただし IndexedDB は待たされることがある——別のタブが開いていて
+   * スキーマの入れ替えを待っている、端末の空きが無い、といったとき。
+   * そのあいだ `useLiveQuery` は undefined のままなので、**永遠に白い**。
+   * 使う側からは「押したら真っ白になった」としか見えない。
+   */
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), 4000);
+    return () => window.clearTimeout(t);
+  }, []);
 
-  // 設定の読み込み前は何も描かない（オンボーディングが一瞬見える事故を防ぐ）
-  if (settings === undefined) return null;
+  if (settings === undefined) {
+    if (!slow) return null;
+    return (
+      <div className="mx-auto max-w-md space-y-4 p-6">
+        <h1 className="text-xl font-semibold">開くのに時間がかかっています</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          ほかの画面で Prepflow を開いたままだと、ここで待つことがあります。
+          そちらを閉じてから、開き直してください。
+        </p>
+        <button
+          onClick={() => location.reload()}
+          className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background"
+        >
+          開き直す
+        </button>
+      </div>
+    );
+  }
 
   const onboarded = Boolean(settings?.onboardedAt);
 
@@ -43,7 +77,11 @@ export default function App() {
         自分の設定より前に、みんなの買い出しリストを見たいはず
       */}
       <JoinFamily />
-      {onboarded ? <MainRoutes /> : <OnboardingRoutes />}
+      {/*
+        1画面が落ちてもアプリごと消えないように受け止める。
+        受け止める場所が無いと、React は枝ごと消して**白い紙だけ**が残る
+      */}
+      <ErrorBoundary>{onboarded ? <MainRoutes /> : <OnboardingRoutes />}</ErrorBoundary>
     </BrowserRouter>
   );
 }

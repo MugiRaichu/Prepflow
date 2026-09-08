@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { resetEverything } from '@/db/repositories/backup';
 import { BloomSetting } from './BloomSetting';
-import { ViewportInfo } from './ViewportInfo';
 import {
   autoBackupSupported,
   backupInfo,
@@ -59,7 +58,6 @@ export function DataSettings() {
       </div>
 
       <div className="space-y-6 p-4">
-        <ViewportInfo />
 
         <div className="space-y-2 rounded-lg border p-4">
           <div className="text-sm font-medium">いまの状態</div>
