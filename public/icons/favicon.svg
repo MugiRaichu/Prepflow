@@ -1,9 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- タブ用。icon.svg と同じ形で、角を丸め、線を太くしてある -->
   <rect width="512" height="512" rx="112" fill="#a4483b"/>
-  <g fill="none" stroke="#faf7f2" stroke-linecap="round">
-    <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" stroke-width="38"/>
-    <path d="M 166 250 C 196 214 226 286 256 250 C 286 214 316 286 346 250" stroke-width="24" opacity="0.72"/>
-    <path d="M 206 128 C 232 100 206 82 220 56" stroke-width="20" opacity="0.6"/>
-    <path d="M 288 122 C 314 94 288 76 302 50" stroke-width="20" opacity="0.45"/>
+  <g fill="none" stroke="#faf7f2" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="256" cy="374" rx="150" ry="36" opacity="0.32"/>
+    <path d="M140 288 H372"/>
+    <path d="M140 288 C140 340 191 374 256 374 C321 374 372 340 372 288"/>
+    <path d="M186 244 C200 220 184 204 194 182" stroke-width="22"/>
+    <path d="M254 238 C278 210 256 190 282 160" stroke-width="22" opacity="0.66"/>
+    <path d="M320 244 C350 208 328 188 362 146" stroke-width="22" opacity="0.4"/>
   </g>
 </svg>
