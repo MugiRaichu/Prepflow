@@ -2,11 +2,18 @@
   <!-- タブ用。icon.svg と同じ形で、角を丸め、線を太くしてある -->
   <rect width="512" height="512" rx="112" fill="#8c463c"/>
   <g fill="none" stroke="#faf7f2" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="256" cy="374" rx="150" ry="36" opacity="0.32"/>
-    <path d="M140 288 H372"/>
-    <path d="M140 288 C140 340 191 374 256 374 C321 374 372 340 372 288"/>
-    <path d="M186 244 C200 220 184 204 194 182" stroke-width="22"/>
-    <path d="M254 238 C278 210 256 190 282 160" stroke-width="22" opacity="0.66"/>
-    <path d="M320 244 C350 208 328 188 362 146" stroke-width="22" opacity="0.4"/>
+    <ellipse cx="256" cy="412" rx="146" ry="26" opacity="0.28"/>
+    <!-- 胴。下がわずかにすぼまる（まっすぐだとバケツになる） -->
+    <path d="M162 296 L176 384 C179 402 193 412 211 412 L301 412 C319 412 333 402 336 384 L350 296"/>
+    <!-- 箍（たが）。木を締めている1本 -->
+    <path d="M172 348 L340 348" opacity="0.45"/>
+    <!-- 蓋。**身より広い1本の線**。板であることは、はみ出す幅で言う -->
+    <path d="M126 288 L386 288" stroke-width="30"/>
+    <!-- つまみ。短い縦の線1本。箱にすると小さいとき潰れる -->
+    <path d="M256 288 L256 262"/>
+    <!-- 湯気。右へ傾きながら長くなる＝作った日から平日へ -->
+    <path d="M196 230 C210 208 194 194 204 174" stroke-width="21"/>
+    <path d="M270 220 C294 194 272 176 298 148" stroke-width="21" opacity="0.66"/>
+    <path d="M330 232 C358 198 336 180 368 144" stroke-width="21" opacity="0.4"/>
   </g>
 </svg>

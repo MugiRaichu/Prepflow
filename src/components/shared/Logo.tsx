@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 /**
  * ヘッダー用ロゴ。public/icons/icon.svg と同じ形。
  *
- * **24px では要素を減らす。**アイコンには皿と中身の波もあるが、
- * この大きさでは潰れて団子になる。器と湯気だけ残す。
+ * **24px では要素を減らす。**アイコンには台の楕円・箍（たが）・つまみもあるが、
+ * この大きさでは潰れて団子になる。蓋・胴・湯気だけ残す。
  * 線も太くする（細いままだと消える）。
  */
 export function Logo({ className, withText = true }: { className?: string; withText?: boolean }) {
@@ -20,13 +20,14 @@ export function Logo({ className, withText = true }: { className?: string; withT
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          {/* 器。口の線と、受ける弧 */}
-          <path d="M136 292 H376" />
-          <path d="M136 292 C136 346 190 382 256 382 C322 382 376 346 376 292" />
-          {/* 湯気。右へ傾きながら長くなる＝平日へ流れていく */}
-          <path d="M186 248 C200 224 184 208 194 186" strokeWidth="28" />
-          <path d="M254 242 C278 214 256 194 282 164" strokeWidth="28" opacity="0.66" />
-          <path d="M320 248 C350 212 328 192 362 150" strokeWidth="28" opacity="0.4" />
+          {/* 蓋。身より広い1本の線。板であることは、はみ出す幅で言う */}
+          <path d="M126 288 L386 288" strokeWidth="40" />
+          {/* 胴。下がわずかにすぼまる */}
+          <path d="M162 296 L176 384 C179 402 193 412 211 412 L301 412 C319 412 333 402 336 384 L350 296" />
+          {/* 湯気。右へ傾きながら長くなる */}
+          <path d="M196 230 C210 208 194 194 204 174" strokeWidth="28" />
+          <path d="M270 220 C294 194 272 176 298 148" strokeWidth="28" opacity="0.66" />
+          <path d="M330 232 C358 198 336 180 368 144" strokeWidth="28" opacity="0.4" />
         </g>
       </svg>
       {withText && (
