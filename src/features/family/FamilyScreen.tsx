@@ -135,19 +135,32 @@ export function FamilyScreen() {
           </p>
 
           <Step n={1} title="Google の画面を開く">
+            {/*
+              **script.new を使う。**プロジェクトを作って、コードを貼る画面まで
+              一気に開く Google の近道（docs.new と同じ仕組み）。
+
+              /home/projects/create は、ログイン状態や利用状況によって
+              Apps Script ではない画面へ飛ばされることがある（本人報告）。
+              入口を開いて「新しいプロジェクト」を押させる回り道も要らなくなる。
+            */}
             <a
-              href="https://script.google.com/home/projects/create"
+              href="https://script.new"
               target="_blank"
               rel="noreferrer"
               className="mt-1 inline-flex min-h-11 items-center rounded-md border px-4 text-sm"
             >
-              新しいプロジェクトを作る
+              コードを貼る画面をひらく
             </a>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Google にログインしていないときは、先にログインの画面が出ます。
+            </p>
           </Step>
 
           <Step n={2} title="コードを貼り付ける">
             <p className="text-sm text-muted-foreground">
-              下のボタンでコピーして、Google の画面にある文字を全部消してから貼ります。
+              下のボタンでコピーしたら、開いた画面の文字を全部消して貼ります
+              （その画面には <span className="font-mono">function myFunction</span> だけが
+              入っています）。
               <b className="text-foreground">合言葉は入れてあるので、打つものはありません。</b>
             </p>
             <button

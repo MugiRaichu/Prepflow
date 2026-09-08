@@ -171,20 +171,26 @@ export function GasSetupGuide({
 
         <Step n={n()} title="スクリプトを置く">
           {/*
-            /home/projects/create は、ログイン状態や利用状況によって
-            Apps Script ではない画面（Drive の案内など）に飛ばされる。
-            入口そのものを開いて、新規作成は本人に押してもらう
+            **script.new を使う。**プロジェクトを作って、コードを貼る画面まで
+            一気に開く Google の近道（docs.new と同じ仕組み）。
+
+            以前は /home/projects/create を開いていたが、ログイン状態や
+            利用状況によって Apps Script ではない画面へ飛ばされた。
+            入口を開いて「新しいプロジェクト」を押させる回り道も、これで要らない。
           */}
           <a
-            href="https://script.google.com/"
+            href="https://script.new"
             target="_blank"
             rel="noreferrer"
-            className="underline underline-offset-2"
+            className="inline-flex min-h-11 items-center rounded-md border px-4 underline-offset-2"
           >
-            Google Apps Script
+            コードを貼る画面をひらく
           </a>
-          を開き、左上の「新しいプロジェクト」を押します。最初から入っているコードを消して、
-          下のコードを貼ります。
+          <p className="mt-1.5">
+            開いた画面の文字（<span className="font-mono">function myFunction</span> だけ）を
+            全部消して、下のコードを貼ります。
+            Google にログインしていないときは、先にログインの画面が出ます。
+          </p>
           {needCalendar && (
             <span className="text-muted-foreground">
               {' '}
