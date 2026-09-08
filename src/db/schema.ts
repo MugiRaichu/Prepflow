@@ -1119,7 +1119,17 @@ export interface RecipePhoto {
  *       端末が信頼できる前提の上での、事故（設定JSONの共有等）の防止策。
  */
 export interface Secret {
-  key: 'cloud_api_key' | 'gas_shared_token';
+  /*
+   * LINE の値も端末に持つ。
+   *
+   * 以前は GAS のスクリプトプロパティにだけ置いて、アプリには持たせなかった。
+   * だがそのぶん**人がプロパティ画面で3つ登録する**ことになり、
+   * スマホしか使わない人には重すぎた（本人指摘）。
+   * アプリに1度貼れば、コピーするコードに埋め込める。
+   *
+   * 置き場所は secrets のみ。書き出しからは必ず除外する（規約どおり）。
+   */
+  key: 'cloud_api_key' | 'gas_shared_token' | 'line_token' | 'line_user_id';
   value: string;
   updatedAt: ISODateTime;
 }

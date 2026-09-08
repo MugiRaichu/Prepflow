@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import GAS_CODE from '@/notify/gas/Code.gs?raw';
+import { getSecret, setSecret } from '@/db/repositories/settings';
 
 /**
  * Google 連携の設置手順。LINE 通知とカレンダーの読み取りは同じスクリプトを通る。
@@ -12,6 +13,30 @@ import GAS_CODE from '@/notify/gas/Code.gs?raw';
  * 使うものだけ出す。カレンダーだけの人に LINE のチャネルを作らせない。
  * GAS のコードは `?raw` で読み込んでコピーボタンに載せる。ファイルを探させない。
  */
+/**
+ * コピーするコードに、その人の値を埋める。
+ *
+ * **スクリプトプロパティの登録をなくすため。**以前は Google の設定画面で
+ * 3つ登録させていた（LINE_TOKEN / LINE_USER_ID / SHARED_TOKEN）。
+ * 名前を打ち、値を貼り、保存する——スマホしか使わない人には重すぎた
+ * （本人指摘）。アプリに1度貼れば、あとはコードに入って出ていく。
+ *
+ * プロパティが登録してあればそちらが優先される（前から使っている人はそのまま）。
+ */
+function fill(code: string, v: { shared?: string; lineToken?: string; lineUser?: string }): string {
+  const q = (x: string) => x.replace(/'/g, "");
+  return code
+    .replace("var TOKEN_IN_CODE = '';", "var TOKEN_IN_CODE = '" + q(v.shared ?? '') + "';")
+    .replace(
+      "var LINE_TOKEN_IN_CODE = '';",
+      "var LINE_TOKEN_IN_CODE = '" + q(v.lineToken ?? '') + "';",
+    )
+    .replace(
+      "var LINE_USER_ID_IN_CODE = '';",
+      "var LINE_USER_ID_IN_CODE = '" + q(v.lineUser ?? '') + "';",
+    );
+}
+
 export function GasSetupGuide({
   needLine = true,
   needCalendar = false,
@@ -20,10 +45,27 @@ export function GasSetupGuide({
   needCalendar?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState('');
+  const [lineToken, setLineToken] = useState('');
+  const [lineUser, setLineUser] = useState('');
+
+  useEffect(() => {
+    void getSecret('gas_shared_token').then(async (t) => {
+      if (t) return setShared(t);
+      // 合言葉は人に考えさせない。ここで作って持っておく
+      const a = new Uint8Array(24);
+      crypto.getRandomValues(a);
+      const made = [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+      await setSecret('gas_shared_token', made);
+      setShared(made);
+    });
+    void getSecret('line_token').then((v) => setLineToken(v ?? ''));
+    void getSecret('line_user_id').then((v) => setLineUser(v ?? ''));
+  }, []);
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(GAS_CODE);
+      await navigator.clipboard.writeText(fill(GAS_CODE, { shared, lineToken, lineUser }));
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
@@ -68,7 +110,7 @@ export function GasSetupGuide({
               同じ画面にあるチャネルシークレットを拾ってしまう（本人報告）。
               どのタブの、どこにあるかまで書く。
             */}
-            <Step n={n()} title="2つの値を控える（タブが違います）">
+            <Step n={n()} title="2つの値を、ここに貼る（タブが違います）">
               <ul className="mt-1.5 space-y-1 text-muted-foreground">
                 <li>
                   ・<span className="text-foreground">チャネルアクセストークン（長期）</span>
@@ -93,6 +135,32 @@ export function GasSetupGuide({
                 これらを入れると LINE に拒否されます（設定は保存できてしまいます）。
                 トークンは数百文字、シークレットは32文字なので、長さで見分けられます。
               </p>
+              {/*
+                **Google の設定画面で登録させない。**ここに貼れば、
+                次の手順でコピーするコードに入って出ていく。
+                名前を打って値を貼って保存する作業が3回ぶん消える
+              */}
+              <div className="mt-2 space-y-2">
+                <input
+                  value={lineToken}
+                  onChange={(e) => {
+                    setLineToken(e.target.value);
+                    void setSecret('line_token', e.target.value.trim());
+                  }}
+                  type="password"
+                  placeholder="チャネルアクセストークン（長期）"
+                  className="h-12 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <input
+                  value={lineUser}
+                  onChange={(e) => {
+                    setLineUser(e.target.value);
+                    void setSecret('line_user_id', e.target.value.trim());
+                  }}
+                  placeholder="あなたのユーザーID（U で始まる）"
+                  className="h-12 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
               <p className="mt-1.5 text-muted-foreground">
                 「Messaging API設定」タブの QR コードから、自分のチャネルを友だち追加しておきます。
                 していないと通知が届きません。
@@ -128,7 +196,7 @@ export function GasSetupGuide({
             className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-xs active:bg-accent"
           >
             {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-            {copied ? 'コピーしました' : 'コードをコピー'}
+            {copied ? 'コピーしました' : 'コードをコピー（合言葉もLINEの値も入っています）'}
           </button>
           <p className="mt-1.5 text-muted-foreground">
             すでに置いてある場合は、中身を全部消してから貼り直します。
@@ -139,38 +207,6 @@ export function GasSetupGuide({
             右上のアイコンで個人の Gmail に切り替え、それでも出るなら
             myaccount.google.com → 個人情報 → 生年月日 を設定してください。
             会社のアカウントには置かないでください。
-          </p>
-        </Step>
-
-        <Step n={n()} title={needLine ? '3つの値を登録する' : '合言葉を決める'}>
-          左の歯車（プロジェクトの設定）→ 一番下の
-          <span className="font-medium">「スクリプト プロパティ」</span>
-          →「スクリプト プロパティを追加」。左の「プロパティ」に名前、右の「値」に中身を入れます。
-          <div className="mt-1.5 overflow-hidden rounded border text-xs">
-            <div className="grid grid-cols-[1fr_1.6fr] border-b bg-secondary/50 px-2 py-1 text-muted-foreground">
-              <span>プロパティ</span>
-              <span>値</span>
-            </div>
-            {needLine && (
-              <div className="grid grid-cols-[1fr_1.6fr] border-b px-2 py-1">
-                <span className="font-mono">LINE_TOKEN</span>
-                <span className="text-muted-foreground">手順2のアクセストークン</span>
-              </div>
-            )}
-            {needLine && (
-              <div className="grid grid-cols-[1fr_1.6fr] border-b px-2 py-1">
-                <span className="font-mono">LINE_USER_ID</span>
-                <span className="text-muted-foreground">手順2のユーザーID</span>
-              </div>
-            )}
-            <div className="grid grid-cols-[1fr_1.6fr] px-2 py-1">
-              <span className="font-mono">SHARED_TOKEN</span>
-              <span className="text-muted-foreground">自分で決めた長い文字列（合言葉）</span>
-            </div>
-          </div>
-          <p className="mt-1.5 text-muted-foreground">
-            SHARED_TOKEN の「値」に入れた文字列を、このあと下の「合言葉」欄にも貼ります。控えておいてください。
-            最後に「スクリプト プロパティを保存」を押します。
           </p>
         </Step>
 
