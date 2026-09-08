@@ -12,7 +12,6 @@ import { schedule } from './logic/scheduler';
 import { CookTimeline } from './CookTimeline';
 import { adaptRice, hasRiceCooker } from './logic/rice';
 import { amountLabel, stepIngredients } from './logic/stepItems';
-import { DishPhotoInput } from '@/features/recipes/DishImage';
 import { PackStep } from './PackStep';
 import { PreppedList } from './PreppedList';
 import { ContainerCheck } from '@/features/shopping/ContainerCheck';
@@ -92,11 +91,6 @@ export function CookScreen() {
   const equipment = useLiveQuery(() => db.equipment.where('deleted').equals(0).toArray(), []);
   // 差し替え候補から調味料を外すために、種別だけ引く
   const ingredients = useLiveQuery(() => db.ingredients.where('deleted').equals(0).toArray(), []);
-  // 写真を撮ってあるレシピ。作り終えた直後に「まだのもの」だけ勧める
-  const photographed = useLiveQuery(
-    async () => new Set(await db.recipePhotos.toCollection().primaryKeys()),
-    [],
-  );
   // 炊飯にかかる時間は機種で違うので設定から取る（D-100）
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   // 毎日作る人は、週ぶんではなく今日のぶんだけを作る
@@ -290,21 +284,6 @@ export function CookScreen() {
     }));
   })();
 
-  /**
-   * 今日作った料理のうち、まだ写真の無いもの。
-   * 作り終えた直後にだけ勧める（目の前に皿がある唯一の瞬間）。
-   */
-  const madeToday = (() => {
-    if (next) return [];
-    const byId = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
-    const seen = new Map<string, Recipe>();
-    for (const t of result.tasks) {
-      const r = byId.get(t.recipeId);
-      if (r && !photographed?.has(r.id)) seen.set(r.id, r);
-    }
-    return [...seen.values()];
-  })();
-
   const swapChoices = (() => {
     const byId = new Map((recipes ?? []).map((r: Recipe) => [r.id, r]));
     const seasonings = new Set(
@@ -387,25 +366,14 @@ export function CookScreen() {
         )}
 
         {/*
-          作り終えた直後だけ、写真を勧める。**ここが唯一の自然な瞬間**で、
-          目の前に完成した皿がある。レシピ一覧にも撮る口はあるが、
-          わざわざ開いて撮る人はいない。
-          撮ってあるものは出さない（撮り直しはレシピ一覧から）
+          写真を撮る機能はやめた。
+
+          作り終えた直後に勧めていたが、**どの料理のものか分からなかった**
+          （64pxの四角が並ぶだけで、料理名がどこにも出ていなかった）。
+          そもそも作り置きの皿は映えない。撮る手間だけが増え、
+          撮った人と撮らない人で一覧の見え方も揃わなくなる（本人判断）。
+          料理から決まる絵を全品に同じ密度で出すほうが、一覧として読める。
         */}
-        {!next && madeToday.length > 0 && (
-          <div className="space-y-2 rounded-lg border p-4">
-            <div className="text-sm font-medium">写真をとりますか</div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              撮ると、次からこの料理が献立に写真で出ます。
-              よその皿より、自分が作った皿のほうが手がかりになります。
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {madeToday.map((r) => (
-                <DishPhotoInput key={r.id} recipe={r} className="size-16" />
-              ))}
-            </div>
-          </div>
-        )}
 
         {/*
           **ここは例外の場所。**

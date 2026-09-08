@@ -1,8 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { Camera } from 'lucide-react';
-import { db } from '@/db/db';
-import { setRecipePhoto } from '@/db/repositories/recipePhotos';
 import type { Recipe } from '@/db/schema';
 import { cn } from '@/lib/utils';
 
@@ -201,91 +196,21 @@ function GlyphArt({ kind }: { kind: Glyph }) {
   );
 }
 
-/** 保存してある写真を読む。表示のたびに Blob URL を作り、外れたら捨てる */
-function usePhotoUrl(recipeId: string): string | null {
-  const row = useLiveQuery(() => db.recipePhotos.get(recipeId), [recipeId]);
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!row?.blob) {
-      setUrl(null);
-      return;
-    }
-    const next = URL.createObjectURL(row.blob);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [row]);
-  return url;
-}
-
-/** 見るだけ。献立や一覧に並べる */
-export function DishImage({ recipe, className }: { recipe: Recipe; className?: string }) {
-  const url = usePhotoUrl(recipe.id);
-  return (
-    <div
-      className={cn(
-        'shrink-0 overflow-hidden rounded-md border bg-card',
-        className,
-      )}
-    >
-      {url ? (
-        <img src={url} alt="" className="size-full object-cover" loading="lazy" />
-      ) : (
-        <GlyphArt kind={glyphOf(recipe)} />
-      )}
-    </div>
-  );
-}
-
 /**
- * 押すと撮る。撮った写真はこのレシピのものとして端末に残る。
- * 撮り直しも同じ操作（上書き）。
+ * 見るだけ。献立や一覧に並べる。
+ *
+ * **写真は扱わない。**「作り終えた直後に1枚撮る」機能を持っていたが、
+ * やめた。作り置きの皿は映えない——作った直後の容器や、汁気のある常備菜を
+ * 撮っても、見返す手がかりにならない（本人判断）。
+ * 撮る手間だけが増え、撮らない人との見た目の差も出る。
+ *
+ * 代わりに、料理から決まる絵を常に出す。全品に同じ密度で付くので、
+ * 一覧を眺めたときに種類が見分けられる。
  */
-export function DishPhotoInput({ recipe, className }: { recipe: Recipe; className?: string }) {
-  const url = usePhotoUrl(recipe.id);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-
+export function DishImage({ recipe, className }: { recipe: Recipe; className?: string }) {
   return (
-    <>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={async (e) => {
-          const f = e.target.files?.[0];
-          e.target.value = '';
-          if (!f) return;
-          setBusy(true);
-          try {
-            await setRecipePhoto(recipe.id, f);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        aria-label={url ? '写真を撮り直す' : '写真をとる'}
-        className={cn(
-          'relative shrink-0 overflow-hidden rounded-md border bg-card',
-          className,
-        )}
-      >
-        {url ? (
-          <img src={url} alt="" className="size-full object-cover" />
-        ) : (
-          <GlyphArt kind={glyphOf(recipe)} />
-        )}
-        {/* 撮ってあるものには出さない。まだのものにだけ「撮れる」と示す */}
-        {!url && (
-          <span className="absolute bottom-0 right-0 flex size-4 items-center justify-center rounded-tl-md bg-foreground text-background">
-            <Camera className="size-2.5" />
-          </span>
-        )}
-      </button>
-    </>
+    <div className={cn('shrink-0 overflow-hidden rounded-md border bg-card', className)}>
+      <GlyphArt kind={glyphOf(recipe)} />
+    </div>
   );
 }
