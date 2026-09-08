@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
-  ChevronRight, User, Flame, Box, ShoppingCart, Bell, Clock, Home, Database, BookOpen, Package, Wrench, Boxes, Activity, Search, X,
+  ChevronRight, User, Flame, ShoppingCart, Bell, Clock, Database, BookOpen, Package, Wrench, Boxes, Search, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { db } from '@/db/db';
@@ -37,30 +37,27 @@ export function SettingsHome() {
   const health = useLiveQuery(() => db.activitySamples.count(), []);
   // 開いた先に並ぶものと同じ数を出す。調味料は棚卸しに出ないので数にも入れない
   const stock = useLiveQuery(async () => (await listAskableStock()).length, []);
-  const household = useLiveQuery(
-    async () => (await db.households.where('isCurrent').equals(1).toArray())[0],
-    [],
-  );
 
   const containerCount = (containers ?? []).reduce((n, c) => n + c.count, 0);
 
+  /*
+   * **3つに束ねる。**入口を13行から10行に、群を4つから3つに減らした。
+   *
+   * 減らし方は「行を束ねる」ではなく「画面ごとまとめる」。行だけ束ねて
+   * 中で分かれていると、階層が1つ増えるだけで探す手間は変わらない。
+   *   調理器具 + 保存容器      → 台所の道具（考えるのは同じ場面）
+   *   LINE・カレンダー + ヘルスケア → 外とつなぐ（同じ Apps Script を使う）
+   *   いまの暮らし             → 作り方の中へ（入れるのは作り方の初期値だけ）
+   */
   const groups: { title: string; rows: Row[] }[] = [
     {
-      title: '自分のこと',
+      title: 'あなたと暮らし',
       rows: [
         {
           to: '/settings/profiles',
           icon: User,
           label: '食べる人',
           value: (profiles ?? []).map((p) => p.name).join('、') || '未設定',
-        },
-        {
-          to: '/household',
-          icon: Home,
-          // 「未設定」と書かない。ひな形は近道でしかなく、選ばないのが普通。
-          // 欠けているように見せると、当てはまらない人に無理に選ばせることになる
-          label: 'いまの暮らし',
-          value: household?.name ?? 'ひな形は使っていません',
         },
         {
           to: '/rhythm',
@@ -80,7 +77,11 @@ export function SettingsHome() {
           icon: Flame,
           label: '作り方',
           value: settings
-            ? '週' + (settings.cooking.cookSessionsPerWeek ?? 1) + '回・' + settings.cooking.coverDays + '日分'
+            ? '週' +
+              (settings.cooking.cookSessionsPerWeek ?? 1) +
+              '回・' +
+              settings.cooking.coverDays +
+              '日分'
             : '',
         },
         {
@@ -95,21 +96,17 @@ export function SettingsHome() {
             : '',
         },
         {
-          to: '/settings/equipment',
+          to: '/settings/kitchen',
           icon: Wrench,
-          label: '調理器具',
-          value: equipment?.length ? equipment.length + ' 種類' : '未設定',
-        },
-        {
-          to: '/settings/containers',
-          icon: Box,
-          label: '保存容器',
-          value: containerCount ? containerCount + ' 個' : '未設定',
+          label: '台所の道具',
+          value:
+            (equipment?.length ? equipment.length + ' 種類' : '未設定') +
+            (containerCount ? '・容器 ' + containerCount + ' 個' : ''),
         },
       ],
     },
     {
-      title: '材料',
+      title: '材料とアプリ',
       rows: [
         {
           to: '/recipes',
@@ -132,26 +129,19 @@ export function SettingsHome() {
           label: '家にあるもの',
           value: stock != null ? stock + ' 品' : '',
         },
-      ],
-    },
-    {
-      title: 'アプリ',
-      rows: [
         {
           to: '/settings/notify',
           icon: Bell,
-          label: 'LINE・カレンダー',
+          label: '外とつなぐ',
           value: settings
-            ? [settings.notify.lineEnabled ? 'LINE' : '', settings.calendar.enabled ? 'カレンダー' : '']
+            ? [
+                settings.notify.lineEnabled ? 'LINE' : '',
+                settings.calendar.enabled ? 'カレンダー' : '',
+                health ? 'ヘルスケア' : '',
+              ]
                 .filter(Boolean)
                 .join('・') || 'オフ'
             : '',
-        },
-        {
-          to: '/settings/health',
-          icon: Activity,
-          label: 'ヘルスケア連携',
-          value: health ? health + ' 日ぶん' : '未設定',
         },
         { to: '/settings/data', icon: Database, label: 'データの保存', value: '書き出し・戻す' },
       ],

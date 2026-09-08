@@ -6,6 +6,7 @@ import { Chips, MultiChips } from '@/components/shared/Chips';
 import { Stepper } from '@/components/shared/Stepper';
 import { WeekdayMultiPicker, WeekdayPicker } from '@/components/shared/WeekdayPicker';
 import { prepDaysOf } from '@/features/planner/logic/window';
+import { LifeStagePresets } from '@/features/household/HouseholdScreen';
 import { updateCooking, updateShopping } from '@/db/repositories/settings';
 import { getDefaultStore, setPriceBand, reliabilityOf } from '@/db/repositories/stores';
 import { cadenceLabel } from '@/features/planner/logic/cadence';
@@ -190,6 +191,21 @@ export function CookingSettings() {
             />
           </Labeled>
         )}
+
+        {/*
+          暮らしのひな形はここに置く。**別の入口にしない。**
+          入れるのは作り方の初期値だけなので、独立した画面にすると
+          「いまの暮らし」を開いてから「作り方」を開き直すことになる。
+          畳んでおくのは、選ばない人のほうが多いため（当てはまる名前が無い）
+        */}
+        <details className="rounded-lg border">
+          <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground">
+            暮らしのひな形からまとめて入れる
+          </summary>
+          <div className="border-t">
+            <LifeStagePresets />
+          </div>
+        </details>
 
         <details className="rounded-lg border">
           <summary className="cursor-pointer px-4 py-3 text-xs text-muted-foreground">
