@@ -498,15 +498,21 @@
         アイコンと同じ一筆。器で受けて、右上へ流れてほどける。
         起動画面とホーム画面で違う印を出さない
       -->
-      <svg viewBox="0 0 512 512" fill="none" stroke="#8c463c" stroke-width="20"
+      <svg viewBox="0 0 512 512" fill="none" stroke="#8c463c" stroke-width="19"
         stroke-linecap="round" stroke-linejoin="round">
-        <ellipse cx="256" cy="374" rx="160" ry="38" opacity="0.32" />
-        <path d="M136 288 H376" />
-        <path d="M136 288 C136 340 189 374 256 374 C323 374 376 340 376 288" />
-        <path d="M176 310 C198 296 220 324 246 311 C272 298 296 324 330 310" opacity="0.5" />
-        <path d="M182 246 C196 220 180 204 190 180" stroke-width="17" />
-        <path d="M252 240 C276 210 254 190 280 158" stroke-width="17" opacity="0.66" />
-        <path d="M320 246 C352 208 328 186 366 140" stroke-width="17" opacity="0.4" />
+        <ellipse cx="256" cy="412" rx="146" ry="26" opacity="0.28"/>
+        <!-- 胴。下がわずかにすぼまる（まっすぐだとバケツになる） -->
+        <path d="M162 296 L176 384 C179 402 193 412 211 412 L301 412 C319 412 333 402 336 384 L350 296"/>
+        <!-- 箍（たが）。木を締めている1本 -->
+        <path d="M172 348 L340 348" opacity="0.45"/>
+        <!-- 蓋。**身より広い1本の線**。板であることは、はみ出す幅で言う -->
+        <path d="M126 288 L386 288" stroke-width="22"/>
+        <!-- つまみ。短い縦の線1本。箱にすると小さいとき潰れる -->
+        <path d="M256 288 L256 262"/>
+        <!-- 湯気。右へ傾きながら長くなる＝作った日から平日へ -->
+        <path d="M196 230 C210 208 194 194 204 174" stroke-width="15"/>
+        <path d="M270 220 C294 194 272 176 298 148" stroke-width="15" opacity="0.66"/>
+        <path d="M330 232 C358 198 336 180 368 144" stroke-width="15" opacity="0.4"/>
       </svg>
       <div class="pf-words">
         <p class="pf-tagline">食と暮らしに寄り添う。</p>
