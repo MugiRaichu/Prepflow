@@ -15,6 +15,7 @@ import { applyRequest, solveWithRequest, EMPTY_REQUEST } from './request';
 import { modeFor, requiredKeepDays } from './cadence';
 import type { WeekRequest } from './request';
 import { buildShoppingList, listTotal } from './shoppingList';
+import { syncSchedule } from '@/notify/gasClient';
 import { dueSoon, predictStaples } from '@/db/repositories/staples';
 import { getDefaultStore } from '@/db/repositories/stores';
 import { buildDailyMenus, gramsPerServing, portionMacros } from './distribute';
@@ -512,7 +513,7 @@ export async function commitWeek(
     ...ctx.snacks.map((r) => r.id),
   ];
 
-  return db.transaction(
+  const committed = await db.transaction(
     'rw',
     [db.weekPlans, db.plannedMeals, db.containerAssignments, db.shoppingLists, db.shoppingListItems, db.meta],
     async () => {
@@ -775,4 +776,21 @@ export async function commitWeek(
       return weekPlan;
     },
   );
+
+  /*
+   * 献立を確定したら LINE 側にも渡す。
+   *
+   * **ここが抜けていた。**`syncSchedule` を呼ぶのは設定画面のボタンだけで、
+   * 週の献立を決めても GAS には何も渡っていなかった。毎日の通知が来ないのは
+   * 当然で、GAS は古い週か空の予定を持ったまま黙っていた（本人報告）。
+   *
+   * 送信は献立を作る手を止めない。**失敗しても確定は成功させる。**
+   * 圏外なら syncSchedule の中で送信箱に積まれ、次に開いたときに流れる。
+   */
+  if (settings.notify.lineEnabled && settings.notify.gasEndpointUrl) {
+    const fresh = await db.settings.get('singleton');
+    if (fresh) void syncSchedule(fresh).catch(() => {});
+  }
+
+  return committed;
 }

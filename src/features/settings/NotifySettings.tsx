@@ -5,7 +5,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Segmented } from '@/components/shared/Segmented';
 import { Chips } from '@/components/shared/Chips';
 import { getSecret, setSecret, updateSettings } from '@/db/repositories/settings';
-import { ping, pushNow, sendTest, syncSchedule } from '@/notify/gasClient';
+import { fetchStatus, ping, pushNow, sendTest, syncSchedule } from '@/notify/gasClient';
+import type { GasStatus } from '@/notify/gasClient';
 import { publishMenus, syncCalendar } from '@/calendar/gasCalendar';
 import { GasSetupGuide } from './GasSetupGuide';
 import type { AppSettings as AppSettingsType } from '@/db/schema';
@@ -185,6 +186,7 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [status, setStatus] = useState<GasStatus | null>(null);
 
   useEffect(() => {
     void getSecret('gas_shared_token').then((v) => setToken(v ?? ''));
@@ -298,15 +300,67 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
                 )
               }
               disabled={busy || !url || !token}
-              className="col-span-2 min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
             >
               今日のぶんをいますぐ送る
+            </button>
+            {/*
+              **推測で直させない。**「毎日の通知が来ない」の原因は
+              「献立を預けていない」「今日のぶんが無い」「予約が無い」
+              「タイムゾーンがずれている」のどれかで、外からは全部同じに見える
+            */}
+            <button
+              onClick={() => {
+                setBusy(true);
+                setMsg(null);
+                void save()
+                  .then(() => fetchStatus(url.trim(), token.trim()))
+                  .then((r) => {
+                    if (r.ok) setStatus(r as GasStatus);
+                    else setMsg('失敗: ' + r.error);
+                  })
+                  .finally(() => setBusy(false));
+              }}
+              disabled={busy || !url || !token}
+              className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+            >
+              いまの状態を見る
             </button>
           </>
         )}
       </div>
 
       {msg && <div className="text-[11px] text-muted-foreground">{msg}</div>}
+
+      {status && (
+        <div className="space-y-1 rounded-md border p-3 text-[11px] leading-relaxed">
+          {/* 分かったことではなく、**次にすること**を先に書く */}
+          {status.count === 0 ? (
+            <p className="font-medium">献立を預けていません。「今週を送る」を押してください。</p>
+          ) : status.todayCount === 0 ? (
+            <p className="font-medium">
+              預けてあるのは {status.from} 〜 {status.to} のぶんで、今日（{status.today}
+              ）の献立がありません。この期間に入れば毎日届きます。
+            </p>
+          ) : !status.hasTrigger ? (
+            <p className="font-medium">
+              毎日の予約がありません。GAS で setupTrigger を1回実行してください。
+            </p>
+          ) : status.timeZone !== 'Asia/Tokyo' ? (
+            <p className="font-medium">
+              スクリプトのタイムゾーンが {status.timeZone} です。GAS のプロジェクト設定で
+              Asia/Tokyo にしてください。送信時刻がずれます。
+            </p>
+          ) : (
+            <p className="font-medium">問題は見つかりませんでした。</p>
+          )}
+          <div className="text-muted-foreground">
+            預けた献立 {status.count} 件（{status.from ?? '—'} 〜 {status.to ?? '—'}）／ 今日のぶん{' '}
+            {status.todayCount} 件 ／ 送信時刻 {status.pushTime ?? '—'} ／ 毎日の予約{' '}
+            {status.hasTrigger ? 'あり' : 'なし'} ／ タイムゾーン {status.timeZone}
+          </div>
+        </div>
+      )}
       {settings.notify.lastSyncedAt && (
         <div className="text-[10px] text-muted-foreground">
           最終送信 {new Date(settings.notify.lastSyncedAt).toLocaleString('ja-JP')}

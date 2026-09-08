@@ -87,6 +87,46 @@ function doPost(e) {
       return json({ ok: true, count: sendToday() });
     }
 
+    /*
+     * いまの状態を返す。**推測で直させない。**
+     *
+     * 毎日の通知が来ないとき、原因は「献立を預けていない」「今日のぶんが
+     * 無い」「トリガーが無い」「スクリプトのタイムゾーンがずれている」の
+     * どれか。外からは全部同じ「来ない」に見えるので、中身を出す。
+     */
+    if (body.action === 'status') {
+      var rawS = PROPS.getProperty('SCHEDULE');
+      var list = [];
+      try {
+        list = rawS ? JSON.parse(rawS) : [];
+      } catch (err) {
+        list = [];
+      }
+      var dates = list.map(function (x) {
+        return x.date;
+      });
+      var todayStr = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+      var hasTrigger = ScriptApp.getProjectTriggers().some(function (t) {
+        return t.getHandlerFunction() === 'sendToday';
+      });
+      return json({
+        ok: true,
+        count: list.length,
+        from: dates.length ? dates.sort()[0] : null,
+        to: dates.length ? dates.sort()[dates.length - 1] : null,
+        today: todayStr,
+        todayCount: dates.filter(function (d) {
+          return d === todayStr;
+        }).length,
+        pushTime: PROPS.getProperty('PUSH_TIME') || null,
+        updatedAt: PROPS.getProperty('UPDATED_AT') || null,
+        hasTrigger: hasTrigger,
+        // トリガーの時刻はこのタイムゾーンで解釈される。
+        // Asia/Tokyo でないと、選んだ時刻と実際に動く時刻がずれる
+        timeZone: Session.getScriptTimeZone(),
+      });
+    }
+
     // events: 自分の Google カレンダーの予定を返す（読むだけ。書き込まない）。
     // このスクリプトは自分のアカウントで動くので、OAuth の画面も
     // Google Cloud のプロジェクトも要らない。初回の許可にカレンダーの読み取りが含まれる。
