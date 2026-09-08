@@ -5,22 +5,20 @@ export function Logo({ className, withText = true }: { className?: string; withT
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 512 512" className="size-6 shrink-0" aria-hidden="true">
-        <rect width="512" height="512" rx="96" className="fill-foreground" />
-        <g
+        {/* アプリのアイコンと同じ一筆。地は朱色、線は生成り */}
+        <rect width="512" height="512" rx="112" className="fill-primary" />
+        <path
+          d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172"
           fill="none"
           stroke="currentColor"
           className="text-background"
-          strokeWidth="36"
+          strokeWidth="42"
           strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M112 152 H400" />
-          <path d="M112 256 H304" />
-          <path d="M112 360 H208" />
-          <path d="M336 312 L384 360 L336 408" />
-        </g>
+        />
       </svg>
-      {withText && <span className="text-base font-semibold tracking-tight">Prepflow</span>}
+      {withText && (
+        <span className="pf-wordmark text-lg font-semibold tracking-tight">Prepflow</span>
+      )}
     </span>
   );
 }

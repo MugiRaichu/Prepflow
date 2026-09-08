@@ -104,7 +104,7 @@ export function CookingSettings() {
 
   return (
     <div>
-      <PageHeader title="作り方" backTo="/settings" />
+      <PageHeader title="つくる回数と日数" backTo="/settings" />
       <div className="space-y-6 p-4">
         <Labeled label="週に何回作るか" hint={cadenceLabel(sessions, s.cooking.coverDays)}>
           <Stepper
@@ -253,7 +253,7 @@ export function CookingSettings() {
               作った肉や魚をどこまで冷蔵で持たせるかは各家の判断なので、出す。
             */}
             <Labeled
-              label="冷蔵で置く上限"
+              label="冷蔵庫に置く日数"
               hint={
                 '作った日から数えます。これを超える日ぶんは' +
                 (s.cooking.allowFreezing ? '冷凍に回します' : '献立に入れません')

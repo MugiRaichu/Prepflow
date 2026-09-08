@@ -62,7 +62,7 @@ export function SettingsHome() {
         {
           to: '/rhythm',
           icon: Clock,
-          label: '1日の流れ',
+          label: '起きる時間・寝る時間',
           value: settings
             ? settings.rhythm.wakeTime + ' 起床 / ' + settings.rhythm.sleepTime + ' 就寝'
             : '',
@@ -75,7 +75,7 @@ export function SettingsHome() {
         {
           to: '/settings/cooking',
           icon: Flame,
-          label: '作り方',
+          label: 'つくる回数と日数',
           value: settings
             ? '週' +
               (settings.cooking.cookSessionsPerWeek ?? 1) +
@@ -132,7 +132,7 @@ export function SettingsHome() {
         {
           to: '/settings/notify',
           icon: Bell,
-          label: '外とつなぐ',
+          label: 'LINE・カレンダー・歩数',
           value: settings
             ? [
                 settings.notify.lineEnabled ? 'LINE' : '',
@@ -143,7 +143,7 @@ export function SettingsHome() {
                 .join('・') || 'オフ'
             : '',
         },
-        { to: '/settings/data', icon: Database, label: 'データの保存', value: '書き出し・戻す' },
+        { to: '/settings/data', icon: Database, label: '書き出し・元に戻す', value: '書き出し・戻す' },
       ],
     },
   ];

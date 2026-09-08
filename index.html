@@ -84,20 +84,13 @@
         height: 76px;
       }
       /* 線を引く順に手が動く。リストが流れに変わる形をそのまま見せる */
+      /* 一筆なので、1本を端から端まで引く。長さは実測より多めに取る */
       #pf-splash path {
-        stroke-dasharray: 440;
-        stroke-dashoffset: 440;
-        animation: pf-draw 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        stroke-dasharray: 1100;
+        stroke-dashoffset: 1100;
+        animation: pf-draw 1100ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
       }
-      #pf-splash path:nth-child(2) {
-        animation-delay: 170ms;
-      }
-      #pf-splash path:nth-child(3) {
-        animation-delay: 340ms;
-      }
-      #pf-splash path:nth-child(4) {
-        animation-delay: 560ms;
-      }
+
       @keyframes pf-draw {
         to {
           stroke-dashoffset: 0;
@@ -225,12 +218,13 @@
       }
     </script>
     <div id="pf-splash" aria-hidden="true">
-      <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="34"
+      <!--
+        アイコンと同じ一筆。器で受けて、右上へ流れてほどける。
+        起動画面とホーム画面で違う印を出さない
+      -->
+      <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="38"
         stroke-linecap="round" stroke-linejoin="round">
-        <path d="M112 152 H400" />
-        <path d="M112 256 H304" />
-        <path d="M112 360 H208" />
-        <path d="M336 312 L384 360 L336 408" />
+        <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" />
       </svg>
       <div class="pf-words">
         <p class="pf-tagline">食と暮らしに寄り添う。</p>

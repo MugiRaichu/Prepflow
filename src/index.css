@@ -229,6 +229,12 @@
    *
    * ソフトキーボードは viewport の `interactive-widget=resizes-content` に任せる。
    */
+  /* 名前だけに使う書体。本文には使わない（読むための文字は system-ui） */
+  .pf-wordmark {
+    font-family: 'Fraunces', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+
   .pf-shell {
     height: 100dvh;
     padding-top: env(safe-area-inset-top);

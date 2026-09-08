@@ -29,7 +29,7 @@ export function NotifySettings() {
 
   return (
     <div>
-      <PageHeader title="外とつなぐ" backTo="/settings" />
+      <PageHeader title="LINE・カレンダー・歩数" backTo="/settings" />
       <div className="space-y-6 p-4">
         <Labeled label="LINE に今日の食事を送る">
           <Segmented

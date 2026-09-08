@@ -1,23 +1,25 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutGrid, CalendarDays, ShoppingCart, Flame, Settings } from 'lucide-react';
-import { useCookingMode } from '@/features/household/useCookingMode';
 import { cn } from '@/lib/utils';
 
 /**
- * タブの名前は暮らしに合わせて変える。
+ * 下のタブ。
  *
- * まとめて作る人にとって /cook は「週に1回の作り置き」だが、
- * 毎日作る人にとっては「今日の料理」で、意味も頻度も違う。
- * 中身が違うものに同じ名前を付けない。
+ * 名前は**一通りにしか読めない言葉**にする。
+ * 「週」は週の何なのか分からず、「作り置き」は作る行為とできた品の
+ * どちらにも取れた（実際そこに一覧を入れたので、なおさら）。
+ *
+ * **作り方で名前を変えるのもやめた。**まとめて作る人には「作り置き」、
+ * 毎日作る人には「今日作る」と出し分けていたが、同じ場所が呼び名を
+ * 変えると、覚えたことが崩れる。中身の違いは画面の中で言えば足りる。
  */
-const navFor = (daily: boolean) =>
-  [
-    { to: '/dashboard', label: '今日', icon: LayoutGrid },
-    { to: '/plan', label: daily ? '献立' : '週', icon: CalendarDays },
-    { to: '/shopping', label: '買い出し', icon: ShoppingCart },
-    { to: '/cook', label: daily ? '今日作る' : '作り置き', icon: Flame },
-    { to: '/settings', label: '設定', icon: Settings },
-  ] as const;
+const NAV = [
+  { to: '/dashboard', label: '今日', icon: LayoutGrid },
+  { to: '/plan', label: 'こんだて', icon: CalendarDays },
+  { to: '/shopping', label: '買い出し', icon: ShoppingCart },
+  { to: '/cook', label: 'つくる', icon: Flame },
+  { to: '/settings', label: '設定', icon: Settings },
+] as const;
 
 /**
  * モバイル前提の外枠。下にタブバー、中身は Outlet。
@@ -28,8 +30,7 @@ const navFor = (daily: boolean) =>
  * ロゴは起動画面で見せている。
  */
 export function AppShell() {
-  const daily = useCookingMode() === 'daily';
-  const nav = navFor(daily);
+  const nav = NAV;
 
   return (
     <div className="pf-shell relative flex flex-col bg-background text-foreground">

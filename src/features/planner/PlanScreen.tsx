@@ -689,14 +689,14 @@ function CandidateView({
       */}
 
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="見込み" value={yen(c.estimatedCostYen)} />
+        <Stat label="予想の金額" value={yen(c.estimatedCostYen)} />
         {ctx.mode === 'daily' ? (
           <Stat
             label="1日あたり"
             value={Math.round(perDayMinutes(c.handsOnMinutes, ctx.cookDays)) + '分'}
           />
         ) : (
-          <Stat label="手を動かす" value={c.handsOnMinutes + '分'} />
+          <Stat label="手が要る時間" value={c.handsOnMinutes + '分'} />
         )}
         <Stat
           label={ctx.mode === 'daily' ? '合計' : 'のべ時間'}

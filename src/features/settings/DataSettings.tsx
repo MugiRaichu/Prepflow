@@ -46,7 +46,7 @@ export function DataSettings() {
 
   return (
     <div>
-      <PageHeader title="データの保存" backTo="/settings" />
+      <PageHeader title="書き出し・元に戻す" backTo="/settings" />
 
       <div className="space-y-6 p-4">
         <ViewportInfo />
