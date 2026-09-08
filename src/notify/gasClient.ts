@@ -80,6 +80,17 @@ export async function sendTest(url: string, token: string) {
 }
 
 /**
+ * 預けてある献立から、今日のぶんをいますぐ送る。
+ *
+ * 「今週を送る」は GAS に**預けるだけ**で、LINE に流れるのは毎日の
+ * トリガーが動く時刻。押しても何も届かないので壊れて見えていた。
+ * count が 0 なら「今日のぶんが無い」で、失敗ではない。
+ */
+export async function pushNow(url: string, token: string) {
+  return post<{ count: number }>(url, { action: 'pushNow', token });
+}
+
+/**
  * スケジュールを同期する。
  * 中身が前回と同じなら送らない（GAS の実行回数を無駄にしない）。
  */

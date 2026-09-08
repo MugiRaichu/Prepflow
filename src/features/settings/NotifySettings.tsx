@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Segmented } from '@/components/shared/Segmented';
 import { Chips } from '@/components/shared/Chips';
 import { getSecret, setSecret, updateSettings } from '@/db/repositories/settings';
-import { ping, sendTest, syncSchedule } from '@/notify/gasClient';
+import { ping, pushNow, sendTest, syncSchedule } from '@/notify/gasClient';
 import { publishMenus, syncCalendar } from '@/calendar/gasCalendar';
 import { GasSetupGuide } from './GasSetupGuide';
 import type { AppSettings as AppSettingsType } from '@/db/schema';
@@ -195,13 +195,25 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
     await setSecret('gas_shared_token', token.trim());
   };
 
-  const run = async (fn: () => Promise<{ ok: boolean; error?: string; skipped?: boolean }>) => {
+  /*
+   * 押した結果を、**何が起きたかまで**書く。
+   *
+   * 「成功しました」とだけ出していたので、LINE に届かなくても成功に見えた。
+   * 「今週を送る」は GAS に預けるだけで LINE には流れないのに、
+   * 同じ文言だったのが混乱のもと（本人報告）。
+   */
+  const run = async (
+    fn: () => Promise<{ ok: boolean; error?: string; skipped?: boolean; count?: number }>,
+    done?: (r: { count?: number }) => string,
+  ) => {
     setBusy(true);
     setMsg(null);
     try {
       await save();
       const r = await fn();
-      setMsg(r.ok ? (r.skipped ? '変更がないので送りませんでした' : '成功しました') : '失敗: ' + r.error);
+      if (!r.ok) setMsg('失敗: ' + r.error);
+      else if (r.skipped) setMsg('変更がないので送りませんでした');
+      else setMsg(done ? done(r) : '成功しました');
     } finally {
       setBusy(false);
     }
@@ -234,9 +246,15 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
       </div>
 
       {/* LINE を使わない人に「テスト送信」「今週を送る」は関係ない。出さない */}
-      <div className={settings.notify.lineEnabled ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-1 gap-2'}>
+      <div className={settings.notify.lineEnabled ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'}>
         <button
-          onClick={() => run(() => ping(url.trim(), token.trim()))}
+          onClick={() =>
+            run(
+              () => ping(url.trim(), token.trim()),
+              // 疎通は LINE を通らない。ここが通っても届くとは限らない
+              () => 'つながりました（LINE に届くかはテスト送信で確かめてください）',
+            )
+          }
           disabled={busy || !url || !token}
           className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
         >
@@ -245,7 +263,9 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
         {settings.notify.lineEnabled && (
           <>
             <button
-              onClick={() => run(() => sendTest(url.trim(), token.trim()))}
+              onClick={() =>
+                run(() => sendTest(url.trim(), token.trim()), () => 'LINE に1通送りました')
+              }
               disabled={busy || !url || !token}
               className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
             >
@@ -253,14 +273,34 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
             </button>
             <button
               onClick={() =>
-                run(() =>
-                  syncSchedule({ ...settings, notify: { ...settings.notify, gasEndpointUrl: url.trim() } }),
+                run(
+                  () =>
+                    syncSchedule({
+                      ...settings,
+                      notify: { ...settings.notify, gasEndpointUrl: url.trim() },
+                    }),
+                  // 預けただけ。いつ届くのかをここで言う
+                  () =>
+                    '預けました。LINE には毎日 ' +
+                    settings.notify.dailyPushTime +
+                    ' ごろ、その日のぶんが届きます',
                 )
               }
               disabled={busy || !url || !token}
               className="min-h-10 rounded-md bg-foreground text-xs font-medium text-background disabled:opacity-40"
             >
               今週を送る
+            </button>
+            <button
+              onClick={() =>
+                run(() => pushNow(url.trim(), token.trim()), (r) =>
+                  r.count ? '今日のぶんを送りました' : '今日のぶんの献立がありません（届きません）',
+                )
+              }
+              disabled={busy || !url || !token}
+              className="col-span-2 min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+            >
+              今日のぶんをいますぐ送る
             </button>
           </>
         )}
