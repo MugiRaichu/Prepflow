@@ -1,19 +1,32 @@
 import { cn } from '@/lib/utils';
 
-/** ヘッダー用ロゴ。public/icons/icon.svg と同じ幾何。currentColor で白黒どちらにも追従 */
+/**
+ * ヘッダー用ロゴ。public/icons/icon.svg と同じ形。
+ *
+ * **24px では要素を減らす。**アイコンには皿と中身の波もあるが、
+ * この大きさでは潰れて団子になる。器と湯気だけ残す。
+ * 線も太くする（細いままだと消える）。
+ */
 export function Logo({ className, withText = true }: { className?: string; withText?: boolean }) {
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 512 512" className="size-6 shrink-0" aria-hidden="true">
-        {/* アプリのアイコンと同じ一筆。地は朱色、線は生成り */}
         <rect width="512" height="512" rx="112" className="fill-primary" />
-        <g fill="none" stroke="currentColor" className="text-background" strokeLinecap="round">
-          <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" strokeWidth="38" />
-          {/* 器が受けている中身。輪郭だけでは「うつわ」で終わる */}
-          <path d="M 166 250 C 196 214 226 286 256 250 C 286 214 316 286 346 250" strokeWidth="24" opacity="0.72" />
-          {/* 湯気。温かいものが今ここにある、は形では言えない */}
-          <path d="M 206 128 C 232 100 206 82 220 56" strokeWidth="20" opacity="0.6" />
-          <path d="M 288 122 C 314 94 288 76 302 50" strokeWidth="20" opacity="0.45" />
+        <g
+          fill="none"
+          stroke="currentColor"
+          className="text-background"
+          strokeWidth="34"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {/* 器。口の線と、受ける弧 */}
+          <path d="M136 292 H376" />
+          <path d="M136 292 C136 346 190 382 256 382 C322 382 376 346 376 292" />
+          {/* 湯気。右へ傾きながら長くなる＝平日へ流れていく */}
+          <path d="M186 248 C200 224 184 208 194 186" strokeWidth="28" />
+          <path d="M254 242 C278 214 256 194 282 164" strokeWidth="28" opacity="0.66" />
+          <path d="M320 248 C350 212 328 192 362 150" strokeWidth="28" opacity="0.4" />
         </g>
       </svg>
       {withText && (
