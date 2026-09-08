@@ -592,6 +592,14 @@ export interface RecipeStorage {
    * 省略時は keepsDays と同じ。作り置き一覧の並び順に使う。
    */
   bestWithinDays?: number;
+  /**
+   * 冷凍に耐えるか。**凍ること自体ではなく、溶けたときに別物になるかどうか。**
+   *
+   * じゃがいもはスカスカに、豆腐は高野豆腐に、きゅうりや大根は
+   * 水が出てくたくたになる。食べられなくなるわけではないので献立からは
+   * 外さないが、冷凍に回ったぶんは**先に食べてもらう**（本人指摘）。
+   */
+  freezesWell?: boolean;
   reheatNote?: string;
 }
 

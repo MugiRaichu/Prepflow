@@ -47,6 +47,55 @@ const QUICK_2D = /(サラダ|和え|あえ|ナムル|おひたし|マリネ|酢�
 const QUICK_1D = /(トマトの|生|きゅうりの)/;
 const SLOW = /(煮|カレー|しぐれ|そぼろ|漬け)/;
 
+export /**
+ * 冷凍すると風味が極端に落ちる材料。
+ *
+ * どれも「凍る」こと自体が問題ではなく、**溶けたときに別物になる**。
+ *   じゃがいも … 水分が抜けてスカスカになる
+ *   豆腐・厚揚げ … 気泡が入って高野豆腐に近づく
+ *   きゅうり・レタス・トマト・大根・もやし … 水が出てくたくたになる
+ *   マヨネーズ・牛乳・豆乳・ヨーグルト … 分離する
+ *   しらたき … ゴムのようになる
+ *
+ * 食べられなくなるわけではないので、献立から外しはしない。
+ * **冷凍に回ったぶんを先に食べてもらう**ための印にする。
+ */
+const FREEZE_HOSTILE = new Set([
+  'じゃがいも',
+  'もめんどうふ',
+  'しらたき',
+  'きゅうり',
+  'れたす',
+  'とまと',
+  'もやし',
+  'まよねーず',
+  'ぎゅうにゅう',
+  'とうにゅう',
+  'よーぐると',
+  'ぎりしゃよーぐると',
+]);
+
+/*
+ * 入れなかったもの（迷ったので理由を残す）:
+ *   厚揚げ … 表面が揚げてあるぶん形が残る。豆腐ほど崩れない
+ *   大根   … 煮て火が通っていれば冷凍に耐える。生のまま凍らせると別
+ * 最初は両方入れていたが、187品のうち76品（4割）が「向かない」になり、
+ * 印が強すぎて意味を失っていた。**多すぎる警告は無いのと同じ。**
+ */
+
+/**
+ * 冷凍に耐えるか。**材料から決める。**
+ *
+ * 手で書かせると必ず抜ける。抜けた品は「大丈夫」として後ろに回るので、
+ * いちばん風味の落ちたものが最後まで残ることになる。
+ *
+ * 主材料でなくても、少量入っているだけで食感が変わるもの（豆腐・
+ * じゃがいも）があるので、量では絞らない。
+ */
+export function freezesWellOf(seed: SeedRecipe): boolean {
+  return !seed.items.some(([key]) => FREEZE_HOSTILE.has(key));
+}
+
 export function bestWithinOf(seed: SeedRecipe): number {
   const keeps = seed.storage.keepsDays;
   if (seed.storage.bestWithinDays) return Math.min(seed.storage.bestWithinDays, keeps);
@@ -140,7 +189,11 @@ export function buildRecipe(seed: SeedRecipe, byKey: Map<string, Ingredient>): B
       carbG: per(total.carbG),
     },
     estimatedCostYen: Math.round(costYen),
-    storage: { ...seed.storage, bestWithinDays: bestWithinOf(seed) },
+    storage: {
+      ...seed.storage,
+      bestWithinDays: bestWithinOf(seed),
+      freezesWell: freezesWellOf(seed),
+    },
     tags,
     allergens: [...allergens],
     source: 'builtin',
