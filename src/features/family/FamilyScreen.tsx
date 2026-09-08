@@ -33,7 +33,7 @@ export function FamilyScreen() {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const [copied, setCopied] = useState<boolean>(false);
   const [syncedAt, setSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,11 +53,16 @@ export function FamilyScreen() {
 
   const ready = Boolean(url && token);
 
-  const copy = async (text: string, what: 'code' | 'link') => {
+  /*
+    コードのコピーだけは、押したことを返す。
+    **貼る前に、クリップボードに入ったか分からないと動けない**ため
+    （招待リンクのほうは共有シートが開くので、返す必要がない）。
+  */
+  const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(what);
-      window.setTimeout(() => setCopied(null), 2000);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setMsg('コピーできませんでした。長押しで選んでください。');
     }
@@ -79,7 +84,12 @@ export function FamilyScreen() {
         // 送るのをやめただけ。コピーに落とす
       }
     }
-    await copy(invite, 'link');
+    // 共有シートが無い端末では、黙ってコピーだけする
+    try {
+      await navigator.clipboard.writeText(invite);
+    } catch {
+      setMsg('コピーできませんでした。長押しで選んでください。');
+    }
   };
 
   const sync = async () => {
@@ -164,11 +174,11 @@ export function FamilyScreen() {
               <b className="text-foreground">合言葉は入れてあるので、打つものはありません。</b>
             </p>
             <button
-              onClick={() => void copy(codeWithToken, 'code')}
+              onClick={() => void copy(codeWithToken)}
               className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-md border text-sm active:bg-accent"
             >
-              {copied === 'code' ? <Check className="size-4" /> : <Copy className="size-4" />}
-              {copied === 'code' ? 'コピーしました' : 'コードをコピー'}
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {copied ? 'コピーしました' : 'コードをコピー'}
             </button>
           </Step>
 
@@ -209,7 +219,12 @@ export function FamilyScreen() {
             className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border text-sm font-medium active:bg-accent disabled:opacity-40"
           >
             <Share2 className="size-4" />
-            {copied === 'link' ? 'リンクをコピーしました' : '招待リンクを送る'}
+            {/*
+              **押しても文字を変えない。**共有シートが開くので、
+              何が起きたかは端末の画面が見せている。
+              そこにボタンの文字まで変わると、読むものが増えるだけ
+            */}
+            招待リンクを送る
           </button>
           <p className="text-xs leading-relaxed text-muted-foreground">
             このリンクには合言葉が入っています。家族以外には送らないでください。
