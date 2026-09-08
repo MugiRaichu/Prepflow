@@ -168,9 +168,10 @@ function Row({ recipe }: { recipe: Recipe }) {
   return (
     <div className="flex items-center gap-3 py-2.5">
       <DishImage recipe={recipe} className="size-12" />
+      {/* 行そのものが押しどころ。指が届く高さを持たせる */}
       <button
         onClick={() => void setRecipeEnabled(recipe.id, !on)}
-        className="min-w-0 flex-1 text-left"
+        className="flex min-h-11 min-w-0 flex-1 flex-col justify-center text-left"
       >
         <div className={cn('truncate text-sm', !on && 'text-muted-foreground line-through')}>
           {recipe.title}
