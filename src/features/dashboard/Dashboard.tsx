@@ -658,7 +658,10 @@ function TimelineCard({
         <span className="text-xs text-muted-foreground">
           {isToday ? '今日の流れ' : 'この日の流れ'}
         </span>
-        <Link to="/rhythm" className="text-xs underline underline-offset-2">
+        <Link
+          to="/rhythm"
+          className="-mr-2 flex min-h-11 items-center px-2 text-xs underline underline-offset-2"
+        >
           変更
         </Link>
       </div>
@@ -786,7 +789,10 @@ function TargetCard({ profile, eaten }: { profile: Profile; eaten: Macros }) {
     <div className="rounded-lg border p-4">
       <div className="mb-3 flex items-baseline justify-between">
         <span className="text-xs text-muted-foreground">{profile.name} が今日 食べたぶん</span>
-        <Link to="/settings" className="shrink-0 text-xs underline underline-offset-2">
+        <Link
+          to="/settings"
+          className="-mr-2 flex min-h-11 shrink-0 items-center px-2 text-xs underline underline-offset-2"
+        >
           変更
         </Link>
       </div>

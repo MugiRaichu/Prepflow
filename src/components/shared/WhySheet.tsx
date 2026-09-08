@@ -29,7 +29,7 @@ export function WhySheet({
     <div className={cn('mt-1', className)}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-xs text-muted-foreground"
+        className="-ml-2 flex min-h-11 items-center gap-1 px-2 text-xs text-muted-foreground"
       >
         <HelpCircle className="size-3" />
         なぜ？

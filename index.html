@@ -97,10 +97,10 @@
       #pf-splash path {
         stroke-dasharray: 1100;
         stroke-dashoffset: 1100;
-        animation: pf-draw 1100ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+        animation: pfb-draw 1100ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
       }
 
-      @keyframes pf-draw {
+      @keyframes pfb-draw {
         to {
           stroke-dashoffset: 0;
         }
@@ -135,8 +135,8 @@
         line-height: 1.6;
         letter-spacing: 0.16em;
         animation:
-          pf-fade 700ms ease 900ms both,
-          pf-swap-out 420ms ease 1900ms forwards;
+          pfb-fade 700ms ease 900ms both,
+          pfb-swap-out 420ms ease 1900ms forwards;
       }
       /*
         セレクタは `.pf-words > p` と同じ強さにする。
@@ -156,9 +156,9 @@
           1文字ずつ読むことになり、名前として一息に読めない。
           右端の字送りぶんだけ左に寄って見えるので、その半分を戻す。
         */
-        animation: pf-swap-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 2120ms both;
+        animation: pfb-swap-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 2120ms both;
       }
-      @keyframes pf-fade {
+      @keyframes pfb-fade {
         from {
           opacity: 0;
           transform: translateY(6px);
@@ -168,14 +168,14 @@
           transform: none;
         }
       }
-      @keyframes pf-swap-out {
+      @keyframes pfb-swap-out {
         to {
           opacity: 0;
           transform: translateY(-9px);
         }
       }
       /* 下から静かに出る。字間をいじる動きは、この書体では崩れて見える */
-      @keyframes pf-swap-in {
+      @keyframes pfb-swap-in {
         from {
           opacity: 0;
           transform: translateY(8px) scale(0.96);
@@ -269,34 +269,34 @@
         opacity: 0.5;
         stroke-dasharray: 260;
         stroke-dashoffset: 260;
-        animation: pf-grow 1100ms cubic-bezier(0.25, 0.7, 0.3, 1) forwards;
+        animation: pfb-grow 1100ms cubic-bezier(0.25, 0.7, 0.3, 1) forwards;
       }
       /* 中央（文字のまわり）から、それぞれの居場所へ散る */
       #pf-bloom .m-burst {
         opacity: 0;
-        animation: pf-burst 1200ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
+        animation: pfb-burst 1200ms cubic-bezier(0.16, 0.9, 0.3, 1) forwards;
       }
       /* 下からゆっくり昇る。横にも揺れる（まっすぐ昇ると煙突に見える） */
       #pf-bloom .m-rise {
         opacity: 0;
-        animation: pf-rise 3400ms cubic-bezier(0.35, 0, 0.5, 1) forwards;
+        animation: pfb-rise 3400ms cubic-bezier(0.35, 0, 0.5, 1) forwards;
       }
       /* 上から降る。**左右に振れながら**落ちる。回りながら */
       #pf-bloom .m-fall {
         opacity: 0;
-        animation: pf-fall 4200ms linear forwards;
+        animation: pfb-fall 4200ms linear forwards;
       }
       /* その場でふくらむ。少し戻ってから収まる（弾みを付ける） */
       #pf-bloom .m-pop {
         opacity: 0;
-        animation: pf-pop 1000ms cubic-bezier(0.2, 1.5, 0.35, 1) forwards;
+        animation: pfb-pop 1000ms cubic-bezier(0.2, 1.5, 0.35, 1) forwards;
       }
       #pf-bloom .m-twinkle {
         opacity: 0;
-        animation: pf-twinkle 2600ms ease-in-out infinite;
+        animation: pfb-twinkle 2600ms ease-in-out infinite;
       }
 
-      @keyframes pf-burst {
+      @keyframes pfb-burst {
         from {
           opacity: 0;
           transform: translate(var(--dx), var(--dy)) scale(0.15) rotate(-60deg);
@@ -312,7 +312,7 @@
           transform: translate(0, 0) scale(1) rotate(0deg);
         }
       }
-      @keyframes pf-rise {
+      @keyframes pfb-rise {
         0% {
           opacity: 0;
           transform: translate(0, var(--dy, 120px)) scale(0.65);
@@ -334,7 +334,7 @@
           transform: translate(0, calc(var(--dy, 120px) * -1.9)) scale(1.2);
         }
       }
-      @keyframes pf-fall {
+      @keyframes pfb-fall {
         0% {
           opacity: 0;
           transform: translate(0, var(--dy, -180px)) rotate(0deg);
@@ -360,7 +360,7 @@
           transform: translate(0, calc(var(--dy, -180px) * -3.2)) rotate(var(--rot, 300deg));
         }
       }
-      @keyframes pf-pop {
+      @keyframes pfb-pop {
         from {
           opacity: 0;
           transform: scale(0.15);
@@ -380,9 +380,9 @@
       */
       #pf-bloom .m-wind {
         opacity: 0;
-        animation: pf-wind 4600ms cubic-bezier(0.35, 0, 0.5, 1) forwards;
+        animation: pfb-wind 4600ms cubic-bezier(0.35, 0, 0.5, 1) forwards;
       }
-      @keyframes pf-wind {
+      @keyframes pfb-wind {
         0% {
           opacity: 0;
           transform: translate(var(--dx, -260px), 0) rotate(0deg);
@@ -411,7 +411,7 @@
         }
       }
 
-      @keyframes pf-twinkle {
+      @keyframes pfb-twinkle {
         0%,
         100% {
           opacity: 0.1;
@@ -423,7 +423,7 @@
         }
       }
 
-      @keyframes pf-grow {
+      @keyframes pfb-grow {
         to {
           stroke-dashoffset: 0;
         }

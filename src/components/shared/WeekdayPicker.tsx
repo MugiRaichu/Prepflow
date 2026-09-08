@@ -6,7 +6,8 @@ const ALL: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 function dayClass(active: boolean) {
   return cn(
-    'size-10 rounded-full border text-sm',
+    // 44px 未満は指で外す（D-126）
+    'size-11 rounded-full border text-sm',
     active
       ? 'border-foreground bg-foreground font-semibold text-background pf-pop'
       : 'border-border text-muted-foreground',

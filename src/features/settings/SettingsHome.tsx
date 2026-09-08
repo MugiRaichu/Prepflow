@@ -174,7 +174,7 @@ export function SettingsHome() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="設定を名前で探す（例: 賞味期限）"
-            className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none"
+            className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none"
           />
           {query && (
             <button onClick={() => setQuery('')} className="shrink-0 p-1 text-muted-foreground">

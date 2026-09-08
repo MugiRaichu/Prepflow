@@ -730,7 +730,9 @@ function ChapterBar({ current }: { current: string }) {
           />
           <div
             className={cn(
-              'truncate text-center text-[9px]',
+              // 9px は本文の半分で、読めない（D-126 の下限は13px）。
+              // truncate をやめて、入らない章名は折り返す
+              'text-center text-xs leading-tight',
               i === at ? 'text-foreground' : 'text-muted-foreground/50',
             )}
           >
