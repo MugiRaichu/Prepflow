@@ -7,7 +7,7 @@ import { Chips } from '@/components/shared/Chips';
 import { getSecret, setSecret, updateSettings } from '@/db/repositories/settings';
 import { fetchStatus, ping, pushNow, sendTest, syncSchedule } from '@/notify/gasClient';
 import type { GasStatus } from '@/notify/gasClient';
-import { publishMenus, syncCalendar } from '@/calendar/gasCalendar';
+import { clearCalendar, publishMenus, syncCalendar } from '@/calendar/gasCalendar';
 import { GasSetupGuide } from './GasSetupGuide';
 import type { AppSettings as AppSettingsType } from '@/db/schema';
 
@@ -136,17 +136,37 @@ function CalendarSync({ settings }: { settings: AppSettingsType }) {
         </Labeled>
         {publish && (
           <>
-            <button
-              onClick={() => run(() => publishMenus(settings), (n) => n + ' 件を書きました')}
-              disabled={busy}
-              className="min-h-10 w-full rounded-md border text-xs active:bg-accent disabled:opacity-40"
-            >
-              献立をいま書く
-            </button>
-            <div className="text-[10px] text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => run(() => publishMenus(settings), (n) => n + ' 件を書きました')}
+                disabled={busy}
+                className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              >
+                献立をいま書く
+              </button>
+              {/*
+                **書き直さずに消せなかった。**publish は「消してから書く」ので
+                入れ替えはできるが、やめたいときは手で消すしかなかった。
+                消すのは Prepflow カレンダーの中だけ
+              */}
+              <button
+                onClick={() =>
+                  run(() => clearCalendar(settings), (n) =>
+                    n ? n + ' 件を消しました' : '消すものがありませんでした',
+                  )
+                }
+                disabled={busy}
+                className="min-h-10 rounded-md border text-xs active:bg-accent disabled:opacity-40"
+              >
+                カレンダーから消す
+              </button>
+            </div>
+            <div className="text-[10px] leading-relaxed text-muted-foreground">
               {lastOut
-                ? '最終書き出し ' + new Date(lastOut).toLocaleString('ja-JP') + '。献立を確定すると自動で書きます'
-                : '献立を確定すると自動で書きます'}
+                ? '最終書き出し ' + new Date(lastOut).toLocaleString('ja-JP') + '。'
+                : ''}
+              献立を確定すると自動で書きます。書くたびに、その期間の「Prepflow」
+              カレンダーを入れ替えます（ほかのカレンダーには触れません。過去の日も残します）。
             </div>
           </>
         )}

@@ -169,6 +169,16 @@ export function distributeAcrossMeals(
   return out;
 }
 
+/** 人前ぶんに伸ばした栄養。1品だけを詰める容器で使う */
+export function macrosOf(per: Macros, servings: number): Macros {
+  return {
+    kcal: per.kcal * servings,
+    proteinG: per.proteinG * servings,
+    fatG: per.fatG * servings,
+    carbG: per.carbG * servings,
+  };
+}
+
 /** その食の栄養を、実際に詰める人前から計算する */
 export function portionMacros(portions: Portion[]): Macros {
   return portions.reduce<Macros>(
