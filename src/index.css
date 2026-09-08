@@ -439,11 +439,22 @@
     /* ホームバーぶん（最大10px）＋浮かせるぶん */
     bottom: calc(min(env(safe-area-inset-bottom), 10px) + 10px);
     overflow: hidden;
-    border: 1px solid var(--border);
+    /* 縁も透かす。1本だけ不透明だと、そこで画面が切れて見える */
+    border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
     border-radius: 20px;
-    background: color-mix(in srgb, var(--background) 72%, transparent);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    /*
+     * **下を通る本文が透ける濃さにする**（本人指定）。
+     * 72% では白い板に見えていた。55% まで下げ、読みやすさは
+     * ぼかしで作る——透かすほど字が背景と混ざるので、**薄くするぶんぼかす**。
+     */
+    background: color-mix(in srgb, var(--background) 55%, transparent);
+    /*
+     * 2つ並べる順番に意味がある。**接頭辞つきを先に書く。**
+     * ビルドの最適化は同じ意味の宣言をまとめるので、逆に書くと
+     * 無印のほうが消え、**Safari 以外でぼかしが効かなくなる**（実際そうなっていた）。
+     */
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    backdrop-filter: blur(22px) saturate(1.2);
   }
 
   /* ぼかしが効かない環境では透けるだけになるので、その場合は濃くする */
