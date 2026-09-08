@@ -74,13 +74,6 @@ export const SETTING_CATALOG: SettingEntry[] = [
     aliases: ['人数', '家族', '2人分', '同居', 'プロフィール'],
   },
   {
-    label: 'いまの暮らし',
-    where: '作り方',
-    to: '/settings/cooking',
-    folded: true,
-    aliases: ['一人暮らし', '共働き', '育休', '子ども', 'ライフステージ', '世帯'],
-  },
-  {
     label: '起きる時間・寝る時間',
     where: '1日の流れ',
     to: '/rhythm',
@@ -239,6 +232,12 @@ export const SETTING_CATALOG: SettingEntry[] = [
     where: 'データの保存',
     to: '/settings/data',
     aliases: ['バックアップ', 'エクスポート', '移行', '機種変更', '保存'],
+  },
+  {
+    label: '起動のときの絵（動かす・止める・出さない）',
+    where: '書き出し・元に戻す',
+    to: '/settings/data',
+    aliases: ['エフェクト', 'アニメ', '動き', '花', '起動', '苦手', '集合体', '粒'],
   },
   {
     label: '最初から設定し直す',

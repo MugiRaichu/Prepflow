@@ -16,7 +16,6 @@ import { PlanScreen } from '@/features/planner/PlanScreen';
 import { WeekOverview } from '@/features/planner/WeekOverview';
 import { RhythmScreen } from '@/features/rhythm/RhythmScreen';
 import { CookScreen } from '@/features/cook/CookScreen';
-import { HouseholdScreen } from '@/features/household/HouseholdScreen';
 import { ShoppingScreen } from '@/features/shopping/ShoppingScreen';
 import { StockScreen } from '@/features/shopping/StockScreen';
 import { FreezerScreen } from '@/features/shopping/FreezerScreen';
@@ -71,7 +70,8 @@ function MainRoutes() {
         <Route path="/freezer" element={<FreezerScreen />} />
         <Route path="/cook" element={<CookScreen />} />
         <Route path="/rhythm" element={<RhythmScreen />} />
-        <Route path="/household" element={<HouseholdScreen />} />
+        {/* 暮らしのひな形はやめた。自分で決めるほうが早い（本人判断） */}
+        <Route path="/household" element={<Navigate to="/settings/cooking" replace />} />
         <Route path="/recipes" element={<RecipeList />} />
         <Route path="/recipes/new" element={<RecipeImport />} />
         <Route path="/settings" element={<SettingsHome />} />
