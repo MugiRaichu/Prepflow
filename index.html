@@ -79,9 +79,15 @@
         transform: scale(1.04);
         pointer-events: none;
       }
-      #pf-splash svg {
+      #pf-splash > svg:not(#pf-bloom) {
+        position: relative;
+        z-index: 1;
         width: 76px;
         height: 76px;
+      }
+      #pf-splash .pf-words {
+        position: relative;
+        z-index: 1;
       }
       /* 線を引く順に手が動く。リストが流れに変わる形をそのまま見せる */
       /* 一筆なので、1本を端から端まで引く。長さは実測より多めに取る */
@@ -177,6 +183,69 @@
         }
       }
       /*
+        花畑。名前が出たあと、中央から一筆書きの蔓が次々に立ち上がり、
+        画面いっぱいの花畑になる。**アプリを開く動作そのものを「ひらく」に見せる。**
+
+        1本1本がアイコンと同じ一筆（伸びて、先で軽く巻く）。
+        **色は食材の色。**魚の青、肉の赤茶、野菜の緑、穀物の金、卵の黄、
+        豆の砂色、そして茜。飾りの色は持ち込まない——この絵は食のためのもの。
+
+        伸びきる前に本体へ渡す。**待ち時間は増やさない**——
+        消えていく最中も伸び続けるので、見えるのは「ひらく」動きだけ。
+      */
+      #pf-bloom {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      #pf-bloom .pf-vine {
+        fill: none;
+        stroke: #6e8b5b;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        opacity: 0.62;
+        stroke-dasharray: 620;
+        stroke-dashoffset: 620;
+        /* 1本ずつずらして立ち上げる。同時だと爆発に見える */
+        animation: pf-grow 1600ms cubic-bezier(0.25, 0.6, 0.25, 1) forwards;
+        animation-delay: calc(2350ms + var(--i) * 55ms);
+      }
+      #pf-bloom .pf-leaf {
+        fill: #6e8b5b;
+        opacity: 0;
+        animation: pf-leaf-in 520ms ease forwards;
+        animation-delay: calc(2800ms + var(--i) * 55ms);
+      }
+      #pf-bloom .pf-flower {
+        opacity: 0;
+        transform: scale(0.15) rotate(-40deg);
+        animation: pf-bloom-in 640ms cubic-bezier(0.2, 1.35, 0.4, 1) forwards;
+        animation-delay: calc(3150ms + var(--i) * 55ms);
+      }
+      #pf-bloom .pf-core {
+        fill: #faf7f2;
+        opacity: 0.85;
+      }
+      @keyframes pf-grow {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes pf-leaf-in {
+        to {
+          opacity: 0.6;
+        }
+      }
+      @keyframes pf-bloom-in {
+        to {
+          opacity: 0.92;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+
+      /*
         動きが苦手な人には出さない。
         入れ替えの代わりに、2つを縦に並べて静かに置く（どちらも読める）。
       */
@@ -184,6 +253,10 @@
         #pf-splash path {
           animation: none;
           stroke-dashoffset: 0;
+        }
+        /* 花畑は出さない。動きが目的の絵なので、静止させても意味がない */
+        #pf-bloom {
+          display: none;
         }
         #pf-splash .pf-words {
           grid-auto-flow: row;
@@ -218,6 +291,101 @@
       }
     </script>
     <div id="pf-splash" aria-hidden="true">
+      <!--
+        名前が出たあと、中央から蔓が伸びて花が咲く。
+        **アプリを開く動作そのものを「ひらく」に見せる。**
+        画面いっぱいに広がりきる前に本体へ渡すので、待ち時間は増えない
+        （消えていく最中も伸び続ける）。
+      -->
+      <svg id="pf-bloom" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g class="pf-vines">
+          <path class="pf-vine" style="--i:0" d="M200 400 C 335 450 515 387 660 431 S 646 456 646 456" />
+          <path class="pf-vine" style="--i:1" d="M200 400 C 318 391 423 514 546 514 S 527 535 527 535" />
+          <path class="pf-vine" style="--i:2" d="M200 400 C 251 520 437 510 499 627 S 474 640 474 640" />
+          <path class="pf-vine" style="--i:3" d="M200 400 C 293 460 253 615 341 685 S 312 686 312 686" />
+          <path class="pf-vine" style="--i:4" d="M200 400 C 292 513 190 695 273 819 S 245 811 245 811" />
+          <path class="pf-vine" style="--i:5" d="M200 400 C 254 499 118 599 161 704 S 137 688 137 688" />
+          <path class="pf-vine" style="--i:6" d="M200 400 C 182 552 -9 643 -40 798 S -56 774 -56 774" />
+          <path class="pf-vine" style="--i:7" d="M200 400 C 128 537 -87 544 -173 678 S -178 650 -178 650" />
+          <path class="pf-vine" style="--i:8" d="M200 400 C 130 479 -14 442 -92 516 S -91 488 -91 488" />
+          <path class="pf-vine" style="--i:9" d="M200 400 C 70 353 -95 441 -235 401 S -223 375 -223 375" />
+          <path class="pf-vine" style="--i:10" d="M200 400 C 117 308 -47 381 -139 296 S -120 275 -120 275" />
+          <path class="pf-vine" style="--i:11" d="M200 400 C 64 397 34 197 -101 180 S -76 166 -76 166" />
+          <path class="pf-vine" style="--i:12" d="M200 400 C 183 269 16 194 -12 61 S 16 57 16 57" />
+          <path class="pf-vine" style="--i:13" d="M200 400 C 118 310 202 155 127 56 S 155 62 155 62" />
+          <path class="pf-vine" style="--i:14" d="M200 400 C 281 315 172 178 243 85 S 267 100 267 100" />
+          <path class="pf-vine" style="--i:15" d="M200 400 C 320 356 271 170 385 115 S 401 139 401 139" />
+          <path class="pf-vine" style="--i:16" d="M200 400 C 344 358 412 164 557 109 S 564 137 564 137" />
+          <path class="pf-vine" style="--i:17" d="M200 400 C 295 312 467 318 571 233 S 571 261 571 261" />
+        </g>
+        <g class="pf-leaves">
+          <ellipse class="pf-leaf" style="--i:0" cx="372" cy="449" rx="11" ry="5.5" transform="rotate(36 372 449)" />
+          <ellipse class="pf-leaf" style="--i:0" cx="502" cy="440" rx="11" ry="5.5" transform="rotate(-28 502 440)" />
+          <ellipse class="pf-leaf" style="--i:1" cx="339" cy="422" rx="11" ry="5.5" transform="rotate(50 339 422)" />
+          <ellipse class="pf-leaf" style="--i:1" cx="441" cy="437" rx="11" ry="5.5" transform="rotate(-14 441 437)" />
+          <ellipse class="pf-leaf" style="--i:2" cx="281" cy="530" rx="11" ry="5.5" transform="rotate(69 281 530)" />
+          <ellipse class="pf-leaf" style="--i:2" cx="376" cy="579" rx="11" ry="5.5" transform="rotate(5 376 579)" />
+          <ellipse class="pf-leaf" style="--i:3" cx="281" cy="495" rx="11" ry="5.5" transform="rotate(96 281 495)" />
+          <ellipse class="pf-leaf" style="--i:3" cx="337" cy="566" rx="11" ry="5.5" transform="rotate(32 337 566)" />
+          <ellipse class="pf-leaf" style="--i:4" cx="268" cy="552" rx="11" ry="5.5" transform="rotate(112 268 552)" />
+          <ellipse class="pf-leaf" style="--i:4" cx="306" cy="666" rx="11" ry="5.5" transform="rotate(48 306 666)" />
+          <ellipse class="pf-leaf" style="--i:5" cx="222" cy="520" rx="11" ry="5.5" transform="rotate(129 222 520)" />
+          <ellipse class="pf-leaf" style="--i:5" cx="229" cy="607" rx="11" ry="5.5" transform="rotate(65 229 607)" />
+          <ellipse class="pf-leaf" style="--i:6" cx="139" cy="569" rx="11" ry="5.5" transform="rotate(153 139 569)" />
+          <ellipse class="pf-leaf" style="--i:6" cx="87" cy="690" rx="11" ry="5.5" transform="rotate(89 87 690)" />
+          <ellipse class="pf-leaf" style="--i:7" cx="81" cy="536" rx="11" ry="5.5" transform="rotate(175 81 536)" />
+          <ellipse class="pf-leaf" style="--i:7" cx="-13" cy="628" rx="11" ry="5.5" transform="rotate(111 -13 628)" />
+          <ellipse class="pf-leaf" style="--i:8" cx="98" cy="466" rx="11" ry="5.5" transform="rotate(190 98 466)" />
+          <ellipse class="pf-leaf" style="--i:8" cx="23" cy="516" rx="11" ry="5.5" transform="rotate(126 23 516)" />
+          <ellipse class="pf-leaf" style="--i:9" cx="35" cy="358" rx="11" ry="5.5" transform="rotate(212 35 358)" />
+          <ellipse class="pf-leaf" style="--i:9" cx="-87" cy="377" rx="11" ry="5.5" transform="rotate(148 -87 377)" />
+          <ellipse class="pf-leaf" style="--i:10" cx="87" cy="309" rx="11" ry="5.5" transform="rotate(229 87 309)" />
+          <ellipse class="pf-leaf" style="--i:10" cx="-14" cy="298" rx="11" ry="5.5" transform="rotate(165 -14 298)" />
+          <ellipse class="pf-leaf" style="--i:11" cx="59" cy="353" rx="11" ry="5.5" transform="rotate(248 59 353)" />
+          <ellipse class="pf-leaf" style="--i:11" cx="-36" cy="306" rx="11" ry="5.5" transform="rotate(184 -36 306)" />
+          <ellipse class="pf-leaf" style="--i:12" cx="160" cy="246" rx="11" ry="5.5" transform="rotate(270 160 246)" />
+          <ellipse class="pf-leaf" style="--i:12" cx="85" cy="160" rx="11" ry="5.5" transform="rotate(206 85 160)" />
+          <ellipse class="pf-leaf" style="--i:13" cx="139" cy="276" rx="11" ry="5.5" transform="rotate(290 139 276)" />
+          <ellipse class="pf-leaf" style="--i:13" cx="101" cy="184" rx="11" ry="5.5" transform="rotate(226 101 184)" />
+          <ellipse class="pf-leaf" style="--i:14" cx="273" cy="288" rx="11" ry="5.5" transform="rotate(310 273 288)" />
+          <ellipse class="pf-leaf" style="--i:14" cx="267" cy="197" rx="11" ry="5.5" transform="rotate(246 267 197)" />
+          <ellipse class="pf-leaf" style="--i:15" cx="323" cy="326" rx="11" ry="5.5" transform="rotate(335 323 326)" />
+          <ellipse class="pf-leaf" style="--i:15" cx="360" cy="236" rx="11" ry="5.5" transform="rotate(271 360 236)" />
+          <ellipse class="pf-leaf" style="--i:16" cx="367" cy="328" rx="11" ry="5.5" transform="rotate(353 367 328)" />
+          <ellipse class="pf-leaf" style="--i:16" cx="456" cy="233" rx="11" ry="5.5" transform="rotate(289 456 233)" />
+          <ellipse class="pf-leaf" style="--i:17" cx="333" cy="318" rx="11" ry="5.5" transform="rotate(368 333 318)" />
+          <ellipse class="pf-leaf" style="--i:17" cx="430" cy="255" rx="11" ry="5.5" transform="rotate(304 430 255)" />
+        </g>
+        <g class="pf-flowers">
+          <g class="pf-flower" style="--i:0; fill:#a4483b; transform-origin:646px 456px"><ellipse cx="657" cy="457" rx="9.0" ry="5.8" transform="rotate(4 657 457)" /><ellipse cx="649" cy="467" rx="9.0" ry="5.8" transform="rotate(76 649 467)" /><ellipse cx="637" cy="462" rx="9.0" ry="5.8" transform="rotate(148 637 462)" /><ellipse cx="638" cy="449" rx="9.0" ry="5.8" transform="rotate(220 638 449)" /><ellipse cx="651" cy="446" rx="9.0" ry="5.8" transform="rotate(292 651 446)" /><circle class="pf-core" cx="646" cy="456" r="4.8" /></g>
+          <g class="pf-flower" style="--i:0; fill:#b98c4a; transform-origin:451px 448px"><ellipse cx="457" cy="453" rx="6.5" ry="4.2" transform="rotate(44 457 453)" /><ellipse cx="448" cy="455" rx="6.5" ry="4.2" transform="rotate(116 448 455)" /><ellipse cx="443" cy="447" rx="6.5" ry="4.2" transform="rotate(188 443 447)" /><ellipse cx="450" cy="440" rx="6.5" ry="4.2" transform="rotate(260 450 440)" /><ellipse cx="458" cy="444" rx="6.5" ry="4.2" transform="rotate(332 458 444)" /><circle class="pf-core" cx="451" cy="448" r="3.5" /></g>
+          <g class="pf-flower" style="--i:1; fill:#4a6c8c; transform-origin:527px 535px"><ellipse cx="537" cy="538" rx="9.0" ry="5.8" transform="rotate(18 537 538)" /><ellipse cx="527" cy="546" rx="9.0" ry="5.8" transform="rotate(90 527 546)" /><ellipse cx="516" cy="538" rx="9.0" ry="5.8" transform="rotate(162 516 538)" /><ellipse cx="520" cy="526" rx="9.0" ry="5.8" transform="rotate(234 520 526)" /><ellipse cx="533" cy="526" rx="9.0" ry="5.8" transform="rotate(306 533 526)" /><circle class="pf-core" cx="527" cy="535" r="4.8" /></g>
+          <g class="pf-flower" style="--i:2; fill:#9c5a4a; transform-origin:474px 640px"><ellipse cx="483" cy="647" rx="9.0" ry="5.8" transform="rotate(37 483 647)" /><ellipse cx="470" cy="651" rx="9.0" ry="5.8" transform="rotate(109 470 651)" /><ellipse cx="463" cy="640" rx="9.0" ry="5.8" transform="rotate(181 463 640)" /><ellipse cx="471" cy="630" rx="9.0" ry="5.8" transform="rotate(253 471 630)" /><ellipse cx="483" cy="634" rx="9.0" ry="5.8" transform="rotate(325 483 634)" /><circle class="pf-core" cx="474" cy="640" r="4.8" /></g>
+          <g class="pf-flower" style="--i:2; fill:#6e8b5b; transform-origin:335px 564px"><ellipse cx="337" cy="571" rx="6.5" ry="4.2" transform="rotate(77 337 571)" /><ellipse cx="328" cy="568" rx="6.5" ry="4.2" transform="rotate(149 328 568)" /><ellipse cx="329" cy="558" rx="6.5" ry="4.2" transform="rotate(221 329 558)" /><ellipse cx="338" cy="556" rx="6.5" ry="4.2" transform="rotate(293 338 556)" /><ellipse cx="343" cy="564" rx="6.5" ry="4.2" transform="rotate(365 343 564)" /><circle class="pf-core" cx="335" cy="564" r="3.5" /></g>
+          <g class="pf-flower" style="--i:3; fill:#b98c4a; transform-origin:312px 686px"><ellipse cx="317" cy="696" rx="9.0" ry="5.8" transform="rotate(64 317 696)" /><ellipse cx="304" cy="693" rx="9.0" ry="5.8" transform="rotate(136 304 693)" /><ellipse cx="303" cy="681" rx="9.0" ry="5.8" transform="rotate(208 303 681)" /><ellipse cx="314" cy="675" rx="9.0" ry="5.8" transform="rotate(280 314 675)" /><ellipse cx="323" cy="684" rx="9.0" ry="5.8" transform="rotate(352 323 684)" /><circle class="pf-core" cx="312" cy="686" r="4.8" /></g>
+          <g class="pf-flower" style="--i:4; fill:#c9a227; transform-origin:245px 811px"><ellipse cx="247" cy="822" rx="9.0" ry="5.8" transform="rotate(80 247 822)" /><ellipse cx="236" cy="816" rx="9.0" ry="5.8" transform="rotate(152 236 816)" /><ellipse cx="237" cy="803" rx="9.0" ry="5.8" transform="rotate(224 237 803)" /><ellipse cx="250" cy="801" rx="9.0" ry="5.8" transform="rotate(296 250 801)" /><ellipse cx="256" cy="813" rx="9.0" ry="5.8" transform="rotate(368 256 813)" /><circle class="pf-core" cx="245" cy="811" r="4.8" /></g>
+          <g class="pf-flower" style="--i:4; fill:#a4483b; transform-origin:292px 621px"><ellipse cx="288" cy="628" rx="6.5" ry="4.2" transform="rotate(120 288 628)" /><ellipse cx="285" cy="619" rx="6.5" ry="4.2" transform="rotate(192 285 619)" /><ellipse cx="292" cy="613" rx="6.5" ry="4.2" transform="rotate(264 292 613)" /><ellipse cx="300" cy="618" rx="6.5" ry="4.2" transform="rotate(336 300 618)" /><ellipse cx="298" cy="627" rx="6.5" ry="4.2" transform="rotate(408 298 627)" /><circle class="pf-core" cx="292" cy="621" r="3.5" /></g>
+          <g class="pf-flower" style="--i:5; fill:#6e8b5b; transform-origin:137px 688px"><ellipse cx="135" cy="699" rx="9.0" ry="5.8" transform="rotate(97 135 699)" /><ellipse cx="126" cy="690" rx="9.0" ry="5.8" transform="rotate(169 126 690)" /><ellipse cx="132" cy="679" rx="9.0" ry="5.8" transform="rotate(241 132 679)" /><ellipse cx="144" cy="680" rx="9.0" ry="5.8" transform="rotate(313 144 680)" /><ellipse cx="147" cy="693" rx="9.0" ry="5.8" transform="rotate(385 147 693)" /><circle class="pf-core" cx="137" cy="688" r="4.8" /></g>
+          <g class="pf-flower" style="--i:6; fill:#8a7a5c; transform-origin:-56px 774px"><ellipse cx="-62" cy="784" rx="9.0" ry="5.8" transform="rotate(121 -62 784)" /><ellipse cx="-67" cy="772" rx="9.0" ry="5.8" transform="rotate(193 -67 772)" /><ellipse cx="-57" cy="763" rx="9.0" ry="5.8" transform="rotate(265 -57 763)" /><ellipse cx="-46" cy="770" rx="9.0" ry="5.8" transform="rotate(337 -46 770)" /><ellipse cx="-49" cy="783" rx="9.0" ry="5.8" transform="rotate(409 -49 783)" /><circle class="pf-core" cx="-56" cy="774" r="4.8" /></g>
+          <g class="pf-flower" style="--i:6; fill:#9c5a4a; transform-origin:108px 643px"><ellipse cx="101" cy="646" rx="6.5" ry="4.2" transform="rotate(161 101 646)" /><ellipse cx="103" cy="637" rx="6.5" ry="4.2" transform="rotate(233 103 637)" /><ellipse cx="113" cy="637" rx="6.5" ry="4.2" transform="rotate(305 113 637)" /><ellipse cx="116" cy="646" rx="6.5" ry="4.2" transform="rotate(377 116 646)" /><ellipse cx="108" cy="651" rx="6.5" ry="4.2" transform="rotate(449 108 651)" /><circle class="pf-core" cx="108" cy="643" r="3.5" /></g>
+          <g class="pf-flower" style="--i:7; fill:#a4483b; transform-origin:-178px 650px"><ellipse cx="-187" cy="656" rx="9.0" ry="5.8" transform="rotate(143 -187 656)" /><ellipse cx="-187" cy="643" rx="9.0" ry="5.8" transform="rotate(215 -187 643)" /><ellipse cx="-175" cy="639" rx="9.0" ry="5.8" transform="rotate(287 -175 639)" /><ellipse cx="-167" cy="650" rx="9.0" ry="5.8" transform="rotate(359 -167 650)" /><ellipse cx="-175" cy="660" rx="9.0" ry="5.8" transform="rotate(431 -175 660)" /><circle class="pf-core" cx="-178" cy="650" r="4.8" /></g>
+          <g class="pf-flower" style="--i:8; fill:#4a6c8c; transform-origin:-91px 488px"><ellipse cx="-101" cy="492" rx="9.0" ry="5.8" transform="rotate(158 -101 492)" /><ellipse cx="-98" cy="479" rx="9.0" ry="5.8" transform="rotate(230 -98 479)" /><ellipse cx="-85" cy="478" rx="9.0" ry="5.8" transform="rotate(302 -85 478)" /><ellipse cx="-80" cy="490" rx="9.0" ry="5.8" transform="rotate(374 -80 490)" /><ellipse cx="-90" cy="499" rx="9.0" ry="5.8" transform="rotate(446 -90 499)" /><circle class="pf-core" cx="-91" cy="488" r="4.8" /></g>
+          <g class="pf-flower" style="--i:8; fill:#c9a227; transform-origin:52px 497px"><ellipse cx="45" cy="494" rx="6.5" ry="4.2" transform="rotate(198 45 494)" /><ellipse cx="52" cy="489" rx="6.5" ry="4.2" transform="rotate(270 52 489)" /><ellipse cx="60" cy="494" rx="6.5" ry="4.2" transform="rotate(342 60 494)" /><ellipse cx="57" cy="503" rx="6.5" ry="4.2" transform="rotate(414 57 503)" /><ellipse cx="48" cy="503" rx="6.5" ry="4.2" transform="rotate(486 48 503)" /><circle class="pf-core" cx="52" cy="497" r="3.5" /></g>
+          <g class="pf-flower" style="--i:9; fill:#9c5a4a; transform-origin:-223px 375px"><ellipse cx="-234" cy="375" rx="9.0" ry="5.8" transform="rotate(180 -234 375)" /><ellipse cx="-226" cy="365" rx="9.0" ry="5.8" transform="rotate(252 -226 365)" /><ellipse cx="-214" cy="369" rx="9.0" ry="5.8" transform="rotate(324 -214 369)" /><ellipse cx="-214" cy="382" rx="9.0" ry="5.8" transform="rotate(396 -214 382)" /><ellipse cx="-226" cy="386" rx="9.0" ry="5.8" transform="rotate(468 -226 386)" /><circle class="pf-core" cx="-223" cy="375" r="4.8" /></g>
+          <g class="pf-flower" style="--i:10; fill:#b98c4a; transform-origin:-120px 275px"><ellipse cx="-131" cy="271" rx="9.0" ry="5.8" transform="rotate(197 -131 271)" /><ellipse cx="-120" cy="264" rx="9.0" ry="5.8" transform="rotate(269 -120 264)" /><ellipse cx="-110" cy="271" rx="9.0" ry="5.8" transform="rotate(341 -110 271)" /><ellipse cx="-114" cy="283" rx="9.0" ry="5.8" transform="rotate(413 -114 283)" /><ellipse cx="-127" cy="284" rx="9.0" ry="5.8" transform="rotate(485 -127 284)" /><circle class="pf-core" cx="-120" cy="275" r="4.8" /></g>
+          <g class="pf-flower" style="--i:10; fill:#8a7a5c; transform-origin:27px 297px"><ellipse cx="23" cy="291" rx="6.5" ry="4.2" transform="rotate(237 23 291)" /><ellipse cx="32" cy="291" rx="6.5" ry="4.2" transform="rotate(309 32 291)" /><ellipse cx="35" cy="300" rx="6.5" ry="4.2" transform="rotate(381 35 300)" /><ellipse cx="27" cy="305" rx="6.5" ry="4.2" transform="rotate(453 27 305)" /><ellipse cx="20" cy="299" rx="6.5" ry="4.2" transform="rotate(525 20 299)" /><circle class="pf-core" cx="27" cy="297" r="3.5" /></g>
+          <g class="pf-flower" style="--i:11; fill:#c9a227; transform-origin:-76px 166px"><ellipse cx="-85" cy="160" rx="9.0" ry="5.8" transform="rotate(216 -85 160)" /><ellipse cx="-72" cy="156" rx="9.0" ry="5.8" transform="rotate(288 -72 156)" /><ellipse cx="-65" cy="166" rx="9.0" ry="5.8" transform="rotate(360 -65 166)" /><ellipse cx="-72" cy="177" rx="9.0" ry="5.8" transform="rotate(432 -72 177)" /><ellipse cx="-85" cy="173" rx="9.0" ry="5.8" transform="rotate(504 -85 173)" /><circle class="pf-core" cx="-76" cy="166" r="4.8" /></g>
+          <g class="pf-flower" style="--i:12; fill:#6e8b5b; transform-origin:16px 57px"><ellipse cx="10" cy="48" rx="9.0" ry="5.8" transform="rotate(238 10 48)" /><ellipse cx="23" cy="49" rx="9.0" ry="5.8" transform="rotate(310 23 49)" /><ellipse cx="26" cy="61" rx="9.0" ry="5.8" transform="rotate(382 26 61)" /><ellipse cx="15" cy="68" rx="9.0" ry="5.8" transform="rotate(454 15 68)" /><ellipse cx="6" cy="60" rx="9.0" ry="5.8" transform="rotate(526 6 60)" /><circle class="pf-core" cx="16" cy="57" r="4.8" /></g>
+          <g class="pf-flower" style="--i:12; fill:#4a6c8c; transform-origin:118px 192px"><ellipse cx="119" cy="184" rx="6.5" ry="4.2" transform="rotate(278 119 184)" /><ellipse cx="126" cy="190" rx="6.5" ry="4.2" transform="rotate(350 126 190)" /><ellipse cx="122" cy="199" rx="6.5" ry="4.2" transform="rotate(422 122 199)" /><ellipse cx="113" cy="197" rx="6.5" ry="4.2" transform="rotate(494 113 197)" /><ellipse cx="111" cy="188" rx="6.5" ry="4.2" transform="rotate(566 111 188)" /><circle class="pf-core" cx="118" cy="192" r="3.5" /></g>
+          <g class="pf-flower" style="--i:13; fill:#8a7a5c; transform-origin:155px 62px"><ellipse cx="153" cy="51" rx="9.0" ry="5.8" transform="rotate(258 153 51)" /><ellipse cx="165" cy="57" rx="9.0" ry="5.8" transform="rotate(330 165 57)" /><ellipse cx="163" cy="70" rx="9.0" ry="5.8" transform="rotate(402 163 70)" /><ellipse cx="151" cy="72" rx="9.0" ry="5.8" transform="rotate(474 151 72)" /><ellipse cx="144" cy="61" rx="9.0" ry="5.8" transform="rotate(546 144 61)" /><circle class="pf-core" cx="155" cy="62" r="4.8" /></g>
+          <g class="pf-flower" style="--i:14; fill:#a4483b; transform-origin:267px 100px"><ellipse cx="269" cy="89" rx="9.0" ry="5.8" transform="rotate(278 269 89)" /><ellipse cx="278" cy="98" rx="9.0" ry="5.8" transform="rotate(350 278 98)" /><ellipse cx="272" cy="110" rx="9.0" ry="5.8" transform="rotate(422 272 110)" /><ellipse cx="260" cy="108" rx="9.0" ry="5.8" transform="rotate(494 260 108)" /><ellipse cx="257" cy="95" rx="9.0" ry="5.8" transform="rotate(566 257 95)" /><circle class="pf-core" cx="267" cy="100" r="4.8" /></g>
+          <g class="pf-flower" style="--i:14; fill:#b98c4a; transform-origin:274px 234px"><ellipse cx="280" cy="228" rx="6.5" ry="4.2" transform="rotate(318 280 228)" /><ellipse cx="281" cy="237" rx="6.5" ry="4.2" transform="rotate(390 281 237)" /><ellipse cx="273" cy="241" rx="6.5" ry="4.2" transform="rotate(462 273 241)" /><ellipse cx="267" cy="234" rx="6.5" ry="4.2" transform="rotate(534 267 234)" /><ellipse cx="271" cy="226" rx="6.5" ry="4.2" transform="rotate(606 271 226)" /><circle class="pf-core" cx="274" cy="234" r="3.5" /></g>
+          <g class="pf-flower" style="--i:15; fill:#4a6c8c; transform-origin:401px 139px"><ellipse cx="407" cy="130" rx="9.0" ry="5.8" transform="rotate(303 407 130)" /><ellipse cx="411" cy="142" rx="9.0" ry="5.8" transform="rotate(375 411 142)" /><ellipse cx="401" cy="150" rx="9.0" ry="5.8" transform="rotate(447 401 150)" /><ellipse cx="390" cy="143" rx="9.0" ry="5.8" transform="rotate(519 390 143)" /><ellipse cx="394" cy="130" rx="9.0" ry="5.8" transform="rotate(591 394 130)" /><circle class="pf-core" cx="401" cy="139" r="4.8" /></g>
+          <g class="pf-flower" style="--i:16; fill:#9c5a4a; transform-origin:564px 137px"><ellipse cx="573" cy="130" rx="9.0" ry="5.8" transform="rotate(321 573 130)" /><ellipse cx="574" cy="143" rx="9.0" ry="5.8" transform="rotate(393 574 143)" /><ellipse cx="562" cy="147" rx="9.0" ry="5.8" transform="rotate(465 562 147)" /><ellipse cx="553" cy="137" rx="9.0" ry="5.8" transform="rotate(537 553 137)" /><ellipse cx="560" cy="127" rx="9.0" ry="5.8" transform="rotate(609 560 127)" /><circle class="pf-core" cx="564" cy="137" r="4.8" /></g>
+          <g class="pf-flower" style="--i:16; fill:#6e8b5b; transform-origin:424px 274px"><ellipse cx="432" cy="274" rx="6.5" ry="4.2" transform="rotate(361 432 274)" /><ellipse cx="426" cy="281" rx="6.5" ry="4.2" transform="rotate(433 426 281)" /><ellipse cx="417" cy="278" rx="6.5" ry="4.2" transform="rotate(505 417 278)" /><ellipse cx="418" cy="269" rx="6.5" ry="4.2" transform="rotate(577 418 269)" /><ellipse cx="427" cy="266" rx="6.5" ry="4.2" transform="rotate(649 427 266)" /><circle class="pf-core" cx="424" cy="274" r="3.5" /></g>
+          <g class="pf-flower" style="--i:17; fill:#b98c4a; transform-origin:571px 261px"><ellipse cx="581" cy="257" rx="9.0" ry="5.8" transform="rotate(336 581 257)" /><ellipse cx="578" cy="269" rx="9.0" ry="5.8" transform="rotate(408 578 269)" /><ellipse cx="566" cy="271" rx="9.0" ry="5.8" transform="rotate(480 566 271)" /><ellipse cx="560" cy="259" rx="9.0" ry="5.8" transform="rotate(552 560 259)" /><ellipse cx="570" cy="250" rx="9.0" ry="5.8" transform="rotate(624 570 250)" /><circle class="pf-core" cx="571" cy="261" r="4.8" /></g>
+        </g>
+      </svg>
       <!--
         アイコンと同じ一筆。器で受けて、右上へ流れてほどける。
         起動画面とホーム画面で違う印を出さない
