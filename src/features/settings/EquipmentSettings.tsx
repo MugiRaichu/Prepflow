@@ -76,8 +76,8 @@ export function EquipmentSettings() {
 
   return (
     <div>
-      <PageHeader title="調理器具" backTo="/settings" />
       <div className="p-4">
+        <h2 className="mb-1 text-sm font-medium">加熱する道具</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           持っている数を入れてください。0 なら持っていない扱いです。
         </p>
@@ -179,10 +179,10 @@ export function ContainerSettings() {
 
   return (
     <div>
-      <PageHeader title="保存容器" backTo="/settings" />
       <div className="p-4">
+        <h2 className="mb-1 text-sm font-medium">保存容器</h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          1週間ぶんの食数より多めが目安です。
+          主菜は1食ずつ、副菜はまとめて詰めます。足りなければ皿で回せます。
         </p>
 
         <div className="divide-y">
@@ -203,6 +203,25 @@ export function ContainerSettings() {
 
         <p className="pt-4 text-xs tabular-nums text-muted-foreground">合計 {totalCount} 個</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 台所の道具。**調理器具と保存容器を1つの画面にする。**
+ *
+ * 別々の入口にしていたが、考えるのは同じ場面——「うちの台所に何があるか」。
+ * 設定の入口が13行あり、項目名を知っていてもどの画面かは推測するしか
+ * なかった（本人指摘）。入口を減らすには、行を束ねるだけでは足りない。
+ * **画面ごとまとめないと、階層が1つ増えるだけになる。**
+ */
+export function KitchenSettings() {
+  return (
+    <div className="pb-6">
+      <PageHeader title="台所の道具" backTo="/settings" />
+      <EquipmentSettings />
+      <div className="mx-4 border-t" />
+      <ContainerSettings />
     </div>
   );
 }

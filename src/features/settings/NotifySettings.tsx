@@ -8,6 +8,7 @@ import { getSecret, setSecret, updateSettings } from '@/db/repositories/settings
 import { fetchStatus, ping, pushNow, sendTest, syncSchedule } from '@/notify/gasClient';
 import type { GasStatus } from '@/notify/gasClient';
 import { clearCalendar, publishMenus, syncCalendar } from '@/calendar/gasCalendar';
+import { HealthSection } from './HealthSettings';
 import { GasSetupGuide } from './GasSetupGuide';
 import type { AppSettings as AppSettingsType } from '@/db/schema';
 
@@ -28,7 +29,7 @@ export function NotifySettings() {
 
   return (
     <div>
-      <PageHeader title="LINE・カレンダー" backTo="/settings" />
+      <PageHeader title="外とつなぐ" backTo="/settings" />
       <div className="space-y-6 p-4">
         <Labeled label="LINE に今日の食事を送る">
           <Segmented
@@ -73,6 +74,19 @@ export function NotifySettings() {
         {s.calendar.enabled && <CalendarSync settings={s} />}
 
         {needsGas && <GasSetup settings={s} />}
+
+        {/*
+          ヘルスケアもここに置く。**同じ Apps Script を使う。**
+          別の画面にしていたので、接続の設定（URLと合言葉）を2か所で
+          持っていた。片方だけ直すと、もう片方が黙って動かなくなる。
+
+          LINE もカレンダーも使わず、歩数だけ取り込みたい人がいるので、
+          接続パネルの中には入れない（中に入れていたら、
+          両方オフのときにヘルスケアごと消えていた）。
+        */}
+        <div className="border-t pt-5">
+          <HealthSection />
+        </div>
       </div>
     </div>
   );

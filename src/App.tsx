@@ -6,9 +6,8 @@ import { Dashboard } from '@/features/dashboard/Dashboard';
 import { SettingsHome } from '@/features/settings/SettingsHome';
 import { ProfileSettings } from '@/features/settings/ProfileSettings';
 import { CookingSettings, ShoppingSettings } from '@/features/settings/ShoppingSettings';
-import { ContainerSettings, EquipmentSettings } from '@/features/settings/EquipmentSettings';
+import { KitchenSettings } from '@/features/settings/EquipmentSettings';
 import { NotifySettings } from '@/features/settings/NotifySettings';
-import { HealthSettings } from '@/features/settings/HealthSettings';
 import { DataSettings } from '@/features/settings/DataSettings';
 import { IngredientSettings } from '@/features/settings/IngredientSettings';
 import { PlanScreen } from '@/features/planner/PlanScreen';
@@ -69,12 +68,15 @@ function MainRoutes() {
         <Route path="/recipes/new" element={<RecipeImport />} />
         <Route path="/settings" element={<SettingsHome />} />
         <Route path="/settings/profiles" element={<ProfileSettings />} />
-        <Route path="/settings/equipment" element={<EquipmentSettings />} />
-        <Route path="/settings/containers" element={<ContainerSettings />} />
+        {/* 調理器具と保存容器は「台所の道具」に統合した */}
+        <Route path="/settings/kitchen" element={<KitchenSettings />} />
+        <Route path="/settings/equipment" element={<Navigate to="/settings/kitchen" replace />} />
+        <Route path="/settings/containers" element={<Navigate to="/settings/kitchen" replace />} />
         <Route path="/settings/shopping" element={<ShoppingSettings />} />
         <Route path="/settings/cooking" element={<CookingSettings />} />
         <Route path="/settings/notify" element={<NotifySettings />} />
-        <Route path="/settings/health" element={<HealthSettings />} />
+        {/* 「外とつなぐ」に統合した。古いリンクのために残す */}
+        <Route path="/settings/health" element={<Navigate to="/settings/notify" replace />} />
         <Route path="/settings/data" element={<DataSettings />} />
         <Route path="/settings/ingredients" element={<IngredientSettings />} />
 

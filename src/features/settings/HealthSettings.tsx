@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Check, Copy } from 'lucide-react';
 import { db } from '@/db/db';
-import { PageHeader } from '@/components/shared/PageHeader';
 import { getSecret } from '@/db/repositories/settings';
 import { healthPulledAt, pullHealth, recentSamples } from '@/health/gasHealth';
 import { formatDateJa } from '@/lib/labels';
@@ -20,7 +19,7 @@ import type { ActivitySample } from '@/db/schema';
  *
  * 手順書は画面に置く。外部のページに逃がすと、オフラインで詰まる。
  */
-export function HealthSettings() {
+export function HealthSection() {
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   const [token, setToken] = useState<string | null>(null);
   const [samples, setSamples] = useState<ActivitySample[]>([]);
@@ -57,19 +56,30 @@ export function HealthSettings() {
   };
 
   return (
-    <div className="pb-8">
-      <PageHeader title="ヘルスケア連携" backTo="/settings" />
-
+    <div>
       <div className="space-y-5 p-4">
+        {/*
+          **いまは取り込むだけで、献立には効いていない。**
+          `activitySamples` に貯まるが、それを読むコードがどこにも無い
+          （`activityAdjust` はプロファイル作成時に書かれたきり、
+          参照されていない）。「その日の目標に反映します」と書いていたが、
+          反映していなかった。効くようにするか、やめるかを決めるまで、
+          画面には本当のことを書いておく（D-084: 効果の無い入力を置かない）。
+        */}
+        <div className="rounded-lg border border-foreground/40 p-3 text-[11px] leading-relaxed">
+          いまは<b>記録するだけ</b>で、献立や目標カロリーには反映していません。
+          歩いたぶんを目標に足す仕組みは、これから作ります。
+        </div>
+
         <p className="text-xs leading-relaxed text-muted-foreground">
-          歩数とワークアウトの消費カロリーを取り込み、その日の目標に反映します。
+          歩数とワークアウトの消費カロリーを取り込みます。
           設定は最初の1回だけで、以降は毎晩自動で届きます。
         </p>
 
         {!ready && (
           <div className="rounded-lg border border-foreground/40 p-3 text-xs leading-relaxed">
-            先に「LINE・カレンダー」の設定を済ませてください。
-            そこで作った Apps Script を、この連携でもそのまま使います。
+            先に上の接続設定（ウェブアプリのURLと合言葉）を済ませてください。
+            同じ Apps Script を、この連携でもそのまま使います。
           </div>
         )}
 

@@ -75,8 +75,9 @@ export const SETTING_CATALOG: SettingEntry[] = [
   },
   {
     label: 'いまの暮らし',
-    where: 'いまの暮らし',
-    to: '/household',
+    where: '作り方',
+    to: '/settings/cooking',
+    folded: true,
     aliases: ['一人暮らし', '共働き', '育休', '子ども', 'ライフステージ', '世帯'],
   },
   {
@@ -116,6 +117,12 @@ export const SETTING_CATALOG: SettingEntry[] = [
     where: '作り方',
     to: '/settings/cooking',
     aliases: ['ごはん', '白米', '米', '糖質', '炭水化物', '主食', '食べない'],
+  },
+  {
+    label: 'ごはんを炊く日',
+    where: '作り方',
+    to: '/settings/cooking',
+    aliases: ['炊く', 'ごはん', '冷凍', 'まとめて炊く', '当日'],
   },
   {
     label: '作り置きをする曜日',
@@ -165,20 +172,20 @@ export const SETTING_CATALOG: SettingEntry[] = [
   },
   {
     label: '持っている調理器具',
-    where: '調理器具',
-    to: '/settings/equipment',
+    where: '台所の道具',
+    to: '/settings/kitchen',
     aliases: ['コンロ', 'こんろ', 'レンジ', 'れんじ', '電子レンジ', 'オーブン', '炊飯器', 'すいはんき', '道具', '口数', '鍋'],
   },
   {
     label: 'ごはんが炊き上がるまでの時間',
-    where: '調理器具',
-    to: '/settings/equipment',
+    where: '台所の道具',
+    to: '/settings/kitchen',
     aliases: ['炊飯', '炊飯器', '早炊き', '土鍋', '何分'],
   },
   {
     label: '保存容器の数と大きさ',
-    where: '保存容器',
-    to: '/settings/containers',
+    where: '台所の道具',
+    to: '/settings/kitchen',
     aliases: ['タッパー', 'たっぱー', '容器', '詰める', 'ふた', '保存容器'],
   },
 
@@ -205,20 +212,20 @@ export const SETTING_CATALOG: SettingEntry[] = [
   // --- アプリ ---------------------------------------------------------------
   {
     label: 'LINE に今日の食事を送る',
-    where: 'LINE・カレンダー',
+    where: '外とつなぐ',
     to: '/settings/notify',
     aliases: ['通知', 'つうち', 'LINE', 'line', 'ライン', 'お知らせ', 'リマインド'],
   },
   {
     label: 'Google カレンダー連携',
-    where: 'LINE・カレンダー',
+    where: '外とつなぐ',
     to: '/settings/notify',
     aliases: ['カレンダー', '予定', 'Google', '同期'],
   },
   {
     label: 'iPhone ヘルスケア連携（歩数）',
-    where: 'ヘルスケア連携',
-    to: '/settings/health',
+    where: '外とつなぐ',
+    to: '/settings/notify',
     aliases: ['歩数', 'ヘルスケア', 'Apple', 'ショートカット', '消費カロリー'],
   },
   {

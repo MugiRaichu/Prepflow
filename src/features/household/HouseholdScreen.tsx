@@ -31,7 +31,7 @@ const MODE_LABEL: Record<string, string> = {
  * 選ぶと何が変わるかを先に出してから適用する。設定を黙って書き換えない。
  * 育休のような一時的な状態には期限を持たせ、戻し忘れを防ぐ。
  */
-export function HouseholdScreen() {
+export function LifeStagePresets() {
   const nav = useNavigate();
   const settings = useLiveQuery(() => db.settings.get('singleton'), []);
   const current = useLiveQuery(
@@ -86,8 +86,6 @@ export function HouseholdScreen() {
 
   return (
     <div>
-      <PageHeader title="いまの暮らし" backTo="/settings" />
-
       <div className="space-y-4 p-4">
         {/*
           **選ばなくてよいことを先に言う。**
@@ -215,6 +213,19 @@ function ConfirmSheet({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 単独画面としての入口。設定の一覧からは外した（→「作り方」の中）。
+ * 古いリンクやブックマークのために残す。
+ */
+export function HouseholdScreen() {
+  return (
+    <div className="pb-6">
+      <PageHeader title="いまの暮らし" backTo="/settings/cooking" />
+      <LifeStagePresets />
     </div>
   );
 }
