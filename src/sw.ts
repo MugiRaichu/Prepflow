@@ -1,5 +1,9 @@
 /// <reference lib="webworker" />
-import { createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching';
+import {
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+  precacheAndRoute,
+} from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -76,11 +80,38 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+/*
+ * 古い版の precache を捨てる。
+ * 残しておくと端末の空きを食い、いっぱいになった端末では
+ * **新しい版を置ききれずに、中途半端な組み合わせが残る**（白い画面の元）。
+ */
+cleanupOutdatedCaches();
+
 // アプリ本体（JS/CSS/HTML/アイコン）を precache してオフライン起動を保証する
 precacheAndRoute(self.__WB_MANIFEST);
 
 // 静的ホスティングに /plan のようなファイルは無いので、index.html を返す
-registerRoute(new NavigationRoute(createHandlerBoundToURL(BASE + 'index.html')));
+/*
+ * SPA のフォールバック。**取りこぼしたら通信に落とす。**
+ *
+ * precache に index.html が無い状態（入れ替えの途中で電池が切れた、
+ * 端末の空きが尽きて置ききれなかった）だと、この handler は失敗する。
+ * 失敗をそのまま返すと画面は真っ白になり、**開き直しても同じ**——
+ * 壊れた precache は自分では直らないため。
+ *
+ * だから最後に通信を試す。1回でも通れば、そこから正しい版に入れ替わる。
+ */
+const appShell = createHandlerBoundToURL(BASE + 'index.html');
+registerRoute(
+  new NavigationRoute(async (options) => {
+    try {
+      return await appShell(options);
+    } catch {
+      // 置いてあるものが壊れている。取りに行く
+      return fetch(options.request);
+    }
+  }),
+);
 
 /*
  * 名前に使う筆記体（Google Fonts）を、一度取れたら端末に残す。

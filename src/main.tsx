@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import { db } from './db/db';
 import { ensureSeeded } from './db/seed';
 import { flushOutbox } from './notify/gasClient';
 import './index.css';
@@ -111,6 +112,31 @@ function dismissSplash(): void {
     window.setTimeout(() => el.remove(), 420);
   }, wait);
 }
+
+/**
+ * **起動画面は、何があっても消す。**
+ *
+ * 消すのは初期化が終わったあと（`ensureSeeded().finally`）。
+ * ところが初期化が**終わらない**ことがある——別のタブが古い版のまま開いていて、
+ * スキーマの入れ替えを待っている、など。そのとき絵は出たまま止まり、
+ * その裏に「開けません」と出しても**誰にも見えない**。
+ *
+ * 絵が消えれば、下にある案内（index.html の番人・App の待ちの画面）が見える。
+ * 15秒は、演出（3.7秒）と初期化がどれだけ遅くても足りる長さ。
+ */
+window.setTimeout(dismissSplash, 15000);
+
+/**
+ * **別のタブが邪魔をしているときは、そう言う。**
+ *
+ * IndexedDB は、古い版を開いたままのタブがあるとスキーマを入れ替えられない。
+ * Dexie は待ち続けるので、こちらからは「いつまでも終わらない」ようにしか見えない。
+ * 待っている理由が分かれば、閉じるという手が打てる。
+ */
+db.on('blocked', () => {
+  document.documentElement.dataset['pfBlocked'] = '1';
+  dismissSplash();
+});
 
 // 初回起動時のみ既定設定と食材マスタを投入してから描画する
 ensureSeeded().finally(() => {

@@ -423,13 +423,21 @@
    * 「まだ下に続いている」ことが動きで伝わる。
    * 色相は足さない（背景色そのものの不透明度を下げているだけ）。
    */
+  /*
+   * **画面に固定する**（本人指定）。
+   *
+   * もとは外枠の中の absolute だった。外枠の高さが端末の返す数字に左右されるので、
+   * 高さが1pxでもずれると、バーもいっしょにずれる（下が見切れる・浮きすぎる）。
+   * fixed なら**画面そのもの**が基準になり、外枠の高さの当て違いに巻き込まれない。
+   *
+   * 左右は外枠の padding が効かなくなるので、ここで env() から取り直す。
+   */
   .pf-tabbar {
-    position: absolute;
-    left: 0;
-    right: 0;
+    position: fixed;
+    left: calc(env(safe-area-inset-left) + 12px);
+    right: calc(env(safe-area-inset-right) + 12px);
     /* ホームバーぶん（最大10px）＋浮かせるぶん */
     bottom: calc(min(env(safe-area-inset-bottom), 10px) + 10px);
-    margin-inline: 12px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: 20px;
