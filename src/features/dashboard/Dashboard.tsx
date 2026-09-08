@@ -11,6 +11,7 @@ import type {
   ContainerAssignment,
   Habit,
   Macros,
+  MealSlot,
   PlannedMeal,
   Profile,
   Recipe,
@@ -187,30 +188,41 @@ export function Dashboard() {
       <PreppedStrip />
 
       {/*
-        2人以上いると、**同じ献立のカードが人数ぶん並ぶ。**
-        誰のぶんか書いていなかったので、まったく同じカードが2枚出て、
-        なぜ2回あるのかが読み取れなかった（実機で確認）。
-        1人のときは名前を出さない——書く意味がないうえ、行が1つ増える。
+        **1日の流れが、そのまま献立表になる。**
+
+        以前は同じことを2か所で言っていた——上に料理だけのカードが3枚、
+        下の「今日の流れ」に時刻だけの「朝食・昼食・夕食」。
+        「この料理は何時に食べるのか」を知るには、2つを見比べて
+        頭の中で突き合わせる必要があった（本人指摘）。
+
+        いまは朝・昼・夕の行の中に、その枠の料理が入っている。
+        起きてから寝るまでを上から読めば、いつ何を食べるかが分かる。
+
+        **流れはどの日でも出す。**日をめくったときに画面の形が変わると、
+        同じものを探し直すことになる。
       */}
-      {planned.length > 0 ? (
-        <div className="space-y-3">
-          {planned.map((m) => (
-            <MealCard
-              key={m.id}
-              meal={m}
-              assignments={assignments ?? []}
-              recipes={byRecipeId}
-              onUndo={undo.offer}
-              {...(manyPeople
-                ? { who: profiles?.find((p) => p.id === m.profileId)?.name ?? '' }
-                : {})}
-            />
-          ))}
-        </div>
-      ) : (
+      {settings && (
+        <TimelineCard
+          date={date}
+          isToday={isToday}
+          settings={settings}
+          habits={habits ?? []}
+          events={blocksFor(calendar ?? null, date)}
+          cookMinutes={cookMinutes}
+          meals={planned}
+          assignments={assignments ?? []}
+          recipes={byRecipeId}
+          profiles={profiles ?? []}
+          manyPeople={manyPeople}
+          onUndo={undo.offer}
+        />
+      )}
+
+      {/* 献立そのものが無い日。流れの下に1回だけ出す（枠ごとに3回言わない） */}
+      {planned.length === 0 && (
         <EmptyState
           title={isToday ? '今日の予定はまだありません' : 'この日の予定はありません'}
-          description="週のプランを作ると、ここに毎日の食事が並びます。"
+          description="週のプランを作ると、上の流れの中に毎日の食事が入ります。"
           action={
             <Link
               to="/plan"
@@ -219,16 +231,6 @@ export function Dashboard() {
               週のプランを作る
             </Link>
           }
-        />
-      )}
-
-      {/* 今日の流れ・目標・連続週は「今日」の話。ほかの日を見ているときは出さない */}
-      {isToday && settings && (
-        <TimelineCard
-          settings={settings}
-          habits={habits ?? []}
-          events={blocksFor(calendar ?? null, today)}
-          cookMinutes={cookMinutes}
         />
       )}
 
@@ -328,7 +330,7 @@ const MISSED: { value: MissedAction; label: string; note: string }[] = [
   { value: 'discard', label: '捨てた', note: '摂取には数えません' },
 ];
 
-function MealCard({
+function MealBody({
   who,
   meal,
   assignments,
@@ -360,55 +362,58 @@ function MealCard({
   };
 
   return (
-    <div className="rounded-lg border p-4">
+    <div>
+      {/*
+        枠の名前（朝食・昼食・夕食）は**行の見出しがもう出している。**
+        ここで繰り返すと、同じ言葉が1つの行に2回並ぶ。
+        出すのは、行の見出しでは分からないことだけ——誰のぶんか、食べたかどうか。
+      */}
       <button onClick={toggle} className="w-full text-left active:scale-[0.99]">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium">
-          {who ? who + '・' : ''}
-          {MEAL_SLOT_LABELS[meal.slot]}
-        </span>
-        {eaten && <span className="text-xs text-muted-foreground">食べた</span>}
-        {skipped && <span className="text-xs text-muted-foreground">食べていません</span>}
-      </div>
-
-      {meal.items.map((it, idx) => {
-        const a = assignments.find((x) => x.id === it.containerAssignmentId);
-        const r = recipes.get(it.recipeId);
-        return (
-          <div key={idx} className="flex items-center gap-2.5">
-            {/* 名前だけの行が並ぶと、どれがどれか読まないと分からない */}
-            {r && <DishImage recipe={r} className="size-11" />}
-            <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
-              {a && (
-                <span className="rounded border px-1.5 py-0.5 text-xs font-mono font-semibold">
-                  {a.containerLabel}
+        {meal.items.map((it, idx) => {
+          const a = assignments.find((x) => x.id === it.containerAssignmentId);
+          const r = recipes.get(it.recipeId);
+          return (
+            <div key={idx} className="flex items-center gap-2.5 py-0.5">
+              {/* 名前だけの行が並ぶと、どれがどれか読まないと分からない */}
+              {r && <DishImage recipe={r} className="size-11 shrink-0" />}
+              <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+                {a && (
+                  <span className="rounded border px-1.5 py-0.5 font-mono text-xs font-semibold">
+                    {a.containerLabel}
+                  </span>
+                )}
+                <span className={cn('text-base font-semibold', eaten && 'text-muted-foreground')}>
+                  {it.recipeTitle}
                 </span>
-              )}
-              <span className="text-lg font-semibold">{it.recipeTitle}</span>
-              <span className="text-sm tabular-nums text-muted-foreground">
-                {Math.round(it.grams)}g
-              </span>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {Math.round(it.grams)}g
+                </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      <div className="mt-2 text-xs tabular-nums text-muted-foreground">
-        {Math.round(meal.nutrition.kcal)} kcal ・ P {Math.round(meal.nutrition.proteinG)}g ・ F{' '}
-        {Math.round(meal.nutrition.fatG)}g ・ C {Math.round(meal.nutrition.carbG)}g
-      </div>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs tabular-nums text-muted-foreground">
+          {who && <span className="font-medium">{who}</span>}
+          <span>
+            {Math.round(meal.nutrition.kcal)} kcal ・ P {Math.round(meal.nutrition.proteinG)}g ・ F{' '}
+            {Math.round(meal.nutrition.fatG)}g ・ C {Math.round(meal.nutrition.carbG)}g
+          </span>
+          {eaten && <span className="font-medium text-foreground">食べた</span>}
+          {skipped && <span>食べていません</span>}
+        </div>
       </button>
 
       {/* 食べていない食事の始末。ふだんは1行、押すと3択が開く */}
       {!eaten && !skipped && (
-        <div className="mt-3 border-t pt-2">
+        <div className="mt-1.5">
           {asking ? (
-            <div className="space-y-2">
+            <div className="space-y-2 border-t pt-2">
               {MISSED.map((m) => (
                 <button
                   key={m.value}
                   onClick={() => void missed(m.value, m.label)}
-                  className="flex min-h-11 w-full items-center gap-3 rounded-md border px-3 text-left active:bg-accent"
+                  className="flex min-h-11 w-full items-center gap-3 rounded-md border bg-background px-3 text-left active:bg-accent"
                 >
                   <span className="shrink-0 text-xs font-medium">{m.label}</span>
                   <span className="min-w-0 flex-1 text-xs text-muted-foreground">{m.note}</span>
@@ -436,24 +441,43 @@ function MealCard({
 }
 
 /**
- * 今日の流れ。起床・就寝・予定から組んだ、食事とたんぱく質の時刻。
+ * 1日の流れ。起床・就寝・予定から組んだ時刻の上に、**その枠の献立が乗る。**
  *
- * 以前は設定の「1日の流れ」の一番下にだけあり、起きる時刻を設定しても
- * どこに反映されるのか分からなかった（本人指摘）。見る場所は今日タブ。
+ * 以前は流れと献立が別々の枠に分かれていて、「この料理は何時に食べるのか」は
+ * 2つを見比べないと分からなかった。しかも「朝食」という言葉が画面に2回出ていた
+ * （片方は時刻だけ、もう片方は料理だけ）。
+ *
+ * 起きてから寝るまでを上から1回読めば済むようにする。
  * 目に入るのは**次にやること1つ**。それ以外は薄く並べるだけ。
  */
 function TimelineCard({
+  date,
+  isToday,
   settings,
   habits,
   events,
   cookMinutes,
+  meals,
+  assignments,
+  recipes,
+  profiles,
+  manyPeople,
+  onUndo,
 }: {
+  date: string;
+  isToday: boolean;
   settings: AppSettings;
   habits: Habit[];
   events: CalendarBlock[];
   cookMinutes: number;
+  meals: PlannedMeal[];
+  assignments: ContainerAssignment[];
+  recipes: Map<string, Recipe>;
+  profiles: Profile[];
+  manyPeople: boolean;
+  onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
-  const weekday = new Date().getDay() as Weekday;
+  const weekday = new Date(date + 'T00:00:00').getDay() as Weekday;
   const timeline = buildTimeline({
     rhythm: settings.rhythm,
     habits,
@@ -464,44 +488,120 @@ function TimelineCard({
   });
   if (timeline.length === 0) return null;
 
+  // 枠ごとに分ける。2人以上いると、同じ枠に人数ぶんの食事が入る
+  const bySlot = new Map<MealSlot, PlannedMeal[]>();
+  for (const m of meals) {
+    const list = bySlot.get(m.slot);
+    if (list) list.push(m);
+    else bySlot.set(m.slot, [m]);
+  }
+  // 流れに枠が無いもの（間食など）。捨てずに末尾へ回す
+  const inFlow = new Set(timeline.map((e) => e.slot).filter(Boolean) as MealSlot[]);
+  const extraSlots = [...bySlot.keys()].filter((sl) => !inFlow.has(sl));
+
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
-  const nextIdx = timeline.findIndex((e) => toMin(e.time) >= nowMin);
+  // 「次」は今日だけの話。ほかの日には、いま何時かは関係がない
+  const nextIdx = isToday ? timeline.findIndex((e) => toMin(e.time) >= nowMin) : -1;
+
+  const nameOf = (m: PlannedMeal) =>
+    manyPeople ? (profiles.find((p) => p.id === m.profileId)?.name ?? '') : '';
 
   return (
-    <div className="rounded-lg border p-4">
-      <div className="mb-3 flex items-baseline justify-between">
-        <span className="text-xs text-muted-foreground">今日の流れ</span>
+    <div className="rounded-lg border p-3">
+      <div className="mb-2 flex items-baseline justify-between px-1">
+        <span className="text-xs text-muted-foreground">
+          {isToday ? '今日の流れ' : 'この日の流れ'}
+        </span>
         <Link to="/rhythm" className="text-xs underline underline-offset-2">
           変更
         </Link>
       </div>
-      <div className="space-y-1.5">
+
+      <div className="space-y-1">
         {timeline.map((e, i) => {
           const isNext = i === nextIdx;
-          const past = nextIdx === -1 || i < nextIdx;
+          const dishes = e.slot ? (bySlot.get(e.slot) ?? []) : [];
+          /*
+            過ぎた行は薄くする。ただし**まだ食べていない食事は薄くしない**——
+            そこがいちばん、いま手を動かす場所だから。
+          */
+          const pending = dishes.some((m) => m.status !== 'eaten' && m.status !== 'skipped');
+          const past = isToday && (nextIdx === -1 || i < nextIdx) && !pending;
+
           return (
             <div
               key={i}
               className={cn(
-                'flex gap-3 rounded-md px-2 py-1.5',
-                isNext && 'bg-foreground text-background',
+                'flex gap-2.5 rounded-md px-1.5 py-1.5',
+                // 献立の絵と食材の色が入るので、行ごと反転はさせない。
+                // 目印は時刻の丸と地の色。それでも「次」は一目で分かる
+                isNext && 'bg-secondary',
                 past && 'text-muted-foreground',
               )}
             >
-              <span className="w-11 shrink-0 text-xs font-medium tabular-nums">{e.time}</span>
+              <span
+                className={cn(
+                  'w-11 shrink-0 rounded py-0.5 text-center text-xs font-medium tabular-nums',
+                  isNext && 'bg-foreground text-background',
+                )}
+              >
+                {e.time}
+              </span>
+
               <div className="min-w-0 flex-1">
-                <div className={cn('text-sm', isNext && 'font-semibold')}>
+                <div className={cn('text-sm', (isNext || dishes.length > 0) && 'font-semibold')}>
                   {e.label}
                   {e.endTime ? <span className="ml-1 text-xs opacity-70">〜{e.endTime}</span> : null}
                 </div>
+
+                {/* 補足は「次」の行だけ。全部に出すと、流れが文章になって読めなくなる */}
                 {isNext && e.note ? (
-                  <div className="text-xs leading-relaxed opacity-80">{e.note}</div>
+                  <div className="text-xs leading-relaxed text-muted-foreground">{e.note}</div>
                 ) : null}
+
+                {dishes.length > 0 && (
+                  <div className="mt-1 space-y-2">
+                    {dishes.map((m) => (
+                      <MealBody
+                        key={m.id}
+                        meal={m}
+                        assignments={assignments}
+                        recipes={recipes}
+                        onUndo={onUndo}
+                        {...(nameOf(m) ? { who: nameOf(m) } : {})}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* 流れにある枠なのに献立が無い日は、ここが空になる。何も足さない */}
               </div>
             </div>
           );
         })}
+
+        {/* 間食など、時刻の決まっていない枠。流れの下にまとめる */}
+        {extraSlots.map((sl) => (
+          <div key={sl} className="flex gap-2.5 rounded-md px-1.5 py-1.5">
+            <span className="w-11 shrink-0 py-0.5 text-center text-xs text-muted-foreground">—</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold">{MEAL_SLOT_LABELS[sl]}</div>
+              <div className="mt-1 space-y-2">
+                {(bySlot.get(sl) ?? []).map((m) => (
+                  <MealBody
+                    key={m.id}
+                    meal={m}
+                    assignments={assignments}
+                    recipes={recipes}
+                    onUndo={onUndo}
+                    {...(nameOf(m) ? { who: nameOf(m) } : {})}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

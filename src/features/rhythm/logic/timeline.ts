@@ -37,6 +37,12 @@ export interface TimelineEntry {
   label: string;
   /** 補足。1行 */
   note?: string;
+  /**
+   * 食事枠。**この行に、その枠の献立を差し込む。**
+   * 時刻の行と献立のカードを別々に並べると、「朝食」が画面に2回出る
+   * （片方は時刻だけ、もう片方は料理だけ）。読む側は頭の中で突き合わせることになる。
+   */
+  slot?: MealSlot;
   /** 「なぜ？」で開く知見のID */
   knowledgeId?: string;
   /** 予定に合わせて動いた時刻かどうか */
@@ -115,6 +121,7 @@ export function buildTimeline(input: BuildTimelineInput): TimelineEntry[] {
   out.push({
     time: toTime(breakfast),
     kind: 'meal',
+    slot: 'breakfast',
     label: '朝食',
     note: '起床からおよそ45分後',
     knowledgeId: 'meal_regularity',
@@ -153,6 +160,7 @@ export function buildTimeline(input: BuildTimelineInput): TimelineEntry[] {
   out.push({
     time: toTime(lunch),
     kind: 'meal',
+    slot: 'lunch',
     label: '昼食',
     ...(lunchAdjusted ? { note: '予定のあと', adjusted: true } : {}),
   });
@@ -216,6 +224,7 @@ export function buildTimeline(input: BuildTimelineInput): TimelineEntry[] {
   out.push({
     time: toTime(dinner),
     kind: 'meal',
+    slot: 'dinner',
     label: '夕食',
     note: dinnerNote,
     knowledgeId: training ? 'protein_timing' : 'dinner_before_sleep',
