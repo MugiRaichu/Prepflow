@@ -35,9 +35,17 @@ var PROPS = PropertiesService.getScriptProperties();
  * プロパティに入っていればそちらを優先する（LINE を使う人は今までどおり）。
  */
 var TOKEN_IN_CODE = '';
+var LINE_TOKEN_IN_CODE = '';
+var LINE_USER_ID_IN_CODE = '';
 
 function sharedToken() {
   return PROPS.getProperty('SHARED_TOKEN') || TOKEN_IN_CODE;
+}
+function lineToken() {
+  return PROPS.getProperty('LINE_TOKEN') || LINE_TOKEN_IN_CODE;
+}
+function lineUserId() {
+  return PROPS.getProperty('LINE_USER_ID') || LINE_USER_ID_IN_CODE;
 }
 
 /** 献立を書く先のカレンダー名。読むときはこの名前のものを飛ばす */
@@ -383,10 +391,10 @@ function setupTrigger() {
  * 握りつぶすくらいなら、多少読みにくくても理由を見せるほうがいい。
  */
 function pushLine(text) {
-  var token = PROPS.getProperty('LINE_TOKEN');
-  var userId = PROPS.getProperty('LINE_USER_ID');
-  if (!token) throw new Error('LINE_TOKEN が未設定です（スクリプト プロパティ）');
-  if (!userId) throw new Error('LINE_USER_ID が未設定です（スクリプト プロパティ）');
+  var token = lineToken();
+  var userId = lineUserId();
+  if (!token) throw new Error('LINE のアクセストークンが入っていません（アプリで貼ってコードを取り直してください）');
+  if (!userId) throw new Error('LINE のユーザーIDが入っていません（アプリで貼ってコードを取り直してください）');
 
   var res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
     method: 'post',

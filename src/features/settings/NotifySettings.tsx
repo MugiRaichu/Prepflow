@@ -213,7 +213,9 @@ function Labeled({
 
 /**
  * GAS の接続設定。
- * 手順は長いが、貼り付ける箇所は2つ（URLと合言葉）だけになるようにしている。
+ * 貼り付ける箇所は**URLの1つだけ**。合言葉はアプリが作ってコードに埋め込み、
+ * LINE の2つの値もこの画面に貼れば同じくコードに入る。
+ * Google の設定画面でプロパティを登録する作業は、もう無い。
  */
 function GasSetup({ settings }: { settings: AppSettingsType }) {
   const [url, setUrl] = useState(settings.notify.gasEndpointUrl ?? '');
@@ -271,15 +273,23 @@ function GasSetup({ settings }: { settings: AppSettingsType }) {
         />
       </div>
 
-      <div className="space-y-1">
-        <div className="text-xs text-muted-foreground">合言葉（SHARED_TOKEN）</div>
+      {/*
+        **合言葉はもう打たせない。**アプリが作って、コピーするコードに
+        埋め込む（GasSetupGuide）。前から使っている人が自分の値を入れ直せる
+        ように口だけ残し、ふだんは畳んでおく
+      */}
+      <details>
+        <summary className="min-h-11 cursor-pointer text-xs text-muted-foreground">
+          合言葉を自分で決める（ふつうは不要）
+        </summary>
         <input
           value={token}
           onChange={(e) => setToken(e.target.value)}
           type="password"
-          className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          placeholder="アプリが作った合言葉を使っています"
+          className="mt-1 h-11 w-full rounded-md border border-input bg-transparent px-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-      </div>
+      </details>
 
       {/* LINE を使わない人に「テスト送信」「今週を送る」は関係ない。出さない */}
       <div className={settings.notify.lineEnabled ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-1 gap-2'}>
