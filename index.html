@@ -13,10 +13,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <!--
-      black-translucent にすると、iOS はステータスバーの裏まで本文を伸ばす。
-      ところが実機（iPhone 17）ではビューの高さがステータスバーぶん足りず、
-      本文が時刻に重なったまま、下端に 62px の届かない帯が残った。
-      背景がもともと黒なので、不透明の black で見た目は変わらない。
+      ステータスバーは default（時刻とバッテリーが、地色の上にそのまま出る）。
+      black-translucent は使わない。実機（iPhone 17）でビューの高さが
+      ステータスバーぶん足りず、下端に 62px の届かない帯が残った。
+
+      **どの指定にしても、上の viewport-fit=cover があるかぎり
+      本文の領域は画面いっぱいに広がる。**時刻を避けるぶんは指定ではなく
+      env(safe-area-inset-top) から取る（src/index.css の .pf-shell / .pf-safe-top）。
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Prepflow" />
@@ -489,12 +492,11 @@
         アイコンと同じ一筆。器で受けて、右上へ流れてほどける。
         起動画面とホーム画面で違う印を出さない
       -->
-      <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="38"
+      <svg viewBox="0 0 512 512" fill="none" stroke="#a4483b" stroke-width="24"
         stroke-linecap="round" stroke-linejoin="round">
-        <path d="M118 168 C 118 316 178 388 256 388 C 334 388 394 316 394 168 C 394 118 330 108 306 152 C 282 196 348 226 396 172" />
-        <path d="M 166 250 C 196 214 226 286 256 250 C 286 214 316 286 346 250" stroke-width="22" opacity="0.72" />
-        <path d="M 206 128 C 232 100 206 82 220 56" stroke-width="18" opacity="0.6" />
-        <path d="M 288 122 C 314 94 288 76 302 50" stroke-width="18" opacity="0.45" />
+        <path d="M400 160 C 389 194 371 228 346 228 L 116 228 C 116 326 166 386 231 386 C 296 386 346 326 346 228" />
+        <path d="M180 176 C 196 152 178 136 191 108" stroke-width="15" />
+        <path d="M258 184 C 273 164 258 149 269 125" stroke-width="15" />
       </svg>
       <div class="pf-words">
         <p class="pf-tagline">食と暮らしに寄り添う。</p>
@@ -509,5 +511,152 @@
     <script src="/splash-theme.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!--
+      **白い画面のまま置かない。**最後の砦。
+
+      アプリの中で落ちたぶんは React 側で受け止めている（ErrorBoundary）。
+      だがそこへ**辿り着く前**に止まると、受け止める人がいない——
+      本体の読み込みが 404 になる、通信が途中で切れる、
+      入れ替わった Service Worker が古い組み合わせを返す、など。
+      そのときはこの素の HTML だけが動く。だから出口もここに置く。
+
+      判定は「#root に何か描かれたか」だけ。10秒経っても空なら、止まっている。
+
+      直し方を2つ出す。**どちらもデータは消えない**（献立も設定も IndexedDB にあり、
+      ここで触るのは読み込み用の一時ファイルだけ）。
+    -->
+    <script>
+      (function () {
+        var WAIT_MS = 10000;
+        var shown = false;
+
+        function panel(title, note) {
+          if (shown) return;
+          shown = true;
+          var splash = document.getElementById('pf-splash');
+          if (splash) splash.remove();
+
+          var wrap = document.createElement('div');
+          wrap.setAttribute(
+            'style',
+            'position:fixed;inset:0;z-index:10000;overflow:auto;' +
+              'background:#faf7f2;color:#2b2724;' +
+              'font:15px/1.7 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;' +
+              'padding:calc(env(safe-area-inset-top) + 24px) 24px 24px;'
+          );
+
+          var box = document.createElement('div');
+          box.setAttribute('style', 'max-width:26rem;margin:0 auto');
+
+          var h = document.createElement('h1');
+          h.setAttribute('style', 'font-size:20px;font-weight:600;margin:0 0 12px');
+          h.textContent = title;
+
+          var p = document.createElement('p');
+          p.setAttribute('style', 'margin:0 0 20px;color:#6b635c');
+          p.textContent = note;
+
+          box.appendChild(h);
+          box.appendChild(p);
+          box.appendChild(
+            button('開き直す', '#2b2724', '#faf7f2', function () {
+              location.reload();
+            })
+          );
+          box.appendChild(
+            button('アプリを入れ直す', 'transparent', '#2b2724', function () {
+              reinstall();
+            })
+          );
+
+          var small = document.createElement('p');
+          small.setAttribute('style', 'margin:12px 0 0;font-size:13px;color:#6b635c');
+          small.textContent =
+            '「入れ直す」を押しても、献立・設定・買い出しの記録は消えません。' +
+            '読み込み用の一時ファイルだけを捨てて、もう一度取り直します。';
+          box.appendChild(small);
+
+          wrap.appendChild(box);
+          document.body.appendChild(wrap);
+        }
+
+        function button(label, bg, fg, onClick) {
+          var b = document.createElement('button');
+          b.textContent = label;
+          b.setAttribute(
+            'style',
+            'display:block;width:100%;min-height:48px;margin-bottom:10px;' +
+              'border-radius:10px;border:1px solid #2b2724;cursor:pointer;' +
+              'font:inherit;font-weight:600;background:' + bg + ';color:' + fg
+          );
+          b.onclick = onClick;
+          return b;
+        }
+
+        /*
+          読み込み用の一時ファイルだけを捨てる。
+          IndexedDB（献立・設定・レシピ）には触らない
+        */
+        function reinstall() {
+          var jobs = [];
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+            jobs.push(
+              navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(
+                  rs.map(function (r) {
+                    return r.unregister();
+                  })
+                );
+              })
+            );
+          }
+          if (window.caches && caches.keys) {
+            jobs.push(
+              caches.keys().then(function (ks) {
+                return Promise.all(
+                  ks.map(function (k) {
+                    return caches.delete(k);
+                  })
+                );
+              })
+            );
+          }
+          Promise.all(jobs)
+            ['catch'](function () {})
+            .then(function () {
+              location.replace(location.pathname + location.search);
+            });
+        }
+
+        /*
+          本体の読み込みそのものが失敗したときは、待たずに出す。
+          ただし**まだ何も描けていないときだけ**——動き出したあとに
+          あとから読むファイルが1つ落ちても、画面ごと差し替えては困る
+          （そこは React 側の受け止めに任せる）。
+        */
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e && e.target;
+            var root = document.getElementById('root');
+            if (root && root.childElementCount > 0) return;
+            if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+              panel('アプリを読み込めませんでした', '本体のファイルが取得できませんでした。');
+            }
+          },
+          true
+        );
+
+        window.setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount === 0) {
+            panel(
+              'アプリを開けませんでした',
+              '読み込みの途中で止まりました。記録したものは残っています。'
+            );
+          }
+        }, WAIT_MS);
+      })();
+    </script>
   </body>
 </html>
