@@ -24,38 +24,38 @@ import type { ActivitySample } from '@/db/schema';
  * 通るのは日付・歩数・kcal だけで、名前も位置も通さない。
  */
 
-interface HealthSample {
+export interface HealthSample {
   date: string;
   steps: number;
   activeKcal: number;
 }
 
 /** 取り込みの間隔。1日に何度も開くので、そのたびに取りに行かない */
-const STALE_MS = 6 * 60 * 60 * 1000;
+export const HEALTH_STALE = 6 * 60 * 60 * 1000;
 const LAST_KEY = 'healthPulledAt';
 
 /**
  * GAS に貯まっているぶんを取り込む。
  * 同じ日のデータは上書きする（ショートカットが日中に何度動いても増えない）。
  */
-export async function pullHealth(): Promise<number> {
-  const settings = await db.settings.get('singleton');
-  const url = settings?.notify.gasEndpointUrl;
-  const token = await getSecret('gas_shared_token');
-  if (!url || !token) return 0;
-
-  const res = await post<{ samples: HealthSample[] }>(url, { action: 'healthPull', token });
-  if (!res.ok || !res.samples?.length) return 0;
-
+/**
+ * 受け取ったぶんを端末に置く。
+ *
+ * 取りに行く部分と分けてあるのは、**1往復でカレンダーと歩数をまとめて
+ * 受け取る経路**（notify/gasSync.ts）からも、同じ置き方を使うため。
+ */
+export async function applyHealth(samples: HealthSample[]): Promise<number> {
   const profile = (await db.profiles.where('isActive').equals(1).toArray())[0];
-  if (!profile) return 0;
+  // 取り込む先が無くても、来たことは覚えておく（次に開くたびに叩き直さない）
+  await db.meta.put({ key: LAST_KEY, value: nowIso(), updatedAt: nowIso() });
+  if (!profile || samples.length === 0) return 0;
 
   let saved = 0;
   await db.transaction('rw', db.activitySamples, async () => {
     const mine = await db.activitySamples.where('profileId').equals(profile.id).toArray();
     const byDate = new Map(mine.map((s) => [s.date, s]));
 
-    for (const s of res.samples!) {
+    for (const s of samples) {
       if (!s.date) continue;
       const cur = byDate.get(s.date);
       const next: ActivitySample = {
@@ -73,18 +73,19 @@ export async function pullHealth(): Promise<number> {
     }
   });
 
-  await db.meta.put({ key: LAST_KEY, value: nowIso(), updatedAt: nowIso() });
   return saved;
 }
 
-/** しばらく取り込んでいなければ取りに行く。起動時に1回呼ぶ */
-export async function pullHealthIfStale(): Promise<void> {
-  const row = await db.meta.get(LAST_KEY);
-  const last = typeof row?.value === 'string' ? Date.parse(row.value) : 0;
-  if (Date.now() - last < STALE_MS) return;
-  await pullHealth().catch(() => {
-    // 圏外・未設定なら何もしない。次に開いたときに取りに行く
-  });
+/** 歩数だけを取りに行く。設定画面の「いま取り込む」から呼ぶ */
+export async function pullHealth(): Promise<number> {
+  const settings = await db.settings.get('singleton');
+  const url = settings?.notify.gasEndpointUrl;
+  const token = await getSecret('gas_shared_token');
+  if (!url || !token) return 0;
+
+  const res = await post<{ samples: HealthSample[] }>(url, { action: 'healthPull', token });
+  if (!res.ok) return 0;
+  return applyHealth(res.samples ?? []);
 }
 
 /** 最後に取り込んだ日時。設定画面に出す */

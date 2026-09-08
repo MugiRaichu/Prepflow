@@ -402,7 +402,7 @@ export interface Container extends Entity {
 export type StoreSection =
   | 'produce'        // 野菜・果物
   | 'meat_fish'      // 精肉・鮮魚
-  | 'daily_chilled'  // 日配品（豆腐・卵・乳製品・練物）
+  | 'daily_chilled'  // 豆腐・卵・乳製品（練物・こんにゃくもここ）
   | 'dry_grocery'    // 乾物・缶詰・米・麺
   | 'seasoning'      // 調味料
   | 'frozen'         // 冷凍（溶けるので最後）

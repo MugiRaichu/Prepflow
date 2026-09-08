@@ -24,7 +24,7 @@ import {
   toggleAllergen,
   updateProfile,
 } from '@/db/repositories/profiles';
-import { weightPace } from '@/lib/nutrition';
+import { bodyDefaultsFor, weightPace } from '@/lib/nutrition';
 import { addDaysIso, todayIso } from '@/lib/labels';
 import type { ActivityLevel, AllergenTag, DietGoal, Profile, Sex } from '@/db/schema';
 
@@ -145,7 +145,7 @@ function ProfileRow({
 
           <Labeled label="身長">
             <Stepper
-              value={profile.heightCm ?? 170}
+              value={profile.heightCm ?? bodyDefaultsFor(profile.sex).heightCm}
               onChange={(v) => patch({ heightCm: v })}
               step={1}
               min={130}
@@ -156,7 +156,7 @@ function ProfileRow({
 
           <Labeled label="体重">
             <Stepper
-              value={profile.weightKg ?? 65}
+              value={profile.weightKg ?? bodyDefaultsFor(profile.sex).weightKg}
               onChange={(v) => patch({ weightKg: v })}
               step={0.5}
               min={30}
@@ -268,7 +268,7 @@ function WeightGoal({
   onPatch: (v: Partial<Profile>) => void;
 }) {
   const today = todayIso();
-  const now = profile.weightKg ?? 65;
+  const now = profile.weightKg ?? bodyDefaultsFor(profile.sex).weightKg;
   const goalKg = profile.goalWeightKg ?? Math.round((profile.goal === 'cut' ? now - 3 : now + 3) * 2) / 2;
   const days = profile.goalDate
     ? Math.max(

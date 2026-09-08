@@ -3,7 +3,7 @@
  * 目標PFCは常にここで計算する。UI から数値を直接書き込ませない（D-009）。
  */
 import { db, newEntity, touch, nowIso } from '../db';
-import { calcTargets, recalcProfileTargets, DEFAULT_BODY } from '@/lib/nutrition';
+import { calcTargets, recalcProfileTargets, bodyDefaultsFor, DEFAULT_BODY } from '@/lib/nutrition';
 import type {
   ActivityLevel,
   AllergenTag,
@@ -32,8 +32,10 @@ const DEFAULT_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner'];
 export function buildProfile(draft: ProfileDraft): Profile {
   const sex = draft.sex ?? DEFAULT_BODY.sex;
   const birthYear = draft.birthYear ?? DEFAULT_BODY.birthYear;
-  const heightCm = draft.heightCm ?? DEFAULT_BODY.heightCm;
-  const weightKg = draft.weightKg ?? DEFAULT_BODY.weightKg;
+  // 聞いていない体格は、答えた性別に合わせて埋める
+  const body = bodyDefaultsFor(sex);
+  const heightCm = draft.heightCm ?? body.heightCm;
+  const weightKg = draft.weightKg ?? body.weightKg;
   const goal = draft.goal ?? 'maintain';
   const activityLevel = draft.activityLevel ?? 'sedentary';
 

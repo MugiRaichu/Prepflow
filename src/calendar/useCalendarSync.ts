@@ -22,7 +22,8 @@
  * 1分以内に取っていれば見送る。
  */
 import { useEffect } from 'react';
-import { CALENDAR_STALE, syncCalendarIfStale } from './gasCalendar';
+import { CALENDAR_STALE } from './gasCalendar';
+import { syncFromGas } from '@/notify/gasSync';
 import type { AppSettings } from '@/db/schema';
 
 export function useCalendarSync(settings: AppSettings | undefined): void {
@@ -31,8 +32,14 @@ export function useCalendarSync(settings: AppSettings | undefined): void {
   useEffect(() => {
     if (!settings || !enabled) return;
 
-    // 失敗しても黙る。今日タブを開くたびに出るエラーは害でしかない
-    const pull = (maxAge: number) => void syncCalendarIfStale(settings, maxAge).catch(() => {});
+    /*
+     * 失敗しても黙る。今日タブを開くたびに出るエラーは害でしかない。
+     *
+     * 歩数も同じ往復で受け取る。**別々に行くと、起動のたびに
+     * コールドスタートを2回ぶん待つことになる**（notify/gasSync.ts）。
+     */
+    const pull = (maxAge: number) =>
+      void syncFromGas(settings, { calendarMaxAgeMs: maxAge }).catch(() => {});
 
     pull(CALENDAR_STALE.open);
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, Upload, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { resetEverything } from '@/db/repositories/backup';
 import { BloomSetting } from './BloomSetting';
@@ -237,6 +238,30 @@ export function DataSettings() {
           ブラウザの設定から消すのと同じことだが、ホーム画面から起動している人は
           「Cookieと他のサイトデータ」に辿り着けない。だからアプリの中に置く。
         */}
+        {/*
+          最初の質問へ戻る道。
+          **画面はあったのに、アプリのどこからも開けなかった**（本人「チュートリアルが
+          表示されません」）。`/welcome` は残っていたが、そこへ行くリンクが1つも無く、
+          URL を手で打つしか無い状態だった。作った画面は、必ず入口とセットで置く。
+
+          消すのとは違うので「最初から始める」の上に置き、
+          **何が書き換わり、何が残るかを先に書く。**
+        */}
+        <div className="space-y-2 border-t pt-6">
+          <div className="text-sm font-medium">はじめの質問をやり直す</div>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            人数・体格・作る回数・予算などを、最初と同じ順に聞き直します。
+            答えたとおりに設定を書き直しますが、
+            <b className="text-foreground">レシピ・献立・買い出しの記録は消えません。</b>
+          </p>
+          <Link
+            to="/welcome"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border text-sm font-medium active:bg-accent"
+          >
+            はじめの質問をやり直す
+          </Link>
+        </div>
+
         <div className="space-y-2 border-t pt-6">
           <div className="text-sm font-medium">最初から始める</div>
           <p className="text-xs leading-relaxed text-muted-foreground">

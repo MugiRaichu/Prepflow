@@ -62,8 +62,9 @@ export default defineConfig({
             files: [{ name: 'image', accept: ['image/*'] }],
           },
         },
-        background_color: '#000000',
-        theme_color: '#000000',
+        // 地色。黒のままだと起動時の下地と縁が黒くなる（白黒だった頃の名残）
+        background_color: '#faf7f2',
+        theme_color: '#faf7f2',
         icons: [
           { src: 'icons/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
