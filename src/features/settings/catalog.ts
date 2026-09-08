@@ -229,6 +229,12 @@ export const SETTING_CATALOG: SettingEntry[] = [
     aliases: ['歩数', 'ヘルスケア', 'Apple', 'ショートカット', '消費カロリー'],
   },
   {
+    label: '家族と同じ買い出し・在庫を見る',
+    where: '家族と共有',
+    to: '/settings/family',
+    aliases: ['共有', '家族', '同期', '2台', '夫婦', '招待', 'シェア'],
+  },
+  {
     label: 'データの書き出し・戻す',
     where: 'データの保存',
     to: '/settings/data',
