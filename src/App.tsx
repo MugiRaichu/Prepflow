@@ -46,19 +46,26 @@ export default function App() {
 
   if (settings === undefined) {
     if (!slow) return null;
+    /*
+      **`.pf-shell` に乗せる。**素の div のままだと、上端が時刻に重なる
+      （避けるぶんを持っているのは外枠だけ）。ここも画面いっぱいの枠なので、
+      同じものを使う
+    */
     return (
-      <div className="mx-auto max-w-md space-y-4 p-6">
-        <h1 className="text-xl font-semibold">開くのに時間がかかっています</h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          ほかの画面で Prepflow を開いたままだと、ここで待つことがあります。
-          そちらを閉じてから、開き直してください。
-        </p>
-        <button
-          onClick={() => location.reload()}
-          className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background"
-        >
-          開き直す
-        </button>
+      <div className="pf-shell overflow-y-auto bg-background text-foreground">
+        <div className="mx-auto max-w-md space-y-4 p-6">
+          <h1 className="text-xl font-semibold">開くのに時間がかかっています</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            ほかの画面で Prepflow を開いたままだと、ここで待つことがあります。
+            そちらを閉じてから、開き直してください。
+          </p>
+          <button
+            onClick={() => location.reload()}
+            className="min-h-12 w-full rounded-lg bg-foreground text-sm font-semibold text-background"
+          >
+            開き直す
+          </button>
+        </div>
       </div>
     );
   }
