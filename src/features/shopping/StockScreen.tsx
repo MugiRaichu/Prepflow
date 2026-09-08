@@ -73,7 +73,7 @@ export function StockScreen() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="冷蔵庫の残りを直す" backTo="/plan" />
+      <PageHeader title="家にある量を入れ直す" backTo="/plan" />
       {undo.bar}
 
       {asked.length === 0 ? (

@@ -324,8 +324,8 @@ export function CookScreen() {
 
       <div className="space-y-4 p-4">
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="全体" value={fmtMin(result.makespanSec)} />
-          <Stat label="手を動かす" value={fmtMin(result.handsOnSec)} />
+          <Stat label="はじめ〜終わり" value={fmtMin(result.makespanSec)} />
+          <Stat label="手が要る時間" value={fmtMin(result.handsOnSec)} />
           <Stat label="待ち時間" value={fmtMin(result.idleSec)} />
         </div>
 

@@ -588,7 +588,7 @@ export function Onboarding() {
 
             {cur.key === 'keep' && (
               <>
-                <Labeled label="冷蔵で置く上限">
+                <Labeled label="冷蔵庫に置く日数">
                   <Chips
                     options={[2, 3, 4, 5].map((d) => ({ value: d, label: d + '日' }))}
                     value={maxFridgeDays}

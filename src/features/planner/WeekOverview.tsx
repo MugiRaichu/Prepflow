@@ -81,7 +81,7 @@ export function WeekOverview() {
       <div className="space-y-4 p-4">
         <div className="grid grid-cols-3 gap-2">
           <Stat label="食数" value={eaten + ' / ' + planned.length} />
-          <Stat label="見込み" value={yen(plan.estimatedCostYen)} />
+          <Stat label="予想の金額" value={yen(plan.estimatedCostYen)} />
           <Stat label="品数" value={times.size + ' 品'} />
         </div>
 
