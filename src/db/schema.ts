@@ -701,6 +701,32 @@ export interface PlannedMeal extends Entity {
   note?: string;
 }
 
+/**
+ * 食事の写真。
+ *
+ * **飾るためではなく、見返すため。**一度やめた機能だが（作り置きの皿は映えない）、
+ * 目的が「あとで自分が見返す」に変わったので、別のものとして入れ直した。
+ *
+ * レシピではなく、**食べた1回**に紐づける。同じ料理でも、作った日ごとに写真は別物。
+ * 献立に無いもの（間食）も置けるように、`plannedMealId` は任意にしてある。
+ *
+ * 画像は Blob。**書き出し（バックアップ）には含めない**——JSON に入らないうえ、
+ * 数十枚で数MBになり、書き出したファイルが持ち運べなくなる。
+ */
+export interface MealPhoto extends Entity {
+  date: ISODate;
+  slot: MealSlot;
+  /** 献立の食事に紐づくなら。間食など、献立に無いものは持たない */
+  plannedMealId?: UUID;
+  profileId?: UUID;
+  /** 長辺1280pxまで縮めた JPEG */
+  image: Blob;
+  width: number;
+  height: number;
+  takenAt: ISODateTime;
+  note?: string;
+}
+
 // ---------------------------------------------------------------------------
 // 8. 容器の割当（ラベリング）
 // ---------------------------------------------------------------------------

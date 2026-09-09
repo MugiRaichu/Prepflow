@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
-import { Boxes, Check, ChevronLeft, ChevronRight, Circle } from 'lucide-react';
+import { Boxes, Check, ChevronLeft, ChevronRight, Circle, Images } from 'lucide-react';
 import { db } from '@/db/db';
 import { todayIso, formatDateJa, MEAL_SLOT_LABELS } from '@/lib/labels';
 import { sumMacros } from '@/lib/nutrition';
@@ -11,6 +11,7 @@ import type {
   ContainerAssignment,
   Habit,
   Macros,
+  MealPhoto,
   MealSlot,
   PlannedMeal,
   Profile,
@@ -22,10 +23,12 @@ import { DishImage } from '@/features/recipes/DishImage';
 import { useUndoBar } from '@/components/shared/UndoBar';
 import { handleMissedMeal, setMealEaten, undoMissedMeal } from '@/db/repositories/meals';
 import { listPrepped } from '@/db/repositories/leftovers';
+import { photoCount, photosOn } from '@/db/repositories/photos';
+import { PhotoAdd, useObjectUrl } from '@/components/shared/PhotoAdd';
 import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
-import { buildTimeline, toMin } from '@/features/rhythm/logic/timeline';
-import type { CalendarBlock } from '@/features/rhythm/logic/timeline';
+import { buildTimeline, toMin, toTime } from '@/features/rhythm/logic/timeline';
+import type { CalendarBlock, TimelineEntry } from '@/features/rhythm/logic/timeline';
 import { blocksFor, readCache } from '@/calendar/gasCalendar';
 import { useCalendarSync } from '@/calendar/useCalendarSync';
 import { useCookingMode } from '@/features/household/useCookingMode';
@@ -107,6 +110,8 @@ export function Dashboard() {
     () => db.containerAssignments.where('intendedDate').equals(date).toArray(),
     [date],
   );
+  // その日の写真。流れの中の、撮った枠の行に出る
+  const photos = useLiveQuery(() => photosOn(date), [date]) ?? [];
   // 期限切れは PreppedStrip の中でラベルを反転させて示す。別枠にしない
   const plans = useLiveQuery(
     () => db.weekPlans.where('deleted').equals(0).reverse().sortBy('weekStart'),
@@ -198,6 +203,7 @@ export function Dashboard() {
       {undo.bar}
 
       <PreppedStrip />
+      <PhotoStrip />
 
       {/*
         **1日の流れが、そのまま献立表になる。**
@@ -228,6 +234,7 @@ export function Dashboard() {
           manyPeople={manyPeople}
           dayTotals={dayTotals}
           dayWord={isToday ? '今日' : 'この日'}
+          photos={photos}
           onUndo={undo.offer}
         />
       )}
@@ -271,6 +278,24 @@ export function Dashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 撮った写真への入口。
+ *
+ * **1枚も無いうちは出さない。**入口だけ先に置くと、押した先が毎回空になる。
+ * 撮り始めた人にだけ、見返す道が現れる。
+ */
+function PhotoStrip() {
+  const n = useLiveQuery(photoCount, []);
+  if (!n) return null;
+  return (
+    <Link to="/photos" className="flex items-center gap-2 rounded-lg border p-3 active:bg-accent">
+      <Images className="size-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1 text-sm">写真 {n} 枚</span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 
@@ -353,6 +378,7 @@ function MealBody({
   recipes,
   total,
   dayWord,
+  photos,
   onUndo,
 }: {
   /** 誰のぶんか。1人のときは渡さない（書く意味がない） */
@@ -363,6 +389,8 @@ function MealBody({
   /** この人の、その日の合計と目標。帯を出すのに使う */
   total?: { eaten: number; target: number };
   dayWord: string;
+  /** この食事の写真 */
+  photos: MealPhoto[];
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const eaten = meal.status === 'eaten';
@@ -433,6 +461,9 @@ function MealBody({
       })}
 
       {who && <div className="mt-1 text-xs font-medium text-muted-foreground">{who}</div>}
+
+      {/* 撮ってあれば出す。**献立の下、数字の上**——見返すときに探すのは絵のほう */}
+      <PhotoRow photos={photos} />
 
       {/*
         食べる前は、栄養の内訳。食べたあとは、**その食事が合計のどこへ入ったか。**
@@ -509,9 +540,17 @@ function MealBody({
             <Check className="size-3.5 text-background" strokeWidth={3} />
           </span>
           <span className="text-sm font-semibold">食べた</span>
+          {/* 撮るのは食べる場面。**食べたと押したあとに出す**のがいちばん近い */}
+          <PhotoAdd
+            slot={meal.slot}
+            date={meal.date}
+            plannedMealId={meal.id}
+            profileId={meal.profileId}
+            className="ml-auto"
+          />
           <button
             onClick={() => void setMealEaten(meal, false)}
-            className="ml-auto min-h-11 px-2 text-xs text-muted-foreground underline underline-offset-2"
+            className="min-h-11 px-2 text-xs text-muted-foreground underline underline-offset-2"
           >
             取り消す
           </button>
@@ -520,6 +559,36 @@ function MealBody({
 
       {skipped && <div className="mt-1.5 text-sm text-muted-foreground">食べていません</div>}
     </div>
+  );
+}
+
+/**
+ * 撮ってある写真を横に並べる。
+ *
+ * **1枚でも複数でも同じ形にする。**枚数で見た目が変わると、
+ * 「増えた」ことに気づけない。はみ出したぶんは横に流す。
+ */
+function PhotoRow({ photos }: { photos: MealPhoto[] }) {
+  if (photos.length === 0) return null;
+  return (
+    <div className="mt-1.5 flex gap-1.5 overflow-x-auto">
+      {photos.map((p) => (
+        <PhotoThumb key={p.id} photo={p} />
+      ))}
+    </div>
+  );
+}
+
+function PhotoThumb({ photo }: { photo: MealPhoto }) {
+  const url = useObjectUrl(photo.image);
+  return (
+    <Link
+      to="/photos"
+      className="size-16 shrink-0 overflow-hidden rounded-md border bg-secondary"
+      aria-label="写真を見返す"
+    >
+      {url && <img src={url} alt="" className="size-full object-cover" />}
+    </Link>
   );
 }
 
@@ -604,6 +673,7 @@ function TimelineCard({
   manyPeople,
   dayTotals,
   dayWord,
+  photos,
   onUndo,
 }: {
   date: string;
@@ -620,6 +690,8 @@ function TimelineCard({
   /** 人ごとの、その日の合計と目標 */
   dayTotals: Map<string, { eaten: number; target: number }>;
   dayWord: string;
+  /** その日の写真 */
+  photos: MealPhoto[];
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const weekday = new Date(date + 'T00:00:00').getDay() as Weekday;
@@ -646,8 +718,43 @@ function TimelineCard({
 
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  /*
+   * 間食。**「間食と言える時間」にだけ出す**（本人指定）。
+   *
+   * 食事の時刻から45分以内は、間食ではなく食事そのもの。
+   * 起きる前と寝たあとも出さない。**いつでも出しておくと、
+   * 3食の行と同じ重さで1日中居座る**ことになる。
+   *
+   * すでに撮ってあれば、時間帯にかかわらず出す——見返すためのものなので、
+   * 撮ったものが画面から消えては意味がない。
+   */
+  const mealMins = timeline.filter((e) => e.slot).map((e) => toMin(e.time));
+  const wakeMin = toMin(timeline[0]!.time);
+  const sleepMin = toMin(timeline[timeline.length - 1]!.time);
+  const snackPhotos = photos.filter((p) => p.slot === 'snack');
+  const canSnackNow =
+    isToday &&
+    nowMin > wakeMin + 30 &&
+    (sleepMin > wakeMin ? nowMin < sleepMin : true) &&
+    mealMins.every((m) => Math.abs(m - nowMin) >= 45);
+  const snackAt = snackPhotos[0]
+    ? new Date(snackPhotos[0].takenAt).toTimeString().slice(0, 5)
+    : toTime(nowMin);
+  const showSnack = snackPhotos.length > 0 || canSnackNow;
+
+  /*
+   * 流れの行と間食の行を、時刻でひとつに並べる。
+   * 間食を末尾に置くと「いつ食べたか」が流れから外れる
+   */
+  type Row = { time: string; entry?: TimelineEntry; snack?: boolean };
+  const rows: Row[] = timeline.map((e) => ({ time: e.time, entry: e }));
+  if (showSnack) rows.push({ time: snackAt, snack: true });
+  const sortKey = (t: string) => (toMin(t) < wakeMin ? toMin(t) + 1440 : toMin(t));
+  rows.sort((a, b) => sortKey(a.time) - sortKey(b.time));
+
   // 「次」は今日だけの話。ほかの日には、いま何時かは関係がない
-  const nextIdx = isToday ? timeline.findIndex((e) => toMin(e.time) >= nowMin) : -1;
+  const nextIdx = isToday ? rows.findIndex((r) => toMin(r.time) >= nowMin) : -1;
 
   const nameOf = (m: PlannedMeal) =>
     manyPeople ? (profiles.find((p) => p.id === m.profileId)?.name ?? '') : '';
@@ -667,8 +774,36 @@ function TimelineCard({
       </div>
 
       <div className="space-y-1">
-        {timeline.map((e, i) => {
+        {rows.map((row, i) => {
           const isNext = i === nextIdx;
+
+          // 間食の行。献立には無いので、写真と撮る口だけ
+          if (row.snack) {
+            return (
+              <div
+                key={'snack-' + i}
+                className={cn('flex gap-2.5 rounded-md px-1.5 py-1.5', isNext && 'bg-secondary')}
+              >
+                <span
+                  className={cn(
+                    'w-11 shrink-0 rounded py-0.5 text-center text-xs font-medium tabular-nums',
+                    isNext && 'bg-foreground text-background',
+                  )}
+                >
+                  {row.time}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold">間食</div>
+                  <PhotoRow photos={snackPhotos} />
+                  <div className="mt-1.5">
+                    <PhotoAdd slot="snack" date={date} label="間食の写真を足す" />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          const e = row.entry!;
           const dishes = e.slot ? (bySlot.get(e.slot) ?? []) : [];
           /*
             過ぎた行は薄くする。ただし**まだ食べていない食事は薄くしない**——
@@ -718,6 +853,7 @@ function TimelineCard({
                         recipes={recipes}
                         onUndo={onUndo}
                         dayWord={dayWord}
+                        photos={photos.filter((ph) => ph.plannedMealId === m.id)}
                         {...(dayTotals.get(m.profileId)
                           ? { total: dayTotals.get(m.profileId)! }
                           : {})}
@@ -748,6 +884,7 @@ function TimelineCard({
                     recipes={recipes}
                     onUndo={onUndo}
                     dayWord={dayWord}
+                    photos={photos.filter((ph) => ph.plannedMealId === m.id)}
                     {...(dayTotals.get(m.profileId)
                       ? { total: dayTotals.get(m.profileId)! }
                       : {})}

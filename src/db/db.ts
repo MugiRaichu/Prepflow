@@ -39,10 +39,11 @@ import type {
   Store,
   UUID,
   RecipePhoto,
+  MealPhoto,
 } from './schema';
 
 export const DB_NAME = 'prepflow';
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 7;
 
 export class PrepflowDB extends Dexie {
   profiles!: Table<Profile, UUID>;
@@ -58,6 +59,7 @@ export class PrepflowDB extends Dexie {
   weekPlans!: Table<WeekPlan, UUID>;
   plannedMeals!: Table<PlannedMeal, UUID>;
   containerAssignments!: Table<ContainerAssignment, UUID>;
+  mealPhotos!: Table<MealPhoto, UUID>;
   prepSessions!: Table<PrepSession, UUID>;
   prepTasks!: Table<PrepTask, UUID>;
   shoppingLists!: Table<ShoppingList, UUID>;
@@ -170,7 +172,20 @@ export class PrepflowDB extends Dexie {
       recipePhotos: 'recipeId, updatedAt',
     });
 
-    // 以後、スキーマ変更時は version(7).stores({...}).upgrade(tx => ...) を
+    /*
+     * 食事の写真。**レシピの写真（v6）とは別物。**
+     *
+     * あちらは「料理に1枚」で、一覧を飾るためのものだった。
+     * こちらは「食べた1回に1枚」で、あとで見返すためのもの。
+     * 同じ料理でも日ごとに別の写真になるので、同じ表には入らない。
+     *
+     * `[date+slot]` を張るのは、1日ぶんを枠ごとに引くため（今日の流れに並べる）。
+     */
+    this.version(7).stores({
+      mealPhotos: 'id, date, slot, plannedMealId, [date+slot], takenAt, deleted',
+    });
+
+    // 以後、スキーマ変更時は version(8).stores({...}).upgrade(tx => ...) を
     // 追記する。既存の version は消さない（Dexie は履歴を必要とする）。
   }
 }
