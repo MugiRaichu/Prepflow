@@ -28,26 +28,14 @@
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前に使う書体（Klee One）。
+      名前に使う字は**書いてある**（起動画面の SVG と src/components/shared/Wordmark.tsx）。
 
-      **手書き風**（本人指定）。ペンで書いた骨格の書体で、
-      崩し字ではないので小さくしても読める——**手書き風と筆記体は別もの**。
-      仮名も欧文も同じ手で書かれているので、「オヒツ」と "Ohitsu" が
-      並んでも字が揃う。
+      書体は4つ試して、4つとも戻ってきた（筆記体・Fraunces・Quicksand・Klee One）。
+      どれも「誰かが作った字」で、このアプリのものではなかった（本人「もっと独自のものに」）。
 
-      **本文には使わない。**読むための文字は端末のゴシックのまま
-      （日本語を持たない書体なので、混ぜると和文だけ別の字になる）。
-      使うのは名前（Ohitsu）だけ。
-
-      取れなくても止まらない。`display=swap` で、届くまでは端末のゴシックが出る。
-      一度取れたぶんは Service Worker が持つので、次からは通信なしで出る。
+      取りに行くものが無いので、**外への通信は1つも無い**。
+      圏外でも見た目が変わらず、届くまで名前が出ない、という待ちも起きない。
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap"
-    />
     <title>オヒツ</title>
 
     <!--
@@ -141,8 +129,12 @@
         `#pf-splash .pf-name` だけだと、上の `#pf-splash .pf-words > p` に
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
+      #pf-splash .pf-words > p.pf-name svg {
+        /* 字の絵。高さだけ決めれば、横幅は絵が持っている */
+        height: 44px;
+        width: auto;
+      }
       #pf-splash .pf-words > p.pf-name {
-        font-family: 'Klee One', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
         font-size: 40px;
         /*
          * **細く、広く。**太くして詰めると「立つ」が、同時に重くなる。
@@ -153,9 +145,9 @@
         /* ペンの線は細い。600 で置くと、手書きの気配を残したまま字が立つ */
         font-weight: 600;
         line-height: 1.15;
-        letter-spacing: 0.02em;
+        letter-spacing: 0;
         /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-        text-indent: 0.02em;
+        text-indent: 0;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -476,15 +468,9 @@
       /*
         名前の筆記体を、いますぐ取りに行かせる。
 
-        書体は「使われた瞬間」に読み込まれる。起動画面で名前が出るのは
-        2.1秒後なので、そこまで待ってから取りに行くと間に合わず、
-        毎回ゴシックのまま終わる（前に実測した）。ここで先に走らせる。
-
-        届かなくても何も起きない。端末のゴシックのまま出る。
+        名前は字の絵なので、読み込むものが無い。
+        先に読ませる仕掛けも要らなくなった。
       */
-      if (document.fonts && document.fonts.load) {
-        document.fonts.load('600 40px \'Klee One\'').catch(function () {});
-      }
     </script>
     <div id="pf-splash" aria-hidden="true">
       <!--
@@ -524,7 +510,23 @@
       </svg>
       <div class="pf-words">
         <p class="pf-tagline">食と暮らしに寄り添う。</p>
-        <p class="pf-name">Ohitsu</p>
+        <p class="pf-name">
+          <svg viewBox="0 0 354 140" aria-label="Ohitsu" role="img"
+            fill="none" stroke="currentColor" stroke-width="15"
+            stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 66.5 24.2 A 34 44 0 1 0 79.6 34.3" />
+        <path d="M 106 20 L 106 110" />
+        <path d="M 106 68 C 112 50 140 50 144 68 L 144 110" />
+        <path d="M 164 52 L 164 110" />
+        <path d="M 161 36 C 169 29 160 24 168 16" stroke-width="11" />
+        <path d="M 194 30 L 194 94 C 194 114 208 112 214 104" />
+        <path d="M 180 52 L 212 52" stroke-width="12" />
+        <path d="M 276 62 C 270 49 240 49 238 68 C 236 93 276 85 274 92" />
+        <path d="M 274 92 C 270 113 244 113 236 100" />
+        <path d="M 294 52 L 294 92 C 294 113 332 113 332 92 L 332 52" />
+        <path d="M 332 52 L 332 110" />
+          </svg>
+        </p>
       </div>
     </div>
     <!--

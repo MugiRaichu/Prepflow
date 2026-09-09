@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Wordmark } from './Wordmark';
 
 /**
  * ヘッダー用ロゴ。public/icons/icon.svg と同じ形。
@@ -30,9 +31,8 @@ export function Logo({ className, withText = true }: { className?: string; withT
           <path d="M226 236 C252 208 228 188 256 156" strokeWidth="28" opacity="0.6" />
         </g>
       </svg>
-      {withText && (
-        <span className="pf-wordmark text-lg">Ohitsu</span>
-      )}
+      {/* 名前は字を描いたもの（Wordmark）。書体には頼らない */}
+      {withText && <Wordmark className="h-4 text-foreground" />}
     </span>
   );
 }
