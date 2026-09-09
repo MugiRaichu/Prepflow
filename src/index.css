@@ -245,13 +245,13 @@
    * 筆記体も明朝寄りの書体も試して、どちらも戻ってきた。
    * 名前は読ませるものなので、整えるのは字間と太さだけにする。
    */
+  /*
+   * 名前の見た目。**字は描いてある**（components/shared/Wordmark.tsx）ので、
+   * ここに書体の指定は無い。この class は、名前を置く箱としてだけ残す。
+   */
   .pf-wordmark {
-    font-family: 'Klee One', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-    /* ペンの線は細い。600 で置くと、手書きの気配を残したまま字が立つ */
-    font-weight: 600;
-    /* 手書きは字ごとに幅が違う。空けすぎると崩れるので、ほんの少しだけ */
-    letter-spacing: 0.02em;
-    text-indent: 0.02em;
+    display: inline-flex;
+    align-items: center;
   }
 
   .pf-shell {
