@@ -806,6 +806,19 @@ function TimelineCard({
           const e = row.entry!;
           const dishes = e.slot ? (bySlot.get(e.slot) ?? []) : [];
           /*
+            **献立に紐づかない写真。**献立を立てていない枠（朝食・昼食など）や、
+            献立を立てる前に撮ったものはここに入る。
+            紐づけ先が無いだけで、日付と枠は分かっているので、その行に置ける。
+          */
+          const loosePhotos = e.slot
+            ? photos.filter((ph) => ph.slot === e.slot && !ph.plannedMealId)
+            : [];
+          /*
+            写真を足せるのは**今日までの枠**。
+            まだ来ていない日の食事は、撮りようがない
+          */
+          const canAdd = Boolean(e.slot) && date <= todayIso();
+          /*
             過ぎた行は薄くする。ただし**まだ食べていない食事は薄くしない**——
             そこがいちばん、いま手を動かす場所だから。
           */
@@ -843,6 +856,9 @@ function TimelineCard({
                   <div className="text-xs leading-relaxed text-muted-foreground">{e.note}</div>
                 ) : null}
 
+                {/* 献立に紐づかない写真。献立があってもなくても、その枠のものとして出す */}
+                <PhotoRow photos={loosePhotos} />
+
                 {dishes.length > 0 && (
                   <div className="mt-1 space-y-2">
                     {dishes.map((m) => (
@@ -863,7 +879,16 @@ function TimelineCard({
                   </div>
                 )}
 
-                {/* 流れにある枠なのに献立が無い日は、ここが空になる。何も足さない */}
+                {/*
+                  献立の無い枠。**写真だけは足せる。**
+                  外で食べた日も、献立を立てていない朝食も、記録としては同じ1食。
+                  献立があるときは、その食事の側（MealBody）に口があるので出さない
+                */}
+                {canAdd && dishes.length === 0 && (
+                  <div className="mt-1.5">
+                    <PhotoAdd slot={e.slot!} date={date} label="写真を足す" />
+                  </div>
+                )}
               </div>
             </div>
           );
