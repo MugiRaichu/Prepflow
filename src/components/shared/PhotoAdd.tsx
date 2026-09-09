@@ -5,7 +5,7 @@ import type { ISODate, MealSlot, UUID } from '@/db/schema';
 import { cn } from '@/lib/utils';
 
 /**
- * 写真を1枚足す。
+ * 写真を足す。
  *
  * **カメラを開くのではなく、端末の写真の口を開く。**
  * `capture` を付けるとカメラが直に起動するが、そうすると
@@ -13,9 +13,13 @@ import { cn } from '@/lib/utils';
  * 落ち着いてから登録する、という順番のほうが自然なので、
  * カメラもライブラリも両方出る素の口にしてある。
  *
+ * **一度に何枚でも選べる。**同じ食事で何枚も撮ることがあるし、
+ * あとからまとめて登録することもある。1枚ずつ選ばせると、
+ * その回数だけ端末の写真の画面を開き直すことになる。
+ *
  * 押してから保存まで数百ミリ秒かかる（縮めているため）。
  * そのあいだボタンを「入れています…」に変える——
- * 無反応だと、もう一度押して2枚入る。
+ * 無反応だと、もう一度押して同じものが2枚入る。
  */
 export function PhotoAdd({
   slot,
@@ -41,18 +45,24 @@ export function PhotoAdd({
   useEffect(() => () => void (alive.current = false), []);
 
   const pick = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
+    const list = [...(files ?? [])];
+    if (list.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      await addPhoto({
-        file,
-        slot,
-        ...(date ? { date } : {}),
-        ...(plannedMealId ? { plannedMealId } : {}),
-        ...(profileId ? { profileId } : {}),
-      });
+      /*
+        1枚ずつ順に入れる。まとめて並列にすると、大きい画像を何枚も
+        同時に展開することになり、端末によってはそこで落ちる
+      */
+      for (const file of list) {
+        await addPhoto({
+          file,
+          slot,
+          ...(date ? { date } : {}),
+          ...(plannedMealId ? { plannedMealId } : {}),
+          ...(profileId ? { profileId } : {}),
+        });
+      }
       onAdded?.();
     } catch {
       // 端末の空きが無い、画像が壊れている、など。押した人にできることを書く
@@ -82,6 +92,7 @@ export function PhotoAdd({
         ref={ref}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={(e) => void pick(e.target.files)}
       />
