@@ -21,6 +21,7 @@ import { CookScreen } from '@/features/cook/CookScreen';
 import { ShoppingScreen } from '@/features/shopping/ShoppingScreen';
 import { StockScreen } from '@/features/shopping/StockScreen';
 import { FreezerScreen } from '@/features/shopping/FreezerScreen';
+import { PhotoScreen } from '@/features/photos/PhotoScreen';
 import { RecipeList } from '@/features/recipes/RecipeList';
 import { RecipeImport } from '@/features/recipes/RecipeImport';
 import { db } from '@/db/db';
@@ -130,6 +131,7 @@ function MainRoutes() {
         <Route path="/shopping" element={<ShoppingScreen />} />
         <Route path="/stock" element={<StockScreen />} />
         <Route path="/freezer" element={<FreezerScreen />} />
+        <Route path="/photos" element={<PhotoScreen />} />
         <Route path="/cook" element={<CookScreen />} />
         <Route path="/rhythm" element={<RhythmScreen />} />
         {/* 暮らしのひな形はやめた。自分で決めるほうが早い（本人判断） */}

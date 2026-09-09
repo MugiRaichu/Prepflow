@@ -58,7 +58,14 @@ export async function requestPersistence(): Promise<boolean> {
   }
 }
 
-/** 書き出しに含めるテーブル。secrets は意図的に除く */
+/**
+ * 書き出しに含めるテーブル。
+ *
+ * **`secrets` と `mealPhotos` は意図的に除く。**
+ * 鍵は持ち出さない。写真は JSON に入らないうえ、数十枚で数MBになり、
+ * 書き出したファイルが持ち運べなくなる（メールにも乗らない）。
+ * **写真は端末にだけ残る**——このことは画面にも書いてある。
+ */
 const EXPORT_TABLES = [
   'settings',
   'profiles',
