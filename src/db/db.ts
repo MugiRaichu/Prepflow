@@ -39,7 +39,7 @@ import type {
   Store,
   UUID,
   RecipePhoto,
-  MealPhoto,
+  MealLog,
 } from './schema';
 
 export const DB_NAME = 'prepflow';
@@ -59,7 +59,7 @@ export class PrepflowDB extends Dexie {
   weekPlans!: Table<WeekPlan, UUID>;
   plannedMeals!: Table<PlannedMeal, UUID>;
   containerAssignments!: Table<ContainerAssignment, UUID>;
-  mealPhotos!: Table<MealPhoto, UUID>;
+  mealPhotos!: Table<MealLog, UUID>;
   prepSessions!: Table<PrepSession, UUID>;
   prepTasks!: Table<PrepTask, UUID>;
   shoppingLists!: Table<ShoppingList, UUID>;
