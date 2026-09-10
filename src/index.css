@@ -250,8 +250,12 @@
    * ここに書体の指定は無い。この class は、名前を置く箱としてだけ残す。
    */
   .pf-wordmark {
-    display: inline-flex;
-    align-items: center;
+    font-family: 'Cormorant Garamond', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+    /* 細いまま。太らせると明朝の良さが消える */
+    font-weight: 500;
+    /* 明朝は詰めると窮屈になる。空けると静かになる */
+    letter-spacing: 0.14em;
+    text-indent: 0.14em;
   }
 
   .pf-shell {

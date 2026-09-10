@@ -22,21 +22,33 @@
       env(safe-area-inset-top) から取る（src/index.css の .pf-shell / .pf-safe-top）。
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="オヒツ" />
+    <meta name="apple-mobile-web-app-title" content="プレノラ" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180x180.png" />
 
     <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
 
     <!--
-      名前に使う字は**書いてある**（起動画面の SVG と src/components/shared/Wordmark.tsx）。
+      名前に使う書体（Cormorant Garamond）。
 
-      書体は4つ試して、4つとも戻ってきた（筆記体・Fraunces・Quicksand・Klee One）。
-      どれも「誰かが作った字」で、このアプリのものではなかった（本人「もっと独自のものに」）。
+      **細い明朝（セリフ）**。「丁寧な暮らし」の雑誌やブログで使われる系統で、
+      線が細く、字間を空けて置くと静かに見える（本人指定）。
+      丸ゴシック（Quicksand）もペン書き（Klee One）も、
+      **温かいが、洗練とは別の方向**だった。
 
-      取りに行くものが無いので、**外への通信は1つも無い**。
-      圏外でも見た目が変わらず、届くまで名前が出ない、という待ちも起きない。
+      **本文には使わない。**読むための文字は端末のゴシックのまま
+      （細い明朝は本文だと読みにくく、和文も持っていない）。
+      使うのは名前の7文字だけ。
+
+      取れなくても止まらない。`display=swap` で、届くまでは端末の明朝が出る。
+      一度取れたぶんは Service Worker が持つので、次からは通信なしで出る。
     -->
-    <title>オヒツ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&display=swap"
+    />
+    <title>プレノラ</title>
 
     <!--
       起動画面。
@@ -129,13 +141,10 @@
         `#pf-splash .pf-name` だけだと、上の `#pf-splash .pf-words > p` に
         font-family を上書きされて、筆記体が当たらなかった（実測）。
       */
-      #pf-splash .pf-words > p.pf-name svg {
-        /* 字の絵。高さだけ決めれば、横幅は絵が持っている */
-        height: 44px;
-        width: auto;
-      }
       #pf-splash .pf-words > p.pf-name {
-        font-size: 40px;
+        font-family: 'Cormorant Garamond', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+        /* 細い字は大きく置く。小さいと線が消えて、かすれて見える */
+        font-size: 46px;
         /*
          * **細く、広く。**太くして詰めると「立つ」が、同時に重くなる。
          * 名前は主張しなくてよく、**きれいに置いてあればいい**（本人「スマートな形に」）。
@@ -143,11 +152,13 @@
          * 字が細いぶん、間を空けても1語のまとまりは崩れない。
          */
         /* ペンの線は細い。600 で置くと、手書きの気配を残したまま字が立つ */
-        font-weight: 600;
+        /* 細いまま。太らせると明朝の良さが消える */
+        font-weight: 500;
         line-height: 1.15;
-        letter-spacing: 0;
+        /* **字間を空ける。**明朝を詰めると窮屈になり、空けると静かになる */
+        letter-spacing: 0.16em;
         /* 字間は最後の1文字の右にも付く。そのぶん左へ寄せて、光学的に中央へ */
-        text-indent: 0;
+        text-indent: 0.16em;
         /*
           字間が詰まりながら定まる。散らばった文字が1つの名前になる。
           落ち着く先は 0.12em。広いままだと「P r e p f l o w」と
@@ -468,9 +479,28 @@
       /*
         名前の筆記体を、いますぐ取りに行かせる。
 
-        名前は字の絵なので、読み込むものが無い。
-        先に読ませる仕掛けも要らなくなった。
+        書体は「使われた瞬間」に読み込まれる。起動画面で名前が出るのは
+        2.1秒後なので、そこまで待ってから取りに行くと間に合わず、
+        毎回ゴシックのまま終わる（前に実測した）。ここで先に走らせる。
+
+        届かなくても何も起きない。端末の明朝のまま出る。
       */
+      if (document.fonts && document.fonts.load) {
+        document.fonts.load('500 46px "Cormorant Garamond"').catch(function () {});
+      }
+
+      /*
+        キャッチコピーは開くたびに変える。
+        **同じ一言を毎日読まされると、3日で目が滑る。**起動の絵と同じ考え方で、
+        いくつか用意しておいて、そのとき出たものを読んでもらう。
+
+        足すのはこの配列に1行書くだけ。
+      */
+      var PF_TAGLINES = ['暮らしを育む。', '食を満たす。心踊る。'];
+      (function () {
+        var el = document.querySelector('#pf-splash .pf-tagline');
+        if (el) el.textContent = PF_TAGLINES[Math.floor(Math.random() * PF_TAGLINES.length)];
+      })();
     </script>
     <div id="pf-splash" aria-hidden="true">
       <!--
@@ -509,24 +539,8 @@
         <path d="M226 236 C252 208 228 188 256 156" stroke-width="15" opacity="0.6"/>
       </svg>
       <div class="pf-words">
-        <p class="pf-tagline">食と暮らしに寄り添う。</p>
-        <p class="pf-name">
-          <svg viewBox="0 0 354 140" aria-label="Ohitsu" role="img"
-            fill="none" stroke="currentColor" stroke-width="15"
-            stroke-linecap="round" stroke-linejoin="round">
-        <path d="M 66.5 24.2 A 34 44 0 1 0 79.6 34.3" />
-        <path d="M 106 20 L 106 110" />
-        <path d="M 106 68 C 112 50 140 50 144 68 L 144 110" />
-        <path d="M 164 52 L 164 110" />
-        <path d="M 161 36 C 169 29 160 24 168 16" stroke-width="11" />
-        <path d="M 194 30 L 194 94 C 194 114 208 112 214 104" />
-        <path d="M 180 52 L 212 52" stroke-width="12" />
-        <path d="M 276 62 C 270 49 240 49 238 68 C 236 93 276 85 274 92" />
-        <path d="M 274 92 C 270 113 244 113 236 100" />
-        <path d="M 294 52 L 294 92 C 294 113 332 113 332 92 L 332 52" />
-        <path d="M 332 52 L 332 110" />
-          </svg>
-        </p>
+        <p class="pf-tagline">暮らしを育む。</p>
+        <p class="pf-name">Plenora</p>
       </div>
     </div>
     <!--

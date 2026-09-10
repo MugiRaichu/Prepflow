@@ -146,7 +146,7 @@ export async function importAll(file: File): Promise<ImportResult> {
   }
 
   if (parsed?.app !== 'prepflow' || !parsed.tables) {
-    return { ok: false, restored: 0, error: 'オヒツ の書き出しファイルではありません' };
+    return { ok: false, restored: 0, error: 'プレノラ の書き出しファイルではありません' };
   }
   if (parsed.schemaVersion > SCHEMA_VERSION) {
     return {
@@ -219,7 +219,7 @@ export async function pickBackupFile(): Promise<boolean> {
       }
     ).showSaveFilePicker({
       suggestedName: 'prepflow-backup.json',
-      types: [{ description: 'オヒツ のバックアップ', accept: { 'application/json': ['.json'] } }],
+      types: [{ description: 'プレノラ のバックアップ', accept: { 'application/json': ['.json'] } }],
     })) as Handle;
     await db.meta.put({ key: HANDLE_KEY, value: handle, updatedAt: nowIso() });
     await writeToHandle(handle);

@@ -266,7 +266,7 @@ export function GasSetupGuide({
         <p className="text-foreground">
           {needLine && 'LINE に送るのは日付と食べるものだけです。'}
           {needCalendar &&
-            'カレンダーから受け取るのは件名と時刻だけです。書く場合は「オヒツ」という別のカレンダーにだけ書き、ほかのカレンダーには触れません。'}
+            'カレンダーから受け取るのは件名と時刻だけです。書く場合は「プレノラ」という別のカレンダーにだけ書き、ほかのカレンダーには触れません。'}
         </p>
       </div>
     </details>

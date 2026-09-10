@@ -557,7 +557,26 @@ function MealBody({
         </div>
       )}
 
-      {skipped && <div className="mt-1.5 text-sm text-muted-foreground">食べていません</div>}
+      {/*
+        **食べなかったときも、写真は足せる。**
+        「食べられなかった」を選ぶのは、たいてい**別のものを食べたから**（本人指摘）。
+        献立どおりではないだけで、その枠で何かは食べている。
+        記録として残したいのはそちらなので、口を閉じない。
+
+        紐づけ先は献立の食事にしない（食べたのはその料理ではない）。
+        日付と枠だけで置くので、行の写真として並ぶ
+      */}
+      {skipped && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">食べていません</span>
+          <PhotoAdd
+            slot={meal.slot}
+            date={meal.date}
+            label="食べたものを足す"
+            className="ml-auto"
+          />
+        </div>
+      )}
     </div>
   );
 }
