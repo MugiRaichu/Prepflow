@@ -11,11 +11,11 @@ export function Logo({ className, withText = true }: { className?: string; withT
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <svg viewBox="0 0 512 512" className="size-6 shrink-0" aria-hidden="true">
-        <rect width="512" height="512" rx="112" className="fill-primary" />
+        <rect width="512" height="512" rx="112" className="fill-background stroke-border" strokeWidth="14" />
         <g
           fill="none"
           stroke="currentColor"
-          className="text-background"
+          className="text-primary"
           strokeWidth="34"
           strokeLinecap="round"
           strokeLinejoin="round"

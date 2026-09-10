@@ -1,8 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera } from 'lucide-react';
-import { addPhoto } from '@/db/repositories/photos';
+import { Camera, PenLine } from 'lucide-react';
+import { addNote, addPhoto } from '@/db/repositories/photos';
 import type { ISODate, MealSlot, UUID } from '@/db/schema';
 import { cn } from '@/lib/utils';
+
+interface Where {
+  slot: MealSlot;
+  date?: ISODate;
+  plannedMealId?: UUID;
+  profileId?: UUID;
+}
+
+const where = (p: Where) => ({
+  slot: p.slot,
+  ...(p.date ? { date: p.date } : {}),
+  ...(p.plannedMealId ? { plannedMealId: p.plannedMealId } : {}),
+  ...(p.profileId ? { profileId: p.profileId } : {}),
+});
 
 /**
  * 写真を足す。
@@ -22,22 +36,11 @@ import { cn } from '@/lib/utils';
  * 無反応だと、もう一度押して同じものが2枚入る。
  */
 export function PhotoAdd({
-  slot,
-  date,
-  plannedMealId,
-  profileId,
   label = '写真',
   className,
   onAdded,
-}: {
-  slot: MealSlot;
-  date?: ISODate;
-  plannedMealId?: UUID;
-  profileId?: UUID;
-  label?: string;
-  className?: string;
-  onAdded?: () => void;
-}) {
+  ...pos
+}: Where & { label?: string; className?: string; onAdded?: () => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,13 +58,7 @@ export function PhotoAdd({
         同時に展開することになり、端末によってはそこで落ちる
       */
       for (const file of list) {
-        await addPhoto({
-          file,
-          slot,
-          ...(date ? { date } : {}),
-          ...(plannedMealId ? { plannedMealId } : {}),
-          ...(profileId ? { profileId } : {}),
-        });
+        await addPhoto({ ...where(pos), file });
       }
       onAdded?.();
     } catch {
@@ -98,6 +95,83 @@ export function PhotoAdd({
       />
       {error && <p className="mt-1 text-xs text-muted-foreground">{error}</p>}
     </>
+  );
+}
+
+/**
+ * ひとことだけ残す。
+ *
+ * **写真を撮れない場面のほうが多い。**外で食べた、片づけてから思い出した、
+ * そもそも撮る空気ではなかった——それでも「なにを食べたか」は残したい。
+ * 写真と同じ場所に、同じ形で置く（見返すときに1本の並びになる）。
+ *
+ * **押すまで入力欄を出さない。**空の欄が常に置いてあると、
+ * 書かない日に「書き残している」ように見える。
+ */
+export function NoteAdd({
+  label = 'メモ',
+  className,
+  onAdded,
+  ...pos
+}: Where & { label?: string; className?: string; onAdded?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const save = async () => {
+    setBusy(true);
+    await addNote({ ...where(pos), note: text });
+    setBusy(false);
+    setText('');
+    setOpen(false);
+    onAdded?.();
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          'flex min-h-11 items-center gap-2 rounded-lg border px-3 text-xs text-muted-foreground active:bg-accent',
+          className,
+        )}
+      >
+        <PenLine className="size-4 shrink-0" />
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        autoFocus
+        rows={2}
+        placeholder="食べたもの、味、ひとこと"
+        className="w-full rounded-lg border border-input bg-transparent p-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => void save()}
+          disabled={busy || !text.trim()}
+          className="min-h-11 flex-1 rounded-lg bg-foreground text-xs font-semibold text-background disabled:opacity-40"
+        >
+          残す
+        </button>
+        <button
+          onClick={() => {
+            setText('');
+            setOpen(false);
+          }}
+          className="min-h-11 flex-1 rounded-lg border text-xs text-muted-foreground"
+        >
+          やめる
+        </button>
+      </div>
+    </div>
   );
 }
 

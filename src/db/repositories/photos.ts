@@ -1,9 +1,9 @@
 import { db, newEntity, nowIso } from '@/db/db';
 import { todayIso } from '@/lib/labels';
-import type { ISODate, MealPhoto, MealSlot, UUID } from '@/db/schema';
+import type { ISODate, MealLog, MealSlot, UUID } from '@/db/schema';
 
 /**
- * 食事の写真。
+ * 食事の記録（写真とメモ）。
  *
  * **一度やめて、もう一度入れた。**前は「作ったものを撮って一覧に出す」機能で、
  * 作り置きの皿は映えないからと外した（D-125）。今回は目的が違う——
@@ -11,12 +11,14 @@ import type { ISODate, MealPhoto, MealSlot, UUID } from '@/db/schema';
  * 見返す相手は自分だけなので、映えるかどうかは関係がない。
  *
  * ---
- * **置き場所はレシピではなく、食べた1回に紐づける。**
- * 同じ料理でも、作った日ごとに写真は別物になる。
+ * **写真とメモを同じものとして持つ。**撮り忘れた日も、撮る場面ではなかった日も、
+ * 味の覚書だけ残したい日もある。別々に持つと、見返すときに2つ並べて
+ * 時系列を頭で合わせることになる。
  *
+ * **置き場所はレシピではなく、食べた1回に紐づける。**
+ * 同じ料理でも、作った日ごとに記録は別物になる。
  * 献立に無いもの（間食）も同じ形で持てるように、
  * 献立の食事（`plannedMealId`）は**任意**にしてある。
- * 日付と枠さえあれば、その日の並びに置ける。
  */
 
 /** 長辺の上限。これ以上大きくしても、画面で見るぶんには変わらない */
@@ -56,8 +58,7 @@ async function shrink(file: Blob): Promise<{ blob: Blob; width: number; height: 
   return { blob: blob ?? file, width, height };
 }
 
-export interface AddPhotoInput {
-  file: Blob;
+export interface LogWhere {
   date?: ISODate;
   slot: MealSlot;
   /** 献立の食事に紐づくなら。間食など、献立に無いものは持たない */
@@ -65,34 +66,43 @@ export interface AddPhotoInput {
   profileId?: UUID;
 }
 
-export async function addPhoto(input: AddPhotoInput): Promise<MealPhoto> {
-  const { blob, width, height } = await shrink(input.file);
-  const now = nowIso();
-  const photo: MealPhoto = {
+function base(where: LogWhere): MealLog {
+  return {
     ...newEntity(),
-    date: input.date ?? todayIso(),
-    slot: input.slot,
-    image: blob,
-    width,
-    height,
-    takenAt: now,
-    ...(input.plannedMealId ? { plannedMealId: input.plannedMealId } : {}),
-    ...(input.profileId ? { profileId: input.profileId } : {}),
+    date: where.date ?? todayIso(),
+    slot: where.slot,
+    takenAt: nowIso(),
+    ...(where.plannedMealId ? { plannedMealId: where.plannedMealId } : {}),
+    ...(where.profileId ? { profileId: where.profileId } : {}),
   };
-  await db.mealPhotos.add(photo);
-  return photo;
 }
 
-/** その日の写真。並びは撮った順 */
-export async function photosOn(date: ISODate): Promise<MealPhoto[]> {
+export async function addPhoto(input: LogWhere & { file: Blob }): Promise<MealLog> {
+  const { blob, width, height } = await shrink(input.file);
+  const log: MealLog = { ...base(input), image: blob, width, height };
+  await db.mealPhotos.add(log);
+  return log;
+}
+
+/** 文だけの記録。写真が無くても、その日の並びに置ける */
+export async function addNote(input: LogWhere & { note: string }): Promise<MealLog | null> {
+  const note = input.note.trim();
+  if (!note) return null;
+  const log: MealLog = { ...base(input), note };
+  await db.mealPhotos.add(log);
+  return log;
+}
+
+/** その日の記録。並びは書いた順 */
+export async function logsOn(date: ISODate): Promise<MealLog[]> {
   const rows = await db.mealPhotos.where('date').equals(date).toArray();
   return rows.filter((p) => p.deleted === 0).sort((a, b) => a.takenAt.localeCompare(b.takenAt));
 }
 
 /** 見返す画面のための、日ごとのまとまり。新しい日から */
-export async function photosByDay(limitDays = 60): Promise<{ date: ISODate; photos: MealPhoto[] }[]> {
+export async function logsByDay(limitDays = 60): Promise<{ date: ISODate; logs: MealLog[] }[]> {
   const all = (await db.mealPhotos.toArray()).filter((p) => p.deleted === 0);
-  const byDate = new Map<ISODate, MealPhoto[]>();
+  const byDate = new Map<ISODate, MealLog[]>();
   for (const p of all) {
     const list = byDate.get(p.date);
     if (list) list.push(p);
@@ -101,13 +111,13 @@ export async function photosByDay(limitDays = 60): Promise<{ date: ISODate; phot
   return [...byDate.entries()]
     .sort((a, b) => b[0].localeCompare(a[0]))
     .slice(0, limitDays)
-    .map(([date, photos]) => ({
+    .map(([date, logs]) => ({
       date,
-      photos: photos.sort((a, b) => a.takenAt.localeCompare(b.takenAt)),
+      logs: logs.sort((a, b) => a.takenAt.localeCompare(b.takenAt)),
     }));
 }
 
-export async function photoCount(): Promise<number> {
+export async function logCount(): Promise<number> {
   return (await db.mealPhotos.toArray()).filter((p) => p.deleted === 0).length;
 }
 
@@ -115,6 +125,6 @@ export async function photoCount(): Promise<number> {
  * 消す。**本当に消す**（ソフト削除にしない）。
  * 写真は重いので、消したつもりのものが端末に残り続けるのは困る。
  */
-export async function removePhoto(id: UUID): Promise<void> {
+export async function removeLog(id: UUID): Promise<void> {
   await db.mealPhotos.delete(id);
 }

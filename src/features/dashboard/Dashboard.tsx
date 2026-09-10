@@ -11,7 +11,7 @@ import type {
   ContainerAssignment,
   Habit,
   Macros,
-  MealPhoto,
+  MealLog,
   MealSlot,
   PlannedMeal,
   Profile,
@@ -23,8 +23,8 @@ import { DishImage } from '@/features/recipes/DishImage';
 import { useUndoBar } from '@/components/shared/UndoBar';
 import { handleMissedMeal, setMealEaten, undoMissedMeal } from '@/db/repositories/meals';
 import { listPrepped } from '@/db/repositories/leftovers';
-import { photoCount, photosOn } from '@/db/repositories/photos';
-import { PhotoAdd, useObjectUrl } from '@/components/shared/PhotoAdd';
+import { logCount, logsOn } from '@/db/repositories/photos';
+import { NoteAdd, PhotoAdd, useObjectUrl } from '@/components/shared/PhotoAdd';
 import type { MissedAction } from '@/db/repositories/meals';
 import { addDaysIso } from '@/lib/labels';
 import { buildTimeline, toMin, toTime } from '@/features/rhythm/logic/timeline';
@@ -110,8 +110,8 @@ export function Dashboard() {
     () => db.containerAssignments.where('intendedDate').equals(date).toArray(),
     [date],
   );
-  // その日の写真。流れの中の、撮った枠の行に出る
-  const photos = useLiveQuery(() => photosOn(date), [date]) ?? [];
+  // その日の記録（写真とメモ）。流れの中の、その枠の行に出る
+  const photos = useLiveQuery(() => logsOn(date), [date]) ?? [];
   // 期限切れは PreppedStrip の中でラベルを反転させて示す。別枠にしない
   const plans = useLiveQuery(
     () => db.weekPlans.where('deleted').equals(0).reverse().sortBy('weekStart'),
@@ -288,12 +288,12 @@ export function Dashboard() {
  * 撮り始めた人にだけ、見返す道が現れる。
  */
 function PhotoStrip() {
-  const n = useLiveQuery(photoCount, []);
+  const n = useLiveQuery(logCount, []);
   if (!n) return null;
   return (
     <Link to="/photos" className="flex items-center gap-2 rounded-lg border p-3 active:bg-accent">
       <Images className="size-4 shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-sm">写真 {n} 枚</span>
+      <span className="flex-1 text-sm">記録 {n} 件</span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
     </Link>
   );
@@ -390,7 +390,7 @@ function MealBody({
   total?: { eaten: number; target: number };
   dayWord: string;
   /** この食事の写真 */
-  photos: MealPhoto[];
+  photos: MealLog[];
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const eaten = meal.status === 'eaten';
@@ -540,20 +540,34 @@ function MealBody({
             <Check className="size-3.5 text-background" strokeWidth={3} />
           </span>
           <span className="text-sm font-semibold">食べた</span>
-          {/* 撮るのは食べる場面。**食べたと押したあとに出す**のがいちばん近い */}
+          <button
+            onClick={() => void setMealEaten(meal, false)}
+            className="ml-auto min-h-11 px-2 text-xs text-muted-foreground underline underline-offset-2"
+          >
+            取り消す
+          </button>
+        </div>
+      )}
+
+      {/*
+        残すのは食べる場面。**食べたと押したあとに出す**のがいちばん近い。
+        写真とメモを並べる——**撮れない日のほうが多い**ので、
+        書くだけの道が同じ大きさで要る
+      */}
+      {eaten && (
+        <div className="mt-1.5 flex flex-wrap gap-2">
           <PhotoAdd
             slot={meal.slot}
             date={meal.date}
             plannedMealId={meal.id}
             profileId={meal.profileId}
-            className="ml-auto"
           />
-          <button
-            onClick={() => void setMealEaten(meal, false)}
-            className="min-h-11 px-2 text-xs text-muted-foreground underline underline-offset-2"
-          >
-            取り消す
-          </button>
+          <NoteAdd
+            slot={meal.slot}
+            date={meal.date}
+            plannedMealId={meal.id}
+            profileId={meal.profileId}
+          />
         </div>
       )}
 
@@ -567,14 +581,12 @@ function MealBody({
         日付と枠だけで置くので、行の写真として並ぶ
       */}
       {skipped && (
-        <div className="mt-1.5 flex items-center gap-2">
+        <div className="mt-1.5 space-y-1.5">
           <span className="text-sm text-muted-foreground">食べていません</span>
-          <PhotoAdd
-            slot={meal.slot}
-            date={meal.date}
-            label="食べたものを足す"
-            className="ml-auto"
-          />
+          <div className="flex flex-wrap gap-2">
+            <PhotoAdd slot={meal.slot} date={meal.date} label="食べたものの写真" />
+            <NoteAdd slot={meal.slot} date={meal.date} label="食べたものを書く" />
+          </div>
         </div>
       )}
     </div>
@@ -587,18 +599,34 @@ function MealBody({
  * **1枚でも複数でも同じ形にする。**枚数で見た目が変わると、
  * 「増えた」ことに気づけない。はみ出したぶんは横に流す。
  */
-function PhotoRow({ photos }: { photos: MealPhoto[] }) {
+function PhotoRow({ photos }: { photos: MealLog[] }) {
   if (photos.length === 0) return null;
+  const shots = photos.filter((p) => p.image);
+  const notes = photos.filter((p) => !p.image && p.note);
   return (
-    <div className="mt-1.5 flex gap-1.5 overflow-x-auto">
-      {photos.map((p) => (
-        <PhotoThumb key={p.id} photo={p} />
+    <div className="mt-1.5 space-y-1.5">
+      {shots.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto">
+          {shots.map((p) => (
+            <PhotoThumb key={p.id} photo={p} />
+          ))}
+        </div>
+      )}
+      {/* 文だけの記録。**写真と同じ並びに置く**（見返すときに1本になる） */}
+      {notes.map((p) => (
+        <Link
+          key={p.id}
+          to="/photos"
+          className="block rounded-md border-l-2 border-border py-0.5 pl-2 text-xs leading-relaxed text-muted-foreground"
+        >
+          {p.note}
+        </Link>
       ))}
     </div>
   );
 }
 
-function PhotoThumb({ photo }: { photo: MealPhoto }) {
+function PhotoThumb({ photo }: { photo: MealLog }) {
   const url = useObjectUrl(photo.image);
   return (
     <Link
@@ -710,7 +738,7 @@ function TimelineCard({
   dayTotals: Map<string, { eaten: number; target: number }>;
   dayWord: string;
   /** その日の写真 */
-  photos: MealPhoto[];
+  photos: MealLog[];
   onUndo: (label: string, undo: () => Promise<void>) => void;
 }) {
   const weekday = new Date(date + 'T00:00:00').getDay() as Weekday;
@@ -814,8 +842,9 @@ function TimelineCard({
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold">間食</div>
                   <PhotoRow photos={snackPhotos} />
-                  <div className="mt-1.5">
-                    <PhotoAdd slot="snack" date={date} label="間食の写真を足す" />
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <PhotoAdd slot="snack" date={date} label="写真" />
+                    <NoteAdd slot="snack" date={date} label="メモ" />
                   </div>
                 </div>
               </div>
@@ -904,8 +933,9 @@ function TimelineCard({
                   献立があるときは、その食事の側（MealBody）に口があるので出さない
                 */}
                 {canAdd && dishes.length === 0 && (
-                  <div className="mt-1.5">
-                    <PhotoAdd slot={e.slot!} date={date} label="写真を足す" />
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <PhotoAdd slot={e.slot!} date={date} label="写真" />
+                    <NoteAdd slot={e.slot!} date={date} label="メモ" />
                   </div>
                 )}
               </div>
