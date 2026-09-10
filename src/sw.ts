@@ -5,12 +5,14 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 /**
  * Service Worker。
  *
  * 自前で書いているのは**共有シートから受け取るため**だけ。
- * 「レシピを見ているアプリの共有メニューから オヒツ に投げる」を成立させるには、
+ * 「レシピを見ているアプリの共有メニューから プレノラ に投げる」を成立させるには、
  * 共有された画像を POST で受け取る口が要る。POST を受けられるのは SW だけなので、
  * 生成まかせ（generateSW）ではここが作れない。
  *
@@ -112,11 +114,23 @@ registerRoute(
 );
 
 /*
- * 外部から取ってくるものは、もう無い。
+ * 名前に使う書体（Google Fonts）を、一度取れたら端末に残す。
  *
- * 名前の字は書いてあるので（Wordmark）、**このアプリは自分の配信元以外へ
- * 一切つながらない**。フォント用のキャッシュ2種類も要らなくなった。
+ * このアプリは圏外でも動く。**唯一の外部依存がこの書体**なので、
+ * 初回に取れたぶんを持っておいて、次からは通信なしで出す。
+ * 取れなければ端末の明朝で出るだけで、起動は止まらない。
  */
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  new StaleWhileRevalidate({ cacheName: 'pf-font-css' }),
+);
+registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new CacheFirst({
+    cacheName: 'pf-font-files',
+    plugins: [new ExpirationPlugin({ maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 365 })],
+  }),
+);
 
 // 新しい版をすぐ有効にする（registerType: 'autoUpdate' と同じ挙動）
 self.skipWaiting();

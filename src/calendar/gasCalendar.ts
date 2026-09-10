@@ -116,7 +116,7 @@ export function blocksFor(cache: CalendarCache | null, date: ISODate): CalendarB
 }
 
 // ---------------------------------------------------------------------------
-// 書き出し（オヒツ カレンダー）
+// 書き出し（プレノラ カレンダー）
 // ---------------------------------------------------------------------------
 
 export interface PublishItem {
@@ -217,7 +217,7 @@ export async function buildPublishItems(settings: AppSettings): Promise<{
         start: cook.time,
         minutes: Math.max(5, toMin(cook.endTime) - toMin(cook.time)),
         title: '今日のぶんを作る',
-        description: 'オヒツ',
+        description: 'プレノラ',
       });
     }
   }
@@ -225,7 +225,7 @@ export async function buildPublishItems(settings: AppSettings): Promise<{
   // 買い出しの日。今日以降なら終日で入れる
   const list = (await db.shoppingLists.where('weekPlanId').equals(plan.id).toArray())[0];
   if (list && list.shoppingDate >= today && list.status !== 'done') {
-    items.push({ date: list.shoppingDate, title: '買い出し', allDay: true, description: 'オヒツ' });
+    items.push({ date: list.shoppingDate, title: '買い出し', allDay: true, description: 'プレノラ' });
   }
 
   const from = dates[0]!;

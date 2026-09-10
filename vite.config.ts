@@ -31,9 +31,9 @@ export default defineConfig({
       filename: 'sw.ts',
       includeAssets: ['icons/favicon.svg', 'icons/apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'オヒツ',
-        short_name: 'オヒツ',
-        description: 'ごはんを、その人の暮らしに合わせる。献立・買い出し・作り置きを自動で組む',
+        name: 'プレノラ',
+        short_name: 'プレノラ',
+        description: '暮らしを育む。献立・買い出し・作り置きを自動で組み、平日の食事を整える',
         lang: 'ja',
         // base 配下に置かれても正しく起動するよう、配信パスに合わせる
         start_url: base,
@@ -42,9 +42,9 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         /*
-         * 共有シートに オヒツ を出す。
+         * 共有シートに プレノラ を出す。
          *
-         * レシピを見ているアプリ（ブラウザ・SNS・写真）から「共有 → オヒツ」で
+         * レシピを見ているアプリ（ブラウザ・SNS・写真）から「共有 → プレノラ」で
          * 材料を投げ込めるようにする。**外からは取りに行かない**（規約・著作権。D-073）。
          * 動くのは本人が共有を押したときだけ。
          *

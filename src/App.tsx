@@ -74,8 +74,8 @@ export default function App() {
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {blocked
-              ? '別のタブかウィンドウで オヒツ が開いています。そちらを閉じると、こちらが動き出します。'
-              : 'ほかの画面で オヒツ を開いたままだと、ここで待つことがあります。そちらを閉じてから、開き直してください。'}
+              ? '別のタブかウィンドウで プレノラ が開いています。そちらを閉じると、こちらが動き出します。'
+              : 'ほかの画面で プレノラ を開いたままだと、ここで待つことがあります。そちらを閉じてから、開き直してください。'}
           </p>
           <button
             onClick={() => location.reload()}
