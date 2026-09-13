@@ -15,6 +15,7 @@ import type { StockLevel } from '@/db/repositories/inventory';
 import { STORE_SECTION_LABELS } from '@/lib/labels';
 import type { Ingredient, InventoryItem, StoreSection } from '@/db/schema';
 import { cn } from '@/lib/utils';
+import { StockAdd } from './StockAdd';
 
 /**
  * 棚卸し。
@@ -73,14 +74,24 @@ export function StockScreen() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="家にある量を入れ直す" backTo="/plan" />
+      <PageHeader title="家にあるもの" backTo="/plan" />
       {undo.bar}
 
+      {/*
+        足す口は**一覧の上**。棚卸しを始めるとき、まず「入っていないもの」に
+        気づくことが多い（冷蔵庫を開けた瞬間に見える）。
+        空のときと並んでいるときで**同じ場所に置く**。分けて置くと、
+        最初の1つを足した瞬間に一覧へ切り替わって欄が閉じ、続けて足せなかった。
+      */}
+      <div className="px-4 pt-4">
+        <StockAdd onAdded={undo.offer} />
+      </div>
+
       {asked.length === 0 ? (
-        <div className="p-4">
+        <div className="space-y-4 p-4">
           <EmptyState
             title="記録されている食材はありません"
-            description="買い物を終えると、買ったものがここに並びます。"
+            description="買い物を終えると、買ったものがここに並びます。すでに家にあるものは、上から足せます。"
           />
         </div>
       ) : (
