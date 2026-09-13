@@ -74,6 +74,69 @@ function lockZoomInStandalone(): void {
 
 lockZoomInStandalone();
 
+/**
+ * **画面の高さを測って外枠に渡し、文書がずれたら戻す。**
+ *
+ * iPhone は入力欄にキーボードが出ると、欄を見せるために**文書ごと上へ動かす**。
+ * 閉じても元に戻らないことがあり、そのあいだ
+ *   ・見出しが時刻に潜る
+ *   ・タブバーが本文の下端を覆い、最後の行が押せない
+ * が同時に起きる（本人「たまに…タッチできなくなる」）。
+ *
+ * 直し方は2つ。
+ *   1. 外枠の高さを `innerHeight` の実測にする（CSS の単位の食い違いを持ち込まない）
+ *   2. **入力が終わったら**文書の位置を 0 に戻す
+ *
+ * 入力中は戻さない。戻すと、打っている欄がキーボードの裏に隠れる。
+ * 戻すのは、入力欄から離れた・画面に戻ってきた・向きが変わった、のとき。
+ */
+function keepViewportSteady(): void {
+  const root = document.documentElement;
+
+  const editing = () => {
+    const el = document.activeElement;
+    return (
+      el instanceof HTMLInputElement ||
+      el instanceof HTMLTextAreaElement ||
+      (el instanceof HTMLElement && el.isContentEditable)
+    );
+  };
+
+  const settle = () => {
+    root.style.setProperty('--pf-app-h', window.innerHeight + 'px');
+    if (editing()) return;
+    if (window.scrollY !== 0 || window.scrollX !== 0) window.scrollTo(0, 0);
+    // 文書の上に余計な押し上げが残っていたら消す（iOS は body 側に残すことがある）
+    if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+    if (root.scrollTop !== 0) root.scrollTop = 0;
+  };
+
+  // キーボードは閉じる動きに時間がかかる。閉じ終わったころにもう一度見る
+  const settleSoon = () => {
+    settle();
+    window.setTimeout(settle, 120);
+    window.setTimeout(settle, 400);
+  };
+
+  settle();
+  window.addEventListener('resize', settle);
+  window.addEventListener('orientationchange', settleSoon);
+  window.addEventListener('pageshow', settleSoon);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') settleSoon();
+  });
+  // 入力欄から離れた＝キーボードが閉じる
+  document.addEventListener('focusout', settleSoon);
+  // キーボードの出し入れで見えている枠が変わる
+  window.visualViewport?.addEventListener('resize', settle);
+  // 何かの拍子に文書がスクロールされたら、入力中でなければその場で戻す
+  window.addEventListener('scroll', () => {
+    if (!editing() && window.scrollY !== 0) window.scrollTo(0, 0);
+  });
+}
+
+keepViewportSteady();
+
 /*
  * GAS に貯まっているもの（カレンダーの予定・ショートカットが送った歩数）を
  * **1往復でまとめて**取り込む。未設定・圏外なら何もしない。

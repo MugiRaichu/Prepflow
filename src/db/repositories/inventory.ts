@@ -269,3 +269,72 @@ export async function dropExpiredStock(today = nowIso().slice(0, 10)): Promise<s
   }
   return dropped;
 }
+
+/**
+ * **すでに家にあるもの**を手で足す（本人「すでに家にあるものを追加できるようにしてください」）。
+ *
+ * 在庫はこれまで「買い物を終えたとき」にしか入らなかった。
+ * 使い始める前から冷蔵庫にあるもの、もらいもの、別の店で買ったもの——
+ * どれもアプリに入る道が無く、**家にあるのに献立が買わせていた**。
+ *
+ * 量は**買う単位**で聞く（1パック、2本、半分）。グラム数は聞かない（棚卸しと同じ理由）。
+ * 同じ食材がもう入っていれば、そこへ足す。行を2つにしない。
+ *
+ * 買った日は今日にする。**いつ買ったかは覚えていない人のほうが多い**うえ、
+ * 古めに見積もって傷んだ扱いで勝手に消すより、あとで「無い」を押してもらうほうが害が小さい。
+ */
+export interface AddStockResult {
+  /** 足す前の行。無かったなら null（取り消しで行ごと消す） */
+  before: InventoryItem | null;
+  after: InventoryItem;
+}
+
+export async function addStock(ingredientId: string, units: number): Promise<AddStockResult | null> {
+  const ing = await db.ingredients.get(ingredientId);
+  if (!ing || units <= 0) return null;
+
+  const grams = Math.round(units * ing.purchase.gramsPerUnit);
+  const location = ing.shelfLife.pantryDays ? 'pantry' : 'fridge';
+  const today = nowIso().slice(0, 10);
+
+  const existing = (await db.inventory.where('ingredientId').equals(ingredientId).toArray()).find(
+    (x) => x.deleted === 0 && x.location === location && x.quantity > 0,
+  );
+
+  if (existing) {
+    const after: InventoryItem = {
+      ...existing,
+      quantity: existing.quantity + grams,
+      purchasedAt: today,
+      updatedAt: nowIso(),
+    };
+    await db.inventory.put(after);
+    return { before: { ...existing }, after };
+  }
+
+  const after: InventoryItem = {
+    ...newEntity(),
+    ingredientId,
+    ingredientName: ing.name,
+    quantity: grams,
+    location,
+    purchasedAt: today,
+  };
+  await db.inventory.add(after);
+  return { before: null, after };
+}
+
+/** 足したのを取り消す。足す前に無かったものは、行ごと消す */
+export async function undoAddStock(result: AddStockResult): Promise<void> {
+  if (result.before) {
+    await db.inventory.put({ ...result.before, updatedAt: nowIso() });
+  } else {
+    await db.inventory.delete(result.after.id);
+  }
+}
+
+/** 足す候補。調味料（常備品）は出さない——棚卸しでも聞いていないので、足しても一覧に現れない */
+export async function listAddableIngredients(): Promise<Ingredient[]> {
+  const all = await db.ingredients.where('deleted').equals(0).toArray();
+  return all.filter((i) => i.isStaple !== 1).sort((a, b) => a.nameKey.localeCompare(b.nameKey, 'ja'));
+}

@@ -153,9 +153,26 @@
   html {
     -webkit-tap-highlight-color: transparent;
   }
+  /*
+   * **文書そのものは動かさない。**本文は外枠の中（main）だけでスクロールする。
+   *
+   * ここに高さの上限が無かったので、iPhone で入力欄を触ると、
+   * キーボードに押されて**画面ごと上へずれた**。キーボードを閉じても戻らないことがあり、
+   *   ・上の見出しが時刻に潜る
+   *   ・同じぶんだけタブバーが本文の下端を覆い、最後の行が押せなくなる
+   * という2つが**同時に**起きていた（本人「たまに上部が時刻と重なったり、
+   * 下部がタブの裏側までしかスクロールできなくて、タッチできなくなる」）。
+   * 「たまに」なのは、入力欄を触ったあとにだけ起きるため。
+   *
+   * 文書の高さを画面に固定し、はみ出しを隠す。ずれた状態から戻す処理は main.tsx。
+   */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
   body {
     @apply bg-background text-foreground;
-    /* 本文は外枠の中だけでスクロールする。文書そのものは動かさない */
     overscroll-behavior: none;
   }
 
@@ -240,15 +257,7 @@
    *
    * ソフトキーボードは viewport の `interactive-widget=resizes-content` に任せる。
    */
-  /*
-   * 名前の見た目。**書体は本文と同じ**（端末に入っているゴシック）。
-   * 筆記体も明朝寄りの書体も試して、どちらも戻ってきた。
-   * 名前は読ませるものなので、整えるのは字間と太さだけにする。
-   */
-  /*
-   * 名前の見た目。**字は描いてある**（components/shared/Wordmark.tsx）ので、
-   * ここに書体の指定は無い。この class は、名前を置く箱としてだけ残す。
-   */
+  /* 名前の見た目。細い明朝を、字間を空けて置く（D-177） */
   .pf-wordmark {
     font-family: 'Cormorant Garamond', 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
     /* 細いまま。太らせると明朝の良さが消える */
@@ -258,8 +267,17 @@
     text-indent: 0.14em;
   }
 
+  /*
+   * 高さは**実際に測った画面の高さ**（--pf-app-h、main.tsx で入れる）。
+   * 測れないあいだだけ 100dvh / 100vh に頼る。
+   *
+   * CSS の単位（dvh / vh）は、端末と場面によって返す数字が食い違う。
+   * 外枠が画面より1pxでも高いと文書がスクロールできるようになり、
+   * 上のずれ（時刻に潜る／下が押せない）の入口になる。
+   * `innerHeight` は「いま見えている枠の高さ」そのものなので、食い違わない。
+   */
   .pf-shell {
-    height: 100dvh;
+    height: var(--pf-app-h, 100dvh);
     padding-top: env(safe-area-inset-top);
     /* 丸角・ノッチの内側に本文を寄せる。背景は端まで塗る */
     padding-left: env(safe-area-inset-left);
@@ -382,7 +400,7 @@
 
   @media (display-mode: standalone), (display-mode: fullscreen) {
     .pf-shell {
-      height: 100vh;
+      height: var(--pf-app-h, 100vh);
     }
 
     /*
@@ -433,6 +451,14 @@
    */
   .pf-safe-bottom {
     padding-bottom: min(env(safe-area-inset-bottom), 10px);
+  }
+
+  /*
+   * 本文の下の余白。**タブバーの高さ＋浮かせたぶん＋ホームバーぶん。**
+   * 固定の 96px だと、ホームバーのある端末で最後の行がバーの縁にかかった。
+   */
+  .pf-main {
+    padding-bottom: calc(6.5rem + min(env(safe-area-inset-bottom), 10px));
   }
 
   /*
